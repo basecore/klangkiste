@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jukebox V31 CueSupport</title>
+    <title>Jukebox V32 SaveFix</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -289,7 +289,7 @@
         <button class="btn-switch-kids" onclick="goToKidsMode()">▶ ZUM KINDER-MODUS</button>
         <div class="hint-text">💡 Tipp: 5x oben rechts tippen für Admin-Menü.</div>
         
-        <h1>🔧 Jukebox V31</h1>
+        <h1>🔧 Jukebox V32</h1>
         <div id="nfc-warning" class="browser-warning">⚠️ NFC API nicht verfügbar. Bitte Chrome nutzen.</div>
 
         <div class="card">
@@ -422,7 +422,7 @@
         </div>
 
         <div class="footer-info">
-            <p>Jukebox NFC V31 (Cue Support)</p>
+            <p>Jukebox NFC V32 (Save Fix)</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
         </div>
@@ -490,7 +490,6 @@
         let currentPlayingTagId = null; let currentTrackIndex = 0; let currentPlaylist = []; 
         let isNfcScanning = false; let isLinkModeActive = false;
 
-        // NEU: Variable für Cue Tracks
         let currentCueTracks = null; // Array of {time: seconds, title: string}
 
         const SYSTEM_BG_ID = "system_bg";
@@ -620,6 +619,14 @@
         async function releaseWakeLock() { if (wakeLock !== null) { await wakeLock.release(); wakeLock = null; } stubbornVideo.pause(); }
         document.addEventListener('visibilitychange', async () => { if (document.visibilityState === 'visible' && settings.enableWakeLock) { requestWakeLock(); } });
 
+        // FIX: Speichern beim Verlassen der App
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                forceSaveCurrentPosition();
+            }
+        });
+        window.addEventListener('beforeunload', () => { forceSaveCurrentPosition(); });
+
         function updateEcoModeState(fromCheckbox = false) {
             const isChecked = document.getElementById('check-ecomode').checked;
             if (isChecked) { window.addEventListener('deviceorientation', handleOrientation); if(fromCheckbox) showStatus("Sensoren gestartet ✅"); } 
@@ -690,45 +697,23 @@
             if (!isNfcScanning) startNFC();
         }
 
-        // --- CUE PARSING LOGIK ---
         function parseCueSheet(cueText) {
             const tracks = [];
             const lines = cueText.split('\n');
             let currentTrack = null;
-
             lines.forEach(line => {
                 line = line.trim();
-                // TRACK XX AUDIO
-                if (line.startsWith('TRACK')) {
-                    currentTrack = {};
-                }
-                // TITLE "..."
-                if (line.startsWith('TITLE') && currentTrack) {
-                    const match = line.match(/"([^"]+)"/);
-                    if (match) currentTrack.title = match[1];
-                }
-                // INDEX 01 MM:SS:FF
+                if (line.startsWith('TRACK')) { currentTrack = {}; }
+                if (line.startsWith('TITLE') && currentTrack) { const match = line.match(/"([^"]+)"/); if (match) currentTrack.title = match[1]; }
                 if (line.startsWith('INDEX 01') && currentTrack) {
-                    const parts = line.split(' ');
-                    const timeStr = parts[parts.length - 1]; // "00:00:00"
-                    const timeParts = timeStr.split(':');
-                    
-                    const min = parseInt(timeParts[0], 10);
-                    const sec = parseInt(timeParts[1], 10);
-                    const frames = parseInt(timeParts[2], 10);
-                    
-                    // 75 Frames = 1 Sekunde
+                    const parts = line.split(' '); const timeStr = parts[parts.length - 1]; const timeParts = timeStr.split(':');
+                    const min = parseInt(timeParts[0], 10); const sec = parseInt(timeParts[1], 10); const frames = parseInt(timeParts[2], 10);
                     const totalSeconds = (min * 60) + sec + (frames / 75);
-                    currentTrack.time = totalSeconds;
-                    
-                    tracks.push(currentTrack);
-                    currentTrack = null;
+                    currentTrack.time = totalSeconds; tracks.push(currentTrack); currentTrack = null;
                 }
-            });
-            return tracks;
+            }); return tracks;
         }
 
-        // --- PLAYBACK ---
         function playTrackByTag(tagId) {
             if(currentPlayingTagId && currentPlayingTagId !== tagId) forceSaveCurrentPosition();
             const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
@@ -743,15 +728,9 @@
                     
                     currentPlayingTagId = tagId; currentPlaylist = track.playlist;
                     
-                    // Lade CUE Tracks wenn vorhanden
                     currentCueTracks = track.cueTracks || null;
-                    // Button anzeigen/verstecken
                     const nextBtn = document.getElementById('btn-next-track');
-                    if(currentCueTracks && currentCueTracks.length > 0) {
-                        nextBtn.style.display = "flex";
-                    } else {
-                        nextBtn.style.display = "none";
-                    }
+                    if(currentCueTracks && currentCueTracks.length > 0) { nextBtn.style.display = "flex"; } else { nextBtn.style.display = "none"; }
 
                     let startIndex = track.lastTrackIndex || 0; let startTime = track.lastTime || 0;
                     if(startIndex >= currentPlaylist.length) startIndex = 0;
@@ -767,10 +746,7 @@
             currentTrackIndex = index;
             const file = currentPlaylist[index];
             const audioUrl = URL.createObjectURL(file);
-            
-            // Text Logik: Wenn Cue vorhanden -> Kapitelname, sonst "Teil X"
             updateInfoText();
-
             audioPlayer.src = audioUrl;
             audioPlayer.onloadedmetadata = () => {
                 if(startTime > 0 && startTime < audioPlayer.duration - 2) audioPlayer.currentTime = startTime;
@@ -782,30 +758,18 @@
 
         function updateInfoText() {
             const infoEl = document.getElementById('playlist-info');
-            if (currentCueTracks) {
-                // Finde aktuelles Kapitel basierend auf aktueller Zeit (wird in timeupdate aktualisiert)
-                // Hier erstmal Initial:
-                infoEl.innerText = "Kapitel laden...";
-            } else {
+            if (currentCueTracks) { infoEl.innerText = "Kapitel laden..."; } 
+            else {
                 if(currentPlaylist.length > 1) infoEl.innerText = `Teil ${currentTrackIndex+1} von ${currentPlaylist.length}`;
                 else infoEl.innerText = "";
             }
         }
 
-        // --- NEU: SKIP CUE TRACK ---
         function skipToNextCueTrack() {
             if(!currentCueTracks || !audioPlayer.src) return;
             const now = audioPlayer.currentTime;
-            
-            // Finde das nächste Kapitel, das später startet als jetzt + Puffer
             const nextTrack = currentCueTracks.find(t => t.time > (now + 2)); 
-            
-            if(nextTrack) {
-                audioPlayer.currentTime = nextTrack.time;
-                showStatus("⏩ " + nextTrack.title);
-            } else {
-                showStatus("Ende erreicht");
-            }
+            if(nextTrack) { audioPlayer.currentTime = nextTrack.time; showStatus("⏩ " + nextTrack.title); } else { showStatus("Ende erreicht"); }
         }
 
         audioPlayer.onended = () => {
@@ -833,7 +797,19 @@
             }; tx.oncomplete = () => { showStatus(`${fixedCount} repariert! 🎉`); loadTagList(); input.value = ""; };
         }
 
-        function togglePlay() { if (audioPlayer.paused) { if(audioPlayer.src) { audioPlayer.play(); setPlayButtonState(true); startSleepTimer(); requestWakeLock(); } else { showStatus("Tag?"); } } else { audioPlayer.pause(); setPlayButtonState(false); stopSleepTimer(); releaseWakeLock(); } }
+        function togglePlay() { 
+            if (audioPlayer.paused) { 
+                if(audioPlayer.src) { audioPlayer.play(); setPlayButtonState(true); startSleepTimer(); requestWakeLock(); } 
+                else { showStatus("Tag?"); } 
+            } else { 
+                // FIX: Speichern beim Pausieren
+                audioPlayer.pause(); 
+                setPlayButtonState(false); 
+                stopSleepTimer(); 
+                releaseWakeLock(); 
+                forceSaveCurrentPosition();
+            } 
+        }
         function restartPlaylist() { if(currentPlayingTagId) { showStatus("Start..."); playPlaylistIndex(0, 0); } }
         function skipForward() { if(audioPlayer.src) { audioPlayer.currentTime += 30; showStatus("+30 Sek"); } }
 
@@ -876,16 +852,10 @@
             document.getElementById('time-progress').style.width = pct + "%";
             document.getElementById('time-text').innerText = showRemainingTime ? "-" + formatTime(total-current) : formatTime(current);
             
-            // Update Chapter Name if Cue tracks exist
             if(currentCueTracks) {
-                // Finde Track, dessen Startzeit <= current ist, aber am nächsten dran (Array muss sortiert sein, ist es bei CUE meist)
-                // Wir iterieren rückwärts
                 let currentChapterName = "";
                 for(let i=currentCueTracks.length-1; i>=0; i--) {
-                    if(current >= currentCueTracks[i].time) {
-                        currentChapterName = currentCueTracks[i].title;
-                        break;
-                    }
+                    if(current >= currentCueTracks[i].time) { currentChapterName = currentCueTracks[i].title; break; }
                 }
                 if(currentChapterName) document.getElementById('playlist-info').innerText = currentChapterName;
             }
@@ -924,32 +894,13 @@
             const name = document.getElementById('track-name').value;
 
             if (audioFiles.length === 0 || !name) { alert("Bitte Audio und Name wählen!"); return; }
-            
             const fileNames = audioFiles.map(f => f.name);
-            
             const finishSave = (cueTracks) => {
-                const record = { 
-                    tagId: tagId, name: name, 
-                    playlist: audioFiles, playlistFileNames: fileNames, 
-                    imageBlob: imgFile || null, imageFileName: imgFile ? imgFile.name : null, 
-                    cueTracks: cueTracks || null,
-                    lastTrackIndex: 0, lastTime: 0 
-                };
+                const record = { tagId: tagId, name: name, playlist: audioFiles, playlistFileNames: fileNames, imageBlob: imgFile || null, imageFileName: imgFile ? imgFile.name : null, cueTracks: cueTracks || null, lastTrackIndex: 0, lastTime: 0 };
                 const tx = db.transaction(["tracks"], "readwrite"); tx.objectStore("tracks").put(record);
                 tx.oncomplete = () => { showStatus("Tag gespeichert! ✅"); loadTagList(); document.getElementById('track-name').value = ""; document.getElementById('audio-input').value = ""; document.getElementById('img-input').value = ""; document.getElementById('cue-input').value = ""; document.getElementById('scan-status').innerText = ""; };
             };
-
-            // Wenn Cue Datei dabei ist, lesen & parsen
-            if(cueFile) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const parsedTracks = parseCueSheet(e.target.result);
-                    finishSave(parsedTracks);
-                };
-                reader.readAsText(cueFile);
-            } else {
-                finishSave(null);
-            }
+            if(cueFile) { const reader = new FileReader(); reader.onload = (e) => { const parsedTracks = parseCueSheet(e.target.result); finishSave(parsedTracks); }; reader.readAsText(cueFile); } else { finishSave(null); }
         }
         function loadTagList() {
             const list = document.getElementById('tag-list'); if(!list) return; list.innerHTML = "";
