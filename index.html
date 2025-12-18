@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jukebox V29 NoSleep</title>
+    <title>Jukebox V30 LogVol</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -268,7 +268,6 @@
         /* Hilfsklasse zum Verstecken von Design-Optionen */
         .hidden-container { display: none; }
         
-        /* Unsichtbares Video für den No-Sleep Trick */
         #stubborn-video {
             position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0.01; pointer-events: none;
         }
@@ -288,7 +287,7 @@
         <button class="btn-switch-kids" onclick="goToKidsMode()">▶ ZUM KINDER-MODUS</button>
         <div class="hint-text">💡 Tipp: 5x oben rechts tippen für Admin-Menü.</div>
         
-        <h1>🔧 Jukebox V29</h1>
+        <h1>🔧 Jukebox V30</h1>
         <div id="nfc-warning" class="browser-warning">⚠️ NFC API nicht verfügbar. Bitte Chrome nutzen.</div>
 
         <div class="card">
@@ -300,7 +299,7 @@
             </select>
 
             <label>Maximale Lautstärke (Begrenzung):</label>
-            <input type="range" id="max-vol-input" min="10" max="100" value="100" style="width:100%" oninput="updateSettingsUI()">
+            <input type="range" id="max-vol-input" min="1" max="100" value="100" style="width:100%" oninput="updateSettingsUI()">
             <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 5px;">
                  <span id="vol-display" style="font-size: 0.9em; font-weight:bold;">100%</span>
                  
@@ -418,7 +417,7 @@
         </div>
 
         <div class="footer-info">
-            <p>Jukebox NFC V29 (NoSleep)</p>
+            <p>Jukebox NFC V30 (LogVolume)</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
         </div>
@@ -477,10 +476,8 @@
         const blackCurtain = document.getElementById('black-curtain');
         const stubbornVideo = document.getElementById('stubborn-video');
         
-        // Base64 für ein minimales leeres Video (webm) - TRICK 17
-        const blankVideoBase64 = "data:video/webm;base64,GkXfo0AgQoaBAUL3gQFC8oEEQvOBCEKCQAR3ZWJtQoeBAkKFgQIYX4BNQI0VSalmAAAAAAAVsalcH4PEUM+=="; 
-        // Falls obiges zu kurz ist, setzen wir die Source erst im JS, aber meistens reicht ein leeres src Attribut wenn wir es per JS setzen wollen oder ein blob.
-        // Einfachheitshalber nutzen wir ein Blob im Code.
+        // NoSleep Video Source
+        stubbornVideo.src = "data:video/mp4;base64,AAAAHGZ0eXBNNEVAAAAAAAEAAQAAAAAAAAAAAAAA1W1vb3YAAABsbXZoAAAAAQAAAAAAAAAAAAAAAAEAAAEAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAIVdHJhawAAAFx0a2hkAAAAAQAAAAAAAAAAAAAAAQAAAAEAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAApdWR0YQAAAC1tZXRhAAAAAAAAACFoZGxyAAAAAAAAAAG1ZGlyYXBwbGUAAAAAAAAAAAAAAKakaWxzAAAAJaaPpXRvbwAAAB1kYXRhAAAAAQAAAABHanRicmFrZSBGcm9tIE1vAAAAQm1kYXQ="; 
         
         let currentKidsVolumePct = 1.0; 
 
@@ -504,13 +501,6 @@
         const SYSTEM_SETTINGS_ID = "system_settings"; 
 
         if (!("NDEFReader" in window)) document.getElementById('nfc-warning').style.display = 'block';
-
-        // INIT Video Source (Empty Loop)
-        // Wir erstellen einen Blob für das Video, damit es "echt" aussieht
-        const videoBlob = new Blob([new Uint8Array([26,69,223,163,159,66,134,129,1,66,247,129,1,66,242,129,4,66,243,129,8,66,130,132,1,99,235,140,19,66,130,132,1,255,255,255,255,255,255,255])], { type: 'video/webm' });
-        // Einfachere Methode: Wir nutzen eine bekannte data-uri für ein schwarzes Bild oder ein leeres Video.
-        stubbornVideo.src = "data:video/mp4;base64,AAAAHGZ0eXBNNEVAAAAAAAEAAQAAAAAAAAAAAAAA1W1vb3YAAABsbXZoAAAAAQAAAAAAAAAAAAAAAAEAAAEAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAIVdHJhawAAAFx0a2hkAAAAAQAAAAAAAAAAAAAAAQAAAAEAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAApdWR0YQAAAC1tZXRhAAAAAAAAACFoZGxyAAAAAAAAAAG1ZGlyYXBwbGUAAAAAAAAAAAAAAKakaWxzAAAAJaaPpXRvbwAAAB1kYXRhAAAAAQAAAABHanRicmFrZSBGcm9tIE1vAAAAQm1kYXQ="; 
-        // Das ist ein 1-Frame MP4
 
         loadSettings(); 
 
@@ -650,8 +640,15 @@
             saveSettings();
         }
 
+        // --- NEU: LOGARITHMISCHE KURVE ---
         function applyActualVolume() {
-            audioPlayer.volume = currentKidsVolumePct * settings.maxVolume;
+            // Berechne gewünschte "Prozent" (Linear)
+            // (Kind % * Eltern Limit %)
+            let visualVolume = currentKidsVolumePct * settings.maxVolume;
+            
+            // Wende x^2 Kurve an für das Ohr
+            // Beispiel: 50% Visual -> 25% Energie
+            audioPlayer.volume = Math.pow(visualVolume, 2);
         }
 
         function changeVolume(change) {
@@ -680,48 +677,35 @@
             gainNode.connect(audioCtx.destination);
             oscillator.type = 'sine';
             oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); 
-            gainNode.gain.setValueAtTime(settings.maxVolume, audioCtx.currentTime);
+            
+            // Auch Test-Ton muss die Kurve nutzen
+            // Slider (Linear 0-1) -> Hoch 2 -> AudioGain
+            const sliderLinear = settings.maxVolume;
+            gainNode.gain.setValueAtTime(Math.pow(sliderLinear, 2), audioCtx.currentTime);
+            
             oscillator.start();
             showStatus("Spiele Limit-Test... 🔊");
             setTimeout(() => { oscillator.stop(); audioCtx.close(); }, 500);
         }
 
-        // --- WAKE LOCK LOGIC (HYBRID: API + VIDEO) ---
+        // --- WAKE LOCK LOGIC (HYBRID) ---
         async function requestWakeLock() {
             if (!settings.enableWakeLock) return;
-            
-            // 1. Versuche Native API
             if ('wakeLock' in navigator) {
                 try {
                     wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Native Wake Lock active');
-                } catch (err) { console.error(`${err.name}, ${err.message}`); }
+                } catch (err) { console.error(err); }
             }
-
-            // 2. Start Video Fallback (Trick 17)
-            // Das Video muss "user initiated" gestartet werden. Das passiert hier,
-            // da requestWakeLock() meistens durch einen Click (Play) aufgerufen wird.
-            stubbornVideo.play().then(() => {
-                console.log("NoSleep Video läuft");
-            }).catch(e => {
-                console.log("NoSleep Video geblockt (Autoplay?):", e);
-            });
+            stubbornVideo.play().catch(e => console.log(e));
         }
 
         async function releaseWakeLock() {
-            // 1. Release Native
-            if (wakeLock !== null) {
-                await wakeLock.release();
-                wakeLock = null;
-            }
-            // 2. Stop Video
+            if (wakeLock !== null) { await wakeLock.release(); wakeLock = null; }
             stubbornVideo.pause();
         }
 
         document.addEventListener('visibilitychange', async () => {
             if (document.visibilityState === 'visible' && settings.enableWakeLock) {
-                // Wenn wir zurückkommen, versuchen wir den Lock erneut zu holen
-                // Das Video läuft evtl. noch, aber der Browser könnte es pausiert haben
                 requestWakeLock();
             }
         });
@@ -773,7 +757,7 @@
             }
         }
 
-        // --- BACKUP & NFC & PLAYBACK (Rest wie gehabt) ---
+        // --- BACKUP & NFC & PLAYBACK ---
         async function exportDatabaseMetadata() {
             showStatus("Exportiere...");
             const tx = db.transaction(["tracks"], "readonly"); const store = tx.objectStore("tracks"); const allMetadata = [];
