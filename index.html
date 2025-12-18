@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jukebox V24 Fixed</title>
+    <title>Jukebox V26 AudioTest</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -33,6 +33,15 @@
             margin: 0; height: 100vh; overflow: hidden;
             display: flex; flex-direction: column;
             user-select: none; -webkit-tap-highlight-color: transparent;
+        }
+
+        /* SCHWARZER VORHANG FÜR ECO MODUS */
+        #black-curtain {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: black;
+            z-index: 9999;
+            pointer-events: auto; /* Blockiert Klicks */
         }
 
         /* KIDS MODE UI */
@@ -148,6 +157,7 @@
             display: flex; align-items: center; justify-content: center;
             color: #2c3e50; font-weight: bold; font-size: 1.3rem;
             text-shadow: 0 0 2px rgba(255,255,255,0.8);
+            font-variant-numeric: tabular-nums;
         }
 
         /* PARENT MODE UI */
@@ -255,6 +265,8 @@
 </head>
 <body>
 
+    <div id="black-curtain"></div>
+
     <div id="mode-switch-secret" onclick="handleSecretSwitch()"></div>
     
     <div id="flash-overlay"></div>
@@ -263,7 +275,7 @@
         <button class="btn-switch-kids" onclick="goToKidsMode()">▶ ZUM KINDER-MODUS</button>
         <div class="hint-text">💡 Tipp: 5x oben rechts tippen für Admin-Menü.</div>
         
-        <h1>🔧 Jukebox V24</h1>
+        <h1>🔧 Jukebox V26</h1>
         <div id="nfc-warning" class="browser-warning">⚠️ NFC API nicht verfügbar. Bitte Chrome nutzen.</div>
 
         <div class="card">
@@ -276,7 +288,13 @@
 
             <label>Maximale Lautstärke:</label>
             <input type="range" id="max-vol-input" min="10" max="100" value="100" style="width:100%" oninput="updateSettingsUI()">
-            <div style="text-align: right; font-size: 0.8em; margin-bottom: 15px;" id="vol-display">100%</div>
+            <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 15px;">
+                 <span id="vol-display" style="font-size: 0.9em; font-weight:bold;">100%</span>
+                 
+                 <button class="btn-admin" style="width: auto; margin:0; padding: 5px 15px; background-color: #fab1a0; color: #333; font-size: 0.8em;" onclick="playTestTone()">
+                    🔊 Test-Ton spielen
+                 </button>
+            </div>
             
             <label>Schlaf-Timer:</label>
             <select id="sleep-timer-input" onchange="saveSettings()" style="margin-bottom: 15px;">
@@ -286,6 +304,30 @@
                 <option value="30">30 Minuten</option>
                 <option value="60">1 Stunde</option>
             </select>
+        </div>
+
+        <div class="card" style="border-left: 3px solid #0984e3;">
+            <h2>🔋 Energie & Display</h2>
+            
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="check-wakelock" onchange="saveSettings()">
+                <div>
+                    <strong>Display anlassen</strong><br>
+                    <span style="font-size:0.8em; color:#ccc;">Verhindert Bildschirmsperre bei Musik</span>
+                </div>
+            </div>
+
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="check-ecomode" onchange="updateEcoModeState(true)">
+                <div>
+                    <strong>Stromsparen beim Umdrehen</strong><br>
+                    <span style="font-size:0.8em; color:#ccc;">Handy aufs Display legen = Schwarz</span>
+                </div>
+            </div>
+
+            <button class="btn-admin" style="background-color: #74b9ff; font-size: 0.9em; margin-top:0;" onclick="requestIOSPermission()">
+                📱 iOS Sensoren aktivieren (nur iPhone)
+            </button>
         </div>
 
         <div class="card" style="border-left: 3px solid #e84393;">
@@ -359,7 +401,7 @@
         </div>
 
         <div class="footer-info">
-            <p>Jukebox NFC V24 (Fixed)</p>
+            <p>Jukebox NFC V26 (Audio Test + Eco)</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
         </div>
@@ -413,8 +455,22 @@
         let db; let isParentMode = true; let ndef; let clickCount = 0; 
         const audioPlayer = document.getElementById('audio-player');
         
-        // Default Settings
-        let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: false, startMode: 'parent', bgMode: 'default', bgColor: '#ffffff' };
+        // --- FEATURE VARIABLES ---
+        let wakeLock = null;
+        const blackCurtain = document.getElementById('black-curtain');
+        
+        // Settings with Defaults
+        let settings = { 
+            maxVolume: 1.0, 
+            sleepTimerMinutes: 0, 
+            colorfulControls: false, 
+            startMode: 'parent', 
+            bgMode: 'default', 
+            bgColor: '#ffffff',
+            enableWakeLock: false,
+            enableEcoMode: false
+        };
+        
         let sleepTimerId = null; let showRemainingTime = true; 
         let currentPlayingTagId = null; let currentTrackIndex = 0; let currentPlaylist = []; 
         let isNfcScanning = false; let isLinkModeActive = false;
@@ -424,7 +480,7 @@
 
         if (!("NDEFReader" in window)) document.getElementById('nfc-warning').style.display = 'block';
 
-        loadSettings(); // Lokal laden
+        loadSettings(); // Load local storage
 
         // DB INIT
         const DB_NAME = "MusicBoxDB_v15";
@@ -519,7 +575,12 @@
             
             document.getElementById('bg-mode-select').value = settings.bgMode || 'default';
             document.getElementById('bg-color-input').value = settings.bgColor || '#ffffff';
+            
+            document.getElementById('check-wakelock').checked = settings.enableWakeLock || false;
+            document.getElementById('check-ecomode').checked = settings.enableEcoMode || false;
+            
             updateBgUIState(); 
+            updateEcoModeState(false); 
         }
 
         function saveSettings() {
@@ -530,6 +591,9 @@
             
             settings.bgMode = document.getElementById('bg-mode-select').value;
             settings.bgColor = document.getElementById('bg-color-input').value;
+
+            settings.enableWakeLock = document.getElementById('check-wakelock').checked;
+            settings.enableEcoMode = document.getElementById('check-ecomode').checked;
 
             localStorage.setItem('jukeboxSettings_v15', JSON.stringify(settings));
 
@@ -549,6 +613,109 @@
 
         function updateSettingsUI() {
             const vol = document.getElementById('max-vol-input').value; document.getElementById('vol-display').innerText = vol + "%"; saveSettings();
+        }
+
+        // --- NEU: AUDIO TEST FUNCTION ---
+        function playTestTone() {
+            // Context erstellen
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioCtx = new AudioContext();
+            
+            // Oszillator für Ton
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            // Verbinden
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            // Frequenz (Standard Piepton)
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // 440Hz = A4
+
+            // Lautstärke aus dem Slider holen (0 - 100) -> (0.0 - 1.0)
+            const sliderValue = document.getElementById('max-vol-input').value;
+            const volume = sliderValue / 100;
+            
+            // Gain setzen
+            gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
+
+            // Abspielen
+            oscillator.start();
+            showStatus("Spiele Test-Ton... 🔊");
+
+            // Nach 0.5 Sekunden stoppen
+            setTimeout(() => {
+                oscillator.stop();
+                audioCtx.close();
+            }, 500);
+        }
+
+        // --- WAKE LOCK LOGIC ---
+        async function requestWakeLock() {
+            if (!settings.enableWakeLock) return;
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock active');
+                } catch (err) { console.error(`${err.name}, ${err.message}`); }
+            }
+        }
+
+        async function releaseWakeLock() {
+            if (wakeLock !== null) {
+                await wakeLock.release();
+                wakeLock = null;
+                console.log('Wake Lock released');
+            }
+        }
+
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible' && settings.enableWakeLock) {
+                await requestWakeLock();
+            }
+        });
+
+        // --- ECO MODE ---
+        function updateEcoModeState(save = false) {
+            if (settings.enableEcoMode) {
+                window.addEventListener('deviceorientation', handleOrientation);
+            } else {
+                window.removeEventListener('deviceorientation', handleOrientation);
+                blackCurtain.style.display = 'none';
+            }
+            if(save) saveSettings();
+        }
+
+        function handleOrientation(event) {
+            const beta = event.beta; 
+            const isFaceDown = (beta > 150 || beta < -150);
+
+            if (isFaceDown) {
+                if (blackCurtain.style.display !== 'block') {
+                    blackCurtain.style.display = 'block';
+                }
+            } else {
+                if (blackCurtain.style.display === 'block') {
+                    blackCurtain.style.display = 'none';
+                }
+            }
+        }
+
+        function requestIOSPermission() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(response => {
+                        if (response === 'granted') {
+                            alert("Sensoren aktiviert! ✅");
+                        } else {
+                            alert("Zugriff verweigert ❌");
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                alert("Auf diesem Gerät nicht nötig/möglich.");
+            }
         }
 
         // --- BACKUP ---
@@ -638,7 +805,6 @@
                     
                     playPlaylistIndex(startIndex, startTime);
                     
-                    // Switch to Kids Mode if scanned in Parent Mode
                     if (isParentMode) {
                         goToKidsMode();
                     }
@@ -661,7 +827,11 @@
                 if(startTime > 0 && startTime < audioPlayer.duration - 2) audioPlayer.currentTime = startTime;
                 if(audioPlayer.volume > settings.maxVolume) audioPlayer.volume = settings.maxVolume;
                 updateVolumeUI();
-                audioPlayer.play().then(() => { setPlayButtonState(true); startSleepTimer(); }).catch(e => showStatus("Bereit"));
+                audioPlayer.play().then(() => { 
+                    setPlayButtonState(true); 
+                    startSleepTimer();
+                    requestWakeLock();
+                }).catch(e => showStatus("Bereit"));
                 audioPlayer.onloadedmetadata = null;
             };
         }
@@ -669,7 +839,7 @@
         audioPlayer.onended = () => {
             if(currentPlayingTagId && currentPlaylist.length > 0) {
                 if(currentTrackIndex + 1 < currentPlaylist.length) playPlaylistIndex(currentTrackIndex + 1, 0);
-                else { setPlayButtonState(false); currentTrackIndex = 0; forceSaveCurrentPosition(); }
+                else { setPlayButtonState(false); currentTrackIndex = 0; forceSaveCurrentPosition(); releaseWakeLock(); }
             }
         };
 
@@ -696,9 +866,19 @@
         }
 
         function togglePlay() {
-            if (audioPlayer.paused) { 
-                 if(audioPlayer.src) { audioPlayer.play(); setPlayButtonState(true); startSleepTimer(); } else { showStatus("Tag?"); } 
-             } else { audioPlayer.pause(); setPlayButtonState(false); stopSleepTimer(); }
+             if (audioPlayer.paused) { 
+                 if(audioPlayer.src) { 
+                     audioPlayer.play(); 
+                     setPlayButtonState(true); 
+                     startSleepTimer(); 
+                     requestWakeLock();
+                 } else { showStatus("Tag?"); } 
+             } else { 
+                 audioPlayer.pause(); 
+                 setPlayButtonState(false); 
+                 stopSleepTimer();
+                 releaseWakeLock();
+             }
         }
 
         function restartPlaylist() { if(currentPlayingTagId) { showStatus("Start..."); playPlaylistIndex(0, 0); } }
@@ -749,7 +929,13 @@
 
         function clearDatabase() { if(confirm("Löschen?")) { db.close(); indexedDB.deleteDatabase(DB_NAME); location.reload(); } }
         function showStatus(msg) { const el = document.getElementById('status-msg'); el.innerText = msg; el.style.display = 'block'; setTimeout(() => { el.style.display = 'none'; }, 3000); }
-        function formatTime(s) { return `${Math.floor(s/60)}:${Math.floor(s%60)}`; }
+        
+        // ZEITFORMAT MM:SS
+        function formatTime(s) { 
+            const minutes = Math.floor(s / 60);
+            const seconds = Math.floor(s % 60);
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
         
         function applyButtonColors() {
             const volDown = document.getElementById('btn-vol-down'); const volUp = document.getElementById('btn-vol-up'); const back = document.getElementById('btn-reset'); const skip = document.getElementById('btn-skip');
@@ -776,7 +962,6 @@
             isParentMode = false;
             applyKidsDesign();
             applyButtonColors();
-            // Vollbild versuchen
             if (document.documentElement.requestFullscreen) {
                 document.documentElement.requestFullscreen().catch((e) => {});
             }
@@ -790,6 +975,7 @@
                 document.getElementById('parent-mode').style.display = 'flex';
                 isParentMode = true;
                 clickCount = 0;
+                releaseWakeLock(); 
                 if (document.exitFullscreen && document.fullscreenElement) {
                     document.exitFullscreen().catch((e) => {});
                 }
@@ -801,7 +987,6 @@
             const nameField = document.getElementById('track-name');
             if (input.files.length > 0 && nameField.value === "") {
                 let name = input.files[0].name;
-                // Endung entfernen (letzter Punkt)
                 if(name.lastIndexOf('.') > 0) {
                     name = name.substring(0, name.lastIndexOf('.'));
                 }
@@ -837,7 +1022,6 @@
             tx.oncomplete = () => {
                 showStatus("Tag gespeichert! ✅");
                 loadTagList();
-                // Reset inputs
                 document.getElementById('track-name').value = "";
                 document.getElementById('audio-input').value = "";
                 document.getElementById('img-input').value = "";
