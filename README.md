@@ -12,8 +12,8 @@ Entwickelt als lokale Lösung ohne Cloud-Zwang, ohne Tracking und komplett koste
 
 | **Eltern-Modus (Admin)** | **Kinder-Modus (Player)** |
 |:---:|:---:|
-| <img src="parent1.png" width="180"> <img src="parent2.png" width="180"> <img src="parent3.png" width="180"> | <img src="children1.png" width="200"> |
-| *Tag-Verwaltung, Settings & Upload* | *Einfache Bedienung & Cover-Art* |
+| <img src="parent1.png" width="180"> <img src="parent2.png" width="180"> <img src="parent3.png" width="180"> | <img src="children1.png" width="180"> <img src="children2.png" width="180"> <img src="children3.png" width="180"> |
+| *Tag-Verwaltung, Settings & Upload* | *Einfache Bedienung, Cover & Visuals* |
 
 ---
 
@@ -74,7 +74,7 @@ Damit Sensoren (Eco-Modus) und NFC funktionieren, **MUSS** die App über einen S
 4.  Starte den Server und öffne die Adresse (meist `http://127.0.0.1:8080`) in **Chrome**.
 
 **Option B: Online (GitHub Pages)**
-1.  Lade die Dateien in ein GitHub Repository hoch (inkl. Bilder).
+1.  Lade die Dateien in ein GitHub Repository hoch (inkl. aller Bilder).
 2.  Aktiviere "GitHub Pages" in den Repository-Einstellungen.
 3.  Öffne die URL (`https://dein-name.github.io/...`) auf dem Handy.
 
@@ -112,7 +112,8 @@ Es gibt keinen sichtbaren "Zurück"-Button.
 * `manifest.json` - PWA Konfiguration.
 * `sw.js` - Service Worker (für Offline-Support).
 * `icon.png` - App Icon.
-* `parent1.png`, `parent2.png`, `parent3.png`, `children1.png` - Screenshots für Readme.
+* `parent1.png`, `parent2.png`, `parent3.png` - Screenshots Eltern-Modus.
+* `children1.png`, `children2.png`, `children3.png` - Screenshots Kinder-Modus.
 
 ## 👨‍💻 Credits
 Entwickelt von Sebastian Rößer.
