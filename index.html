@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jukebox V26 AudioTest</title>
+    <title>Jukebox V27 Final</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -275,7 +275,7 @@
         <button class="btn-switch-kids" onclick="goToKidsMode()">▶ ZUM KINDER-MODUS</button>
         <div class="hint-text">💡 Tipp: 5x oben rechts tippen für Admin-Menü.</div>
         
-        <h1>🔧 Jukebox V26</h1>
+        <h1>🔧 Jukebox V27</h1>
         <div id="nfc-warning" class="browser-warning">⚠️ NFC API nicht verfügbar. Bitte Chrome nutzen.</div>
 
         <div class="card">
@@ -401,7 +401,7 @@
         </div>
 
         <div class="footer-info">
-            <p>Jukebox NFC V26 (Audio Test + Eco)</p>
+            <p>Jukebox NFC V27 (Robust + AudioTest)</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
         </div>
@@ -580,7 +580,7 @@
             document.getElementById('check-ecomode').checked = settings.enableEcoMode || false;
             
             updateBgUIState(); 
-            updateEcoModeState(false); 
+            // Hier NICHT sofort EventListener starten, das passiert beim Klick (siehe updateEcoModeState)
         }
 
         function saveSettings() {
@@ -615,40 +615,22 @@
             const vol = document.getElementById('max-vol-input').value; document.getElementById('vol-display').innerText = vol + "%"; saveSettings();
         }
 
-        // --- NEU: AUDIO TEST FUNCTION ---
+        // --- AUDIO TEST FUNCTION ---
         function playTestTone() {
-            // Context erstellen
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             const audioCtx = new AudioContext();
-            
-            // Oszillator für Ton
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-
-            // Verbinden
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
-
-            // Frequenz (Standard Piepton)
             oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // 440Hz = A4
-
-            // Lautstärke aus dem Slider holen (0 - 100) -> (0.0 - 1.0)
+            oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); 
             const sliderValue = document.getElementById('max-vol-input').value;
             const volume = sliderValue / 100;
-            
-            // Gain setzen
             gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
-
-            // Abspielen
             oscillator.start();
             showStatus("Spiele Test-Ton... 🔊");
-
-            // Nach 0.5 Sekunden stoppen
-            setTimeout(() => {
-                oscillator.stop();
-                audioCtx.close();
-            }, 500);
+            setTimeout(() => { oscillator.stop(); audioCtx.close(); }, 500);
         }
 
         // --- WAKE LOCK LOGIC ---
@@ -676,20 +658,31 @@
             }
         });
 
-        // --- ECO MODE ---
-        function updateEcoModeState(save = false) {
-            if (settings.enableEcoMode) {
+        // --- ECO MODE (Verbesserte Logik aus Debug-Version) ---
+        function updateEcoModeState(fromCheckbox = false) {
+            // Hole aktuellen Wert direkt vom Checkbox Element
+            const isChecked = document.getElementById('check-ecomode').checked;
+            
+            if (isChecked) {
                 window.addEventListener('deviceorientation', handleOrientation);
+                if(fromCheckbox) showStatus("Sensoren gestartet ✅");
             } else {
                 window.removeEventListener('deviceorientation', handleOrientation);
                 blackCurtain.style.display = 'none';
+                if(fromCheckbox) showStatus("Sensoren aus");
             }
-            if(save) saveSettings();
+            // Speichern
+            if(fromCheckbox) saveSettings();
         }
 
         function handleOrientation(event) {
             const beta = event.beta; 
-            const isFaceDown = (beta > 150 || beta < -150);
+            
+            if(beta === null) return; // Wenn Browser blockiert
+
+            // Threshold wie im Debug Script (funktioniert besser)
+            // > 140 oder < -140
+            const isFaceDown = (beta > 140 || beta < -140);
 
             if (isFaceDown) {
                 if (blackCurtain.style.display !== 'block') {
@@ -708,6 +701,8 @@
                     .then(response => {
                         if (response === 'granted') {
                             alert("Sensoren aktiviert! ✅");
+                            document.getElementById('check-ecomode').checked = true;
+                            updateEcoModeState(true);
                         } else {
                             alert("Zugriff verweigert ❌");
                         }
@@ -965,6 +960,8 @@
             if (document.documentElement.requestFullscreen) {
                 document.documentElement.requestFullscreen().catch((e) => {});
             }
+            // Sicherstellen, dass Sensoren aktiv sind wenn Einstellung true ist
+            if(settings.enableEcoMode) updateEcoModeState(false);
         }
 
         function handleSecretSwitch() {
