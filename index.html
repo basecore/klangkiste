@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jukebox V30 LogVol</title>
+    <title>Jukebox V31 CueSupport</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -79,6 +79,7 @@
         
         #playlist-info {
             font-size: 1rem; color: #444; margin-top: -15px; margin-bottom: 10px; font-weight: bold;
+            max-width: 90%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
         #album-art-container {
@@ -118,7 +119,7 @@
 
         .controls-nav-row {
             display: flex; align-items: center; justify-content: center;
-            gap: 30px; width: 100%; margin-bottom: 40px; 
+            gap: 20px; width: 100%; margin-bottom: 40px; 
         }
         
         .btn-control {
@@ -144,6 +145,7 @@
         .btn-colorful-vol-up { background-color: var(--red-danger) !important; color: white !important; }
         .btn-colorful-back { background-color: var(--blue-btn) !important; color: white !important; }
         .btn-colorful-skip { background-color: var(--purple-btn) !important; color: white !important; }
+        .btn-colorful-next { background-color: #00cec9 !important; color: white !important; }
 
         #time-container {
             width: 90%; height: 45px; background-color: rgba(255,255,255, 0.8);
@@ -287,7 +289,7 @@
         <button class="btn-switch-kids" onclick="goToKidsMode()">▶ ZUM KINDER-MODUS</button>
         <div class="hint-text">💡 Tipp: 5x oben rechts tippen für Admin-Menü.</div>
         
-        <h1>🔧 Jukebox V30</h1>
+        <h1>🔧 Jukebox V31</h1>
         <div id="nfc-warning" class="browser-warning">⚠️ NFC API nicht verfügbar. Bitte Chrome nutzen.</div>
 
         <div class="card">
@@ -384,10 +386,13 @@
             <label>1. Audio Datei(en)</label>
             <input type="file" id="audio-input" multiple accept="audio/*, .m4a, .mp3, .ogg, .wav, .flac" onchange="autoFillName()">
             
-            <label>2. Cover Bild</label>
+            <label>2. Cue-Datei (Optional für Kapitel)</label>
+            <input type="file" id="cue-input" accept=".cue">
+
+            <label>3. Cover Bild</label>
             <input type="file" id="img-input" accept="image/*">
             
-            <label>3. Name</label>
+            <label>4. Name</label>
             <input type="text" id="track-name" placeholder="Name...">
             
             <button class="btn-admin" onclick="activateLinkMode()">📡 Tag scannen & speichern</button>
@@ -417,7 +422,7 @@
         </div>
 
         <div class="footer-info">
-            <p>Jukebox NFC V30 (LogVolume)</p>
+            <p>Jukebox NFC V31 (Cue Support)</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
         </div>
@@ -456,6 +461,9 @@
              <button id="btn-skip" class="btn-control btn-secondary" onclick="skipForward()" title="Skip">
                  <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
              </button>
+             <button id="btn-next-track" class="btn-control btn-secondary" style="display:none;" onclick="skipToNextCueTrack()" title="Next Chapter">
+                 <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+             </button>
         </div>
 
         <div id="time-container" onclick="toggleTimeDisplayMode()">
@@ -471,31 +479,19 @@
         let db; let isParentMode = true; let ndef; let clickCount = 0; 
         const audioPlayer = document.getElementById('audio-player');
         
-        // --- FEATURE VARIABLES ---
         let wakeLock = null;
         const blackCurtain = document.getElementById('black-curtain');
         const stubbornVideo = document.getElementById('stubborn-video');
-        
-        // NoSleep Video Source
         stubbornVideo.src = "data:video/mp4;base64,AAAAHGZ0eXBNNEVAAAAAAAEAAQAAAAAAAAAAAAAA1W1vb3YAAABsbXZoAAAAAQAAAAAAAAAAAAAAAAEAAAEAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAIVdHJhawAAAFx0a2hkAAAAAQAAAAAAAAAAAAAAAQAAAAEAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAApdWR0YQAAAC1tZXRhAAAAAAAAACFoZGxyAAAAAAAAAAG1ZGlyYXBwbGUAAAAAAAAAAAAAAKakaWxzAAAAJaaPpXRvbwAAAB1kYXRhAAAAAQAAAABHanRicmFrZSBGcm9tIE1vAAAAQm1kYXQ="; 
         
         let currentKidsVolumePct = 1.0; 
-
-        // Settings with Defaults
-        let settings = { 
-            maxVolume: 1.0, 
-            sleepTimerMinutes: 0, 
-            colorfulControls: false, 
-            startMode: 'parent', 
-            bgMode: 'default', 
-            bgColor: '#ffffff',
-            enableWakeLock: false,
-            enableEcoMode: false
-        };
-        
+        let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: false, startMode: 'parent', bgMode: 'default', bgColor: '#ffffff', enableWakeLock: false, enableEcoMode: false };
         let sleepTimerId = null; let showRemainingTime = true; 
         let currentPlayingTagId = null; let currentTrackIndex = 0; let currentPlaylist = []; 
         let isNfcScanning = false; let isLinkModeActive = false;
+
+        // NEU: Variable für Cue Tracks
+        let currentCueTracks = null; // Array of {time: seconds, title: string}
 
         const SYSTEM_BG_ID = "system_bg";
         const SYSTEM_SETTINGS_ID = "system_settings"; 
@@ -504,7 +500,6 @@
 
         loadSettings(); 
 
-        // DB INIT
         const DB_NAME = "MusicBoxDB_v15";
         const request = indexedDB.open(DB_NAME, 1);
 
@@ -520,16 +515,12 @@
              syncSettingsFromDB(); 
         };
 
-        // --- BACKGROUND LOGIC ---
         function updateBgUIState() {
             const mode = document.getElementById('bg-mode-select').value;
             document.getElementById('bg-color-container').style.display = 'none';
             document.getElementById('bg-image-container').style.display = 'none';
-            if (mode === 'color') {
-                document.getElementById('bg-color-container').style.display = 'block';
-            } else if (mode === 'image') {
-                document.getElementById('bg-image-container').style.display = 'block';
-            }
+            if (mode === 'color') { document.getElementById('bg-color-container').style.display = 'block'; } 
+            else if (mode === 'image') { document.getElementById('bg-image-container').style.display = 'block'; }
         }
 
         function saveBackgroundImage(input) {
@@ -548,35 +539,20 @@
         function applyKidsDesign() {
             const kidsDiv = document.getElementById('kids-mode');
             const mode = settings.bgMode;
-            
-            kidsDiv.style.backgroundImage = '';
-            kidsDiv.style.backgroundColor = '';
-
-            if (mode === 'default') {
-                kidsDiv.style.backgroundImage = "url('hintergrund.jpg')";
-                kidsDiv.style.backgroundColor = "#fff"; 
-            } 
-            else if (mode === 'color') {
-                kidsDiv.style.backgroundColor = settings.bgColor || '#ffffff';
-            }
+            kidsDiv.style.backgroundImage = ''; kidsDiv.style.backgroundColor = '';
+            if (mode === 'default') { kidsDiv.style.backgroundImage = "url('hintergrund.jpg')"; kidsDiv.style.backgroundColor = "#fff"; } 
+            else if (mode === 'color') { kidsDiv.style.backgroundColor = settings.bgColor || '#ffffff'; }
             else if (mode === 'image') { 
-                if(!db) { 
-                     kidsDiv.style.backgroundImage = "url('hintergrund.jpg')"; return;
-                }
+                if(!db) { kidsDiv.style.backgroundImage = "url('hintergrund.jpg')"; return; }
                 const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
                 const req = store.get(SYSTEM_BG_ID);
                 req.onsuccess = () => {
-                    if(req.result && req.result.imageBlob) {
-                        const url = URL.createObjectURL(req.result.imageBlob);
-                        kidsDiv.style.backgroundImage = `url('${url}')`;
-                    } else {
-                        kidsDiv.style.backgroundImage = "url('hintergrund.jpg')";
-                    }
+                    if(req.result && req.result.imageBlob) { const url = URL.createObjectURL(req.result.imageBlob); kidsDiv.style.backgroundImage = `url('${url}')`; } 
+                    else { kidsDiv.style.backgroundImage = "url('hintergrund.jpg')"; }
                 };
             }
         }
 
-        // --- SETTINGS DB SYNC ---
         function syncSettingsFromDB() {
             const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
             const req = store.get(SYSTEM_SETTINGS_ID);
@@ -594,222 +570,113 @@
             document.getElementById('sleep-timer-input').value = settings.sleepTimerMinutes;
             document.getElementById('check-colorful').checked = settings.colorfulControls;
             document.getElementById('start-mode-input').value = settings.startMode || 'parent';
-            
             document.getElementById('bg-mode-select').value = settings.bgMode || 'default';
             document.getElementById('bg-color-input').value = settings.bgColor || '#ffffff';
-            
             document.getElementById('check-wakelock').checked = settings.enableWakeLock || false;
             document.getElementById('check-ecomode').checked = settings.enableEcoMode || false;
-            
             updateBgUIState(); 
         }
 
         function saveSettings() {
             settings.maxVolume = document.getElementById('max-vol-input').value / 100;
             applyActualVolume(); 
-
             settings.sleepTimerMinutes = parseInt(document.getElementById('sleep-timer-input').value);
             settings.colorfulControls = document.getElementById('check-colorful').checked;
             settings.startMode = document.getElementById('start-mode-input').value;
-            
             settings.bgMode = document.getElementById('bg-mode-select').value;
             settings.bgColor = document.getElementById('bg-color-input').value;
-
             settings.enableWakeLock = document.getElementById('check-wakelock').checked;
             settings.enableEcoMode = document.getElementById('check-ecomode').checked;
-
             localStorage.setItem('jukeboxSettings_v15', JSON.stringify(settings));
-
-            if(db) {
-                const tx = db.transaction(["tracks"], "readwrite");
-                tx.objectStore("tracks").put({ tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: settings });
-            }
+            if(db) { const tx = db.transaction(["tracks"], "readwrite"); tx.objectStore("tracks").put({ tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: settings }); }
         }
 
         function loadSettings() {
             const saved = localStorage.getItem('jukeboxSettings_v15');
-            if (saved) {
-                settings = JSON.parse(saved); updateUIFromSettings();
-                if (settings.startMode === 'kids') { setTimeout(() => { goToKidsMode(); }, 100); }
-            }
+            if (saved) { settings = JSON.parse(saved); updateUIFromSettings(); if (settings.startMode === 'kids') { setTimeout(() => { goToKidsMode(); }, 100); } }
         }
 
-        function updateSettingsUI() {
-            const vol = document.getElementById('max-vol-input').value; 
-            document.getElementById('vol-display').innerText = vol + "%"; 
-            saveSettings();
-        }
+        function updateSettingsUI() { const vol = document.getElementById('max-vol-input').value; document.getElementById('vol-display').innerText = vol + "%"; saveSettings(); }
 
-        // --- NEU: LOGARITHMISCHE KURVE ---
-        function applyActualVolume() {
-            // Berechne gewünschte "Prozent" (Linear)
-            // (Kind % * Eltern Limit %)
-            let visualVolume = currentKidsVolumePct * settings.maxVolume;
-            
-            // Wende x^2 Kurve an für das Ohr
-            // Beispiel: 50% Visual -> 25% Energie
-            audioPlayer.volume = Math.pow(visualVolume, 2);
-        }
-
-        function changeVolume(change) {
-            currentKidsVolumePct += change;
-            if(currentKidsVolumePct > 1.0) currentKidsVolumePct = 1.0;
-            if(currentKidsVolumePct < 0.0) currentKidsVolumePct = 0.0;
-            applyActualVolume();
-            updateVolumeUI();
-        }
-
+        function applyActualVolume() { let visualVolume = currentKidsVolumePct * settings.maxVolume; audioPlayer.volume = Math.pow(visualVolume, 2); }
+        function changeVolume(change) { currentKidsVolumePct += change; if(currentKidsVolumePct > 1.0) currentKidsVolumePct = 1.0; if(currentKidsVolumePct < 0.0) currentKidsVolumePct = 0.0; applyActualVolume(); updateVolumeUI(); }
         function updateVolumeUI() {
-            let pct = currentKidsVolumePct * 100;
-            const bar = document.getElementById('volume-bar'); 
-            bar.style.width = pct + "%";
-            if(pct < 40) bar.style.backgroundColor = "var(--green-safe)"; 
-            else if (pct < 75) bar.style.backgroundColor = "var(--orange-warn)"; 
-            else bar.style.backgroundColor = "var(--red-danger)";
+            let pct = currentKidsVolumePct * 100; const bar = document.getElementById('volume-bar'); bar.style.width = pct + "%";
+            if(pct < 40) bar.style.backgroundColor = "var(--green-safe)"; else if (pct < 75) bar.style.backgroundColor = "var(--orange-warn)"; else bar.style.backgroundColor = "var(--red-danger)";
         }
 
         function playTestTone() {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const audioCtx = new AudioContext();
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); 
-            
-            // Auch Test-Ton muss die Kurve nutzen
-            // Slider (Linear 0-1) -> Hoch 2 -> AudioGain
-            const sliderLinear = settings.maxVolume;
-            gainNode.gain.setValueAtTime(Math.pow(sliderLinear, 2), audioCtx.currentTime);
-            
-            oscillator.start();
-            showStatus("Spiele Limit-Test... 🔊");
-            setTimeout(() => { oscillator.stop(); audioCtx.close(); }, 500);
+            const AudioContext = window.AudioContext || window.webkitAudioContext; const audioCtx = new AudioContext(); const oscillator = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode); gainNode.connect(audioCtx.destination); oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); 
+            const sliderLinear = settings.maxVolume; gainNode.gain.setValueAtTime(Math.pow(sliderLinear, 2), audioCtx.currentTime);
+            oscillator.start(); showStatus("Spiele Limit-Test... 🔊"); setTimeout(() => { oscillator.stop(); audioCtx.close(); }, 500);
         }
 
-        // --- WAKE LOCK LOGIC (HYBRID) ---
         async function requestWakeLock() {
             if (!settings.enableWakeLock) return;
-            if ('wakeLock' in navigator) {
-                try {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                } catch (err) { console.error(err); }
-            }
+            if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) { console.error(err); } }
             stubbornVideo.play().catch(e => console.log(e));
         }
+        async function releaseWakeLock() { if (wakeLock !== null) { await wakeLock.release(); wakeLock = null; } stubbornVideo.pause(); }
+        document.addEventListener('visibilitychange', async () => { if (document.visibilityState === 'visible' && settings.enableWakeLock) { requestWakeLock(); } });
 
-        async function releaseWakeLock() {
-            if (wakeLock !== null) { await wakeLock.release(); wakeLock = null; }
-            stubbornVideo.pause();
-        }
-
-        document.addEventListener('visibilitychange', async () => {
-            if (document.visibilityState === 'visible' && settings.enableWakeLock) {
-                requestWakeLock();
-            }
-        });
-
-        // --- ECO MODE ---
         function updateEcoModeState(fromCheckbox = false) {
             const isChecked = document.getElementById('check-ecomode').checked;
-            if (isChecked) {
-                window.addEventListener('deviceorientation', handleOrientation);
-                if(fromCheckbox) showStatus("Sensoren gestartet ✅");
-            } else {
-                window.removeEventListener('deviceorientation', handleOrientation);
-                blackCurtain.style.display = 'none';
-                if(fromCheckbox) showStatus("Sensoren aus");
-            }
+            if (isChecked) { window.addEventListener('deviceorientation', handleOrientation); if(fromCheckbox) showStatus("Sensoren gestartet ✅"); } 
+            else { window.removeEventListener('deviceorientation', handleOrientation); blackCurtain.style.display = 'none'; if(fromCheckbox) showStatus("Sensoren aus"); }
             if(fromCheckbox) saveSettings();
         }
-
         function handleOrientation(event) {
-            const beta = event.beta; 
-            if(beta === null) return; 
-            const isFaceDown = (beta > 140 || beta < -140);
-            if (isFaceDown) {
-                if (blackCurtain.style.display !== 'block') {
-                    blackCurtain.style.display = 'block';
-                }
-            } else {
-                if (blackCurtain.style.display === 'block') {
-                    blackCurtain.style.display = 'none';
-                }
-            }
+            const beta = event.beta; if(beta === null) return; const isFaceDown = (beta > 140 || beta < -140);
+            if (isFaceDown) { if (blackCurtain.style.display !== 'block') { blackCurtain.style.display = 'block'; } } 
+            else { if (blackCurtain.style.display === 'block') { blackCurtain.style.display = 'none'; } }
         }
-
         function requestIOSPermission() {
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                DeviceOrientationEvent.requestPermission()
-                    .then(response => {
-                        if (response === 'granted') {
-                            alert("Sensoren aktiviert! ✅");
-                            document.getElementById('check-ecomode').checked = true;
-                            updateEcoModeState(true);
-                        } else {
-                            alert("Zugriff verweigert ❌");
-                        }
-                    })
-                    .catch(console.error);
-            } else {
-                alert("Auf diesem Gerät nicht nötig/möglich.");
-            }
+                DeviceOrientationEvent.requestPermission().then(response => {
+                    if (response === 'granted') { alert("Sensoren aktiviert! ✅"); document.getElementById('check-ecomode').checked = true; updateEcoModeState(true); } else { alert("Zugriff verweigert ❌"); }
+                }).catch(console.error);
+            } else { alert("Auf diesem Gerät nicht nötig/möglich."); }
         }
 
-        // --- BACKUP & NFC & PLAYBACK ---
         async function exportDatabaseMetadata() {
             showStatus("Exportiere...");
             const tx = db.transaction(["tracks"], "readonly"); const store = tx.objectStore("tracks"); const allMetadata = [];
             store.openCursor().onsuccess = (event) => {
-                const cursor = event.target.result;
-                if (cursor) {
+                const cursor = event.target.result; if (cursor) {
                     const r = cursor.value;
                     if(r.tagId !== SYSTEM_BG_ID) {
                         if(r.tagId === SYSTEM_SETTINGS_ID) { allMetadata.push({tagId: r.tagId, name: r.name, data: r.data}); } 
                         else { allMetadata.push({tagId: r.tagId, name: r.name, playlistFileNames: r.playlistFileNames||[], imageFileName: r.imageFileName}); }
-                    }
-                    cursor.continue();
+                    } cursor.continue();
                 } else {
-                    const blob = new Blob([JSON.stringify(allMetadata)], {type: "application/json"});
-                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "jukebox_backup.json";
+                    const blob = new Blob([JSON.stringify(allMetadata)], {type: "application/json"}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "jukebox_backup.json";
                     document.body.appendChild(a); a.click(); document.body.removeChild(a); showStatus("Export fertig! ✅");
                 }
             };
         }
 
         async function importDatabaseMetadata(input) {
-            const file = input.files[0]; if(!file) return;
-            const reader = new FileReader();
+            const file = input.files[0]; if(!file) return; const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    const data = JSON.parse(e.target.result);
-                    const tx = db.transaction(["tracks"], "readwrite"); const store = tx.objectStore("tracks");
+                    const data = JSON.parse(e.target.result); const tx = db.transaction(["tracks"], "readwrite"); const store = tx.objectStore("tracks");
                     data.forEach(item => {
-                        if(item.tagId === SYSTEM_SETTINGS_ID) {
-                            store.put({tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: item.data});
-                            settings = item.data; localStorage.setItem('jukeboxSettings_v15', JSON.stringify(settings)); updateUIFromSettings();
-                        } else {
-                            store.put({tagId: item.tagId, name: item.name, playlist: null, imageBlob: null, playlistFileNames: item.playlistFileNames, imageFileName: item.imageFileName, lastTrackIndex:0, lastTime:0});
-                        }
-                    });
-                    tx.oncomplete = () => { showStatus("Import fertig."); loadTagList(); input.value = ""; };
+                        if(item.tagId === SYSTEM_SETTINGS_ID) { store.put({tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: item.data}); settings = item.data; localStorage.setItem('jukeboxSettings_v15', JSON.stringify(settings)); updateUIFromSettings(); } 
+                        else { store.put({tagId: item.tagId, name: item.name, playlist: null, imageBlob: null, playlistFileNames: item.playlistFileNames, imageFileName: item.imageFileName, lastTrackIndex:0, lastTime:0}); }
+                    }); tx.oncomplete = () => { showStatus("Import fertig."); loadTagList(); input.value = ""; };
                 } catch(e) { alert("Fehler beim Import"); }
-            };
-            reader.readAsText(file);
+            }; reader.readAsText(file);
         }
 
         async function startNFC() {
-            if (isNfcScanning) return;
-            if ("NDEFReader" in window) {
+            if (isNfcScanning) return; if ("NDEFReader" in window) {
                 try {
-                    ndef = new NDEFReader(); await ndef.scan();
-                    isNfcScanning = true; showStatus("Scanner gestartet ✅");
+                    ndef = new NDEFReader(); await ndef.scan(); isNfcScanning = true; showStatus("Scanner gestartet ✅");
                     ndef.onreading = event => {
                         const flash = document.getElementById('flash-overlay'); flash.style.opacity = "1"; setTimeout(() => flash.style.opacity = "0", 200);
                         if (isParentMode) {
-                            if (isLinkModeActive) { saveTrackLink(event.serialNumber); isLinkModeActive = false; }
-                            else { showStatus("Tag erkannt: " + event.serialNumber); }
+                            if (isLinkModeActive) { saveTrackLink(event.serialNumber); isLinkModeActive = false; } else { showStatus("Tag erkannt: " + event.serialNumber); }
                         } else { playTrackByTag(event.serialNumber); }
                     };
                 } catch (error) { console.log(error); isNfcScanning=false; }
@@ -823,6 +690,45 @@
             if (!isNfcScanning) startNFC();
         }
 
+        // --- CUE PARSING LOGIK ---
+        function parseCueSheet(cueText) {
+            const tracks = [];
+            const lines = cueText.split('\n');
+            let currentTrack = null;
+
+            lines.forEach(line => {
+                line = line.trim();
+                // TRACK XX AUDIO
+                if (line.startsWith('TRACK')) {
+                    currentTrack = {};
+                }
+                // TITLE "..."
+                if (line.startsWith('TITLE') && currentTrack) {
+                    const match = line.match(/"([^"]+)"/);
+                    if (match) currentTrack.title = match[1];
+                }
+                // INDEX 01 MM:SS:FF
+                if (line.startsWith('INDEX 01') && currentTrack) {
+                    const parts = line.split(' ');
+                    const timeStr = parts[parts.length - 1]; // "00:00:00"
+                    const timeParts = timeStr.split(':');
+                    
+                    const min = parseInt(timeParts[0], 10);
+                    const sec = parseInt(timeParts[1], 10);
+                    const frames = parseInt(timeParts[2], 10);
+                    
+                    // 75 Frames = 1 Sekunde
+                    const totalSeconds = (min * 60) + sec + (frames / 75);
+                    currentTrack.time = totalSeconds;
+                    
+                    tracks.push(currentTrack);
+                    currentTrack = null;
+                }
+            });
+            return tracks;
+        }
+
+        // --- PLAYBACK ---
         function playTrackByTag(tagId) {
             if(currentPlayingTagId && currentPlayingTagId !== tagId) forceSaveCurrentPosition();
             const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
@@ -831,14 +737,25 @@
                 if(track) {
                     if(!track.playlist || track.playlist.length === 0) { showStatus("⚠️ Audio fehlt!"); return; }
                     document.getElementById('track-title-display').innerText = track.name;
-                    const imgEl = document.getElementById('album-img');
-                    const placeEl = document.getElementById('album-placeholder');
+                    const imgEl = document.getElementById('album-img'); const placeEl = document.getElementById('album-placeholder');
                     if(track.imageBlob) { imgEl.src = URL.createObjectURL(track.imageBlob); imgEl.style.display="block"; placeEl.style.display="none"; } 
                     else { imgEl.style.display="none"; placeEl.style.display="block"; }
                     
                     currentPlayingTagId = tagId; currentPlaylist = track.playlist;
+                    
+                    // Lade CUE Tracks wenn vorhanden
+                    currentCueTracks = track.cueTracks || null;
+                    // Button anzeigen/verstecken
+                    const nextBtn = document.getElementById('btn-next-track');
+                    if(currentCueTracks && currentCueTracks.length > 0) {
+                        nextBtn.style.display = "flex";
+                    } else {
+                        nextBtn.style.display = "none";
+                    }
+
                     let startIndex = track.lastTrackIndex || 0; let startTime = track.lastTime || 0;
                     if(startIndex >= currentPlaylist.length) startIndex = 0;
+                    
                     playPlaylistIndex(startIndex, startTime);
                     if (isParentMode) { goToKidsMode(); }
                 } else { showStatus("Tag unbekannt"); }
@@ -850,21 +767,45 @@
             currentTrackIndex = index;
             const file = currentPlaylist[index];
             const audioUrl = URL.createObjectURL(file);
-            if(currentPlaylist.length > 1) document.getElementById('playlist-info').innerText = `Teil ${index+1} von ${currentPlaylist.length}`;
-            else document.getElementById('playlist-info').innerText = "";
             
+            // Text Logik: Wenn Cue vorhanden -> Kapitelname, sonst "Teil X"
+            updateInfoText();
+
             audioPlayer.src = audioUrl;
             audioPlayer.onloadedmetadata = () => {
                 if(startTime > 0 && startTime < audioPlayer.duration - 2) audioPlayer.currentTime = startTime;
-                applyActualVolume();
-                updateVolumeUI();
-                audioPlayer.play().then(() => { 
-                    setPlayButtonState(true); 
-                    startSleepTimer();
-                    requestWakeLock();
-                }).catch(e => showStatus("Bereit"));
+                applyActualVolume(); updateVolumeUI();
+                audioPlayer.play().then(() => { setPlayButtonState(true); startSleepTimer(); requestWakeLock(); }).catch(e => showStatus("Bereit"));
                 audioPlayer.onloadedmetadata = null;
             };
+        }
+
+        function updateInfoText() {
+            const infoEl = document.getElementById('playlist-info');
+            if (currentCueTracks) {
+                // Finde aktuelles Kapitel basierend auf aktueller Zeit (wird in timeupdate aktualisiert)
+                // Hier erstmal Initial:
+                infoEl.innerText = "Kapitel laden...";
+            } else {
+                if(currentPlaylist.length > 1) infoEl.innerText = `Teil ${currentTrackIndex+1} von ${currentPlaylist.length}`;
+                else infoEl.innerText = "";
+            }
+        }
+
+        // --- NEU: SKIP CUE TRACK ---
+        function skipToNextCueTrack() {
+            if(!currentCueTracks || !audioPlayer.src) return;
+            const now = audioPlayer.currentTime;
+            
+            // Finde das nächste Kapitel, das später startet als jetzt + Puffer
+            const nextTrack = currentCueTracks.find(t => t.time > (now + 2)); 
+            
+            if(nextTrack) {
+                audioPlayer.currentTime = nextTrack.time;
+                showStatus("⏩ " + nextTrack.title);
+            } else {
+                showStatus("Ende erreicht");
+            }
         }
 
         audioPlayer.onended = () => {
@@ -883,41 +824,23 @@
                     if(record.tagId === SYSTEM_BG_ID || record.tagId === SYSTEM_SETTINGS_ID) return;
                     let changed = false;
                     if (record.playlistFileNames && (!record.playlist || record.playlist.length === 0)) {
-                        const newPlaylist = [];
-                        record.playlistFileNames.forEach(name => { const f = files.find(x => x.name === name); if(f) newPlaylist.push(f); });
+                        const newPlaylist = []; record.playlistFileNames.forEach(name => { const f = files.find(x => x.name === name); if(f) newPlaylist.push(f); });
                         if(newPlaylist.length > 0) { record.playlist = newPlaylist; changed = true; }
                     }
-                    if (record.imageFileName && !record.imageBlob) {
-                        const img = files.find(x => x.name === record.imageFileName); if(img) { record.imageBlob = img; changed = true; }
-                    }
+                    if (record.imageFileName && !record.imageBlob) { const img = files.find(x => x.name === record.imageFileName); if(img) { record.imageBlob = img; changed = true; } }
                     if(changed) { store.put(record); fixedCount++; }
                 });
-            };
-            tx.oncomplete = () => { showStatus(`${fixedCount} repariert! 🎉`); loadTagList(); input.value = ""; };
+            }; tx.oncomplete = () => { showStatus(`${fixedCount} repariert! 🎉`); loadTagList(); input.value = ""; };
         }
 
-        function togglePlay() {
-             if (audioPlayer.paused) { 
-                 if(audioPlayer.src) { 
-                     audioPlayer.play(); setPlayButtonState(true); startSleepTimer(); requestWakeLock();
-                 } else { showStatus("Tag?"); } 
-             } else { 
-                 audioPlayer.pause(); setPlayButtonState(false); stopSleepTimer(); releaseWakeLock();
-             }
-        }
-
+        function togglePlay() { if (audioPlayer.paused) { if(audioPlayer.src) { audioPlayer.play(); setPlayButtonState(true); startSleepTimer(); requestWakeLock(); } else { showStatus("Tag?"); } } else { audioPlayer.pause(); setPlayButtonState(false); stopSleepTimer(); releaseWakeLock(); } }
         function restartPlaylist() { if(currentPlayingTagId) { showStatus("Start..."); playPlaylistIndex(0, 0); } }
         function skipForward() { if(audioPlayer.src) { audioPlayer.currentTime += 30; showStatus("+30 Sek"); } }
 
         function setPlayButtonState(isPlaying) {
             const btn = document.getElementById('btn-play-main');
-            if (isPlaying) { 
-                 btn.style.backgroundColor = "var(--red-danger)"; 
-                 btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'; 
-             } else { 
-                 btn.style.backgroundColor = "var(--green-safe)"; 
-                 btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'; 
-             }
+            if (isPlaying) { btn.style.backgroundColor = "var(--red-danger)"; btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'; } 
+            else { btn.style.backgroundColor = "var(--green-safe)"; btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'; }
         }
 
         function forceSaveCurrentPosition() {
@@ -933,21 +856,18 @@
                 sleepTimerId = setTimeout(() => { fadeOutAndStop(); }, settings.sleepTimerMinutes * 60 * 1000);
             }
         }
-
         function stopSleepTimer() { if(sleepTimerId) clearTimeout(sleepTimerId); document.getElementById('sleep-indicator').style.display = 'none'; }
-
-        function fadeOutAndStop() {
-            let vol = audioPlayer.volume;
-            const fade = setInterval(() => { if(vol > 0.05) { vol -= 0.05; audioPlayer.volume = vol; } else { clearInterval(fade); audioPlayer.pause(); setPlayButtonState(false); forceSaveCurrentPosition(); applyActualVolume(); showStatus("Gute Nacht 😴"); } }, 200);
-        }
-
+        function fadeOutAndStop() { let vol = audioPlayer.volume; const fade = setInterval(() => { if(vol > 0.05) { vol -= 0.05; audioPlayer.volume = vol; } else { clearInterval(fade); audioPlayer.pause(); setPlayButtonState(false); forceSaveCurrentPosition(); applyActualVolume(); showStatus("Gute Nacht 😴"); } }, 200); }
         function clearDatabase() { if(confirm("Löschen?")) { db.close(); indexedDB.deleteDatabase(DB_NAME); location.reload(); } }
         function showStatus(msg) { const el = document.getElementById('status-msg'); el.innerText = msg; el.style.display = 'block'; setTimeout(() => { el.style.display = 'none'; }, 3000); }
         function formatTime(s) { const minutes = Math.floor(s / 60); const seconds = Math.floor(s % 60); return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`; }
         function applyButtonColors() {
-            const volDown = document.getElementById('btn-vol-down'); const volUp = document.getElementById('btn-vol-up'); const back = document.getElementById('btn-reset'); const skip = document.getElementById('btn-skip');
-            if (settings.colorfulControls) { volDown.classList.add('btn-colorful-vol-down'); volUp.classList.add('btn-colorful-vol-up'); back.classList.add('btn-colorful-back'); skip.classList.add('btn-colorful-skip'); } 
-            else { volDown.classList.remove('btn-colorful-vol-down'); volUp.classList.remove('btn-colorful-vol-up'); back.classList.remove('btn-colorful-back'); skip.classList.remove('btn-colorful-skip'); }
+            const volDown = document.getElementById('btn-vol-down'); const volUp = document.getElementById('btn-vol-up'); const back = document.getElementById('btn-reset'); const skip = document.getElementById('btn-skip'); const next = document.getElementById('btn-next-track');
+            if (settings.colorfulControls) { 
+                volDown.classList.add('btn-colorful-vol-down'); volUp.classList.add('btn-colorful-vol-up'); back.classList.add('btn-colorful-back'); skip.classList.add('btn-colorful-skip'); next.classList.add('btn-colorful-next');
+            } else { 
+                volDown.classList.remove('btn-colorful-vol-down'); volUp.classList.remove('btn-colorful-vol-up'); back.classList.remove('btn-colorful-back'); skip.classList.remove('btn-colorful-skip'); next.classList.remove('btn-colorful-next');
+            }
         }
 
         audioPlayer.addEventListener('timeupdate', () => {
@@ -955,6 +875,20 @@
             const current = audioPlayer.currentTime; const total = audioPlayer.duration; const pct = (current/total)*100;
             document.getElementById('time-progress').style.width = pct + "%";
             document.getElementById('time-text').innerText = showRemainingTime ? "-" + formatTime(total-current) : formatTime(current);
+            
+            // Update Chapter Name if Cue tracks exist
+            if(currentCueTracks) {
+                // Finde Track, dessen Startzeit <= current ist, aber am nächsten dran (Array muss sortiert sein, ist es bei CUE meist)
+                // Wir iterieren rückwärts
+                let currentChapterName = "";
+                for(let i=currentCueTracks.length-1; i>=0; i--) {
+                    if(current >= currentCueTracks[i].time) {
+                        currentChapterName = currentCueTracks[i].title;
+                        break;
+                    }
+                }
+                if(currentChapterName) document.getElementById('playlist-info').innerText = currentChapterName;
+            }
         });
 
         function toggleTimeDisplayMode() { showRemainingTime = !showRemainingTime; updateTimeDisplay(); }
@@ -985,12 +919,37 @@
             }
         }
         function saveTrackLink(tagId) {
-            const audioFiles = Array.from(document.getElementById('audio-input').files); const imgFile = document.getElementById('img-input').files[0]; const name = document.getElementById('track-name').value;
+            const audioFiles = Array.from(document.getElementById('audio-input').files); const imgFile = document.getElementById('img-input').files[0]; 
+            const cueFile = document.getElementById('cue-input').files[0];
+            const name = document.getElementById('track-name').value;
+
             if (audioFiles.length === 0 || !name) { alert("Bitte Audio und Name wählen!"); return; }
+            
             const fileNames = audioFiles.map(f => f.name);
-            const record = { tagId: tagId, name: name, playlist: audioFiles, playlistFileNames: fileNames, imageBlob: imgFile || null, imageFileName: imgFile ? imgFile.name : null, lastTrackIndex: 0, lastTime: 0 };
-            const tx = db.transaction(["tracks"], "readwrite"); tx.objectStore("tracks").put(record);
-            tx.oncomplete = () => { showStatus("Tag gespeichert! ✅"); loadTagList(); document.getElementById('track-name').value = ""; document.getElementById('audio-input').value = ""; document.getElementById('img-input').value = ""; document.getElementById('scan-status').innerText = ""; };
+            
+            const finishSave = (cueTracks) => {
+                const record = { 
+                    tagId: tagId, name: name, 
+                    playlist: audioFiles, playlistFileNames: fileNames, 
+                    imageBlob: imgFile || null, imageFileName: imgFile ? imgFile.name : null, 
+                    cueTracks: cueTracks || null,
+                    lastTrackIndex: 0, lastTime: 0 
+                };
+                const tx = db.transaction(["tracks"], "readwrite"); tx.objectStore("tracks").put(record);
+                tx.oncomplete = () => { showStatus("Tag gespeichert! ✅"); loadTagList(); document.getElementById('track-name').value = ""; document.getElementById('audio-input').value = ""; document.getElementById('img-input').value = ""; document.getElementById('cue-input').value = ""; document.getElementById('scan-status').innerText = ""; };
+            };
+
+            // Wenn Cue Datei dabei ist, lesen & parsen
+            if(cueFile) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const parsedTracks = parseCueSheet(e.target.result);
+                    finishSave(parsedTracks);
+                };
+                reader.readAsText(cueFile);
+            } else {
+                finishSave(null);
+            }
         }
         function loadTagList() {
             const list = document.getElementById('tag-list'); if(!list) return; list.innerHTML = "";
