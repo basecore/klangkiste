@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jukebox V23</title>
+    <title>Jukebox V24</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -39,17 +39,15 @@
         #kids-mode {
             display: none; flex: 1; flex-direction: column;
             align-items: center; justify-content: flex-start;
-            background-color: #fff;
-            /* Standard-Hintergrundbild (wird geladen, wenn kein eigenes gewählt ist) */
-            background-image: url('hintergrund.jpg'); 
+            background-color: #fff; /* Fallback */
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
             position: relative;
             padding: 20px; padding-top: 40px;
+            transition: background 0.3s ease;
         }
         
-        /* Verbesserte Lesbarkeit auf buntem Hintergrund */
         .kids-text-shadow {
             text-shadow: 0 1px 3px rgba(255,255,255, 0.8);
             background: rgba(255, 255, 255, 0.65);
@@ -230,6 +228,8 @@
             background-color: #ff4757; color: white; padding: 15px;
             border-radius: 10px; margin-bottom: 20px; display: none;
         }
+        /* Hilfsklasse zum Verstecken von Design-Optionen */
+        .hidden-container { display: none; }
     </style>
 </head>
 <body>
@@ -241,7 +241,7 @@
         <button class="btn-switch-kids" onclick="goToKidsMode()">▶ ZUM KINDER-MODUS</button>
         <div class="hint-text">💡 Tipp: 5x oben rechts tippen für Admin-Menü.</div>
 
-        <h1>🔧 Jukebox V23</h1>
+        <h1>🔧 Jukebox V24</h1>
         <div id="nfc-warning" class="browser-warning">⚠️ NFC API nicht verfügbar. Bitte Chrome nutzen.</div>
 
         <div class="card">
@@ -274,17 +274,29 @@
                 <span>🎨 Bunte Knöpfe für Kinder</span>
             </div>
 
-            <label>Hintergrund-Farbe (Optional):</label>
-            <input type="color" id="bg-color-input" value="#ffffff" onchange="saveSettings()">
-            
-            <label style="margin-top:10px;">Eigenes Hintergrund-Bild (Optional):</label>
-            <button class="btn-admin" style="background-color: #6c5ce7; position:relative;">
-                🖼️ Bild auswählen...
-                <input type="file" id="bg-img-hidden" accept="image/*" onchange="saveBackgroundImage(this)">
-            </button>
-            <button class="btn-admin" style="background-color: #ff7675; margin-top:5px;" onclick="deleteBackgroundImage()">
-                ❌ Eigenes Bild entfernen (Standard nutzen)
-            </button>
+            <label>Hintergrund-Modus:</label>
+            <select id="bg-mode-select" onchange="updateBgUIState(); saveSettings();" style="margin-bottom: 15px;">
+                <option value="default">Standard Hintergrund-Bild</option>
+                <option value="color">Eigene Farbe</option>
+                <option value="image">Eigenes Hintergrund-Bild</option>
+            </select>
+
+            <div id="bg-color-container" class="hidden-container">
+                 <label>Wähle eine Farbe:</label>
+                 <input type="color" id="bg-color-input" value="#ffffff" onchange="saveSettings()">
+            </div>
+
+            <div id="bg-image-container" class="hidden-container">
+                <label>Eigenes Bild verwalten:</label>
+                <button class="btn-admin" style="background-color: #6c5ce7; position:relative;">
+                    🖼️ Neues Bild hochladen...
+                    <input type="file" id="bg-img-hidden" accept="image/*" onchange="saveBackgroundImage(this)">
+                </button>
+                <button class="btn-admin" style="background-color: #ff7675; margin-top:5px;" onclick="deleteBackgroundImage()">
+                    ❌ Eigenes Bild löschen
+                </button>
+                <p style="font-size:0.8em; color:#aaa; margin-top:5px;">(Wenn kein eigenes Bild da ist, wird das Standard-Bild gezeigt.)</p>
+            </div>
         </div>
 
         <div class="card">
@@ -322,7 +334,7 @@
         </div>
 
         <div class="footer-info">
-            <p>Jukebox NFC V23 (Custom BG)</p>
+            <p>Jukebox NFC V24 (Explicit BG Mode)</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
         </div>
@@ -375,7 +387,8 @@
     <script>
         let db; let isParentMode = true; let ndef; let clickCount = 0; 
         const audioPlayer = document.getElementById('audio-player');
-        let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: false, startMode: 'parent', bgColor: '#ffffff' };
+        // Default Settings (jetzt mit bgMode)
+        let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: false, startMode: 'parent', bgMode: 'default', bgColor: '#ffffff' };
         let sleepTimerId = null; let showRemainingTime = true; 
         let currentPlayingTagId = null; let currentTrackIndex = 0; let currentPlaylist = []; 
         let isNfcScanning = false; let isLinkModeActive = false;
@@ -384,7 +397,7 @@
         const SYSTEM_SETTINGS_ID = "system_settings"; 
 
         if (!("NDEFReader" in window)) document.getElementById('nfc-warning').style.display = 'block';
-        loadSettings();
+        loadSettings(); // Lokal laden
 
         // DB INIT
         const DB_NAME = "MusicBoxDB_v15";
@@ -401,6 +414,20 @@
         };
 
         // --- BACKGROUND LOGIC ---
+        // Zeigt nur die passenden Controls im Eltern-Modus an
+        function updateBgUIState() {
+            const mode = document.getElementById('bg-mode-select').value;
+            document.getElementById('bg-color-container').style.display = 'none';
+            document.getElementById('bg-image-container').style.display = 'none';
+
+            if (mode === 'color') {
+                document.getElementById('bg-color-container').style.display = 'block';
+            } else if (mode === 'image') {
+                document.getElementById('bg-image-container').style.display = 'block';
+            }
+            // bei 'default' bleibt beides unsichtbar
+        }
+
         function saveBackgroundImage(input) {
             const file = input.files[0]; if(!file) return;
             const tx = db.transaction(["tracks"], "readwrite"); const store = tx.objectStore("tracks");
@@ -410,32 +437,42 @@
         function deleteBackgroundImage() {
             const tx = db.transaction(["tracks"], "readwrite"); const store = tx.objectStore("tracks");
             store.delete(SYSTEM_BG_ID);
-            tx.oncomplete = () => { showStatus("Standard wiederhergestellt"); applyKidsDesign(); };
+            tx.oncomplete = () => { showStatus("Eigenes Bild gelöscht"); applyKidsDesign(); };
         }
+
+        // Wendet das Design basierend auf dem gewählten Modus an
         function applyKidsDesign() {
             const kidsDiv = document.getElementById('kids-mode');
-            
-            // Check for Custom Image in DB
-            if(!db) return;
-            const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
-            const req = store.get(SYSTEM_BG_ID);
-            req.onsuccess = () => {
-                if(req.result && req.result.imageBlob) {
-                    const url = URL.createObjectURL(req.result.imageBlob);
-                    kidsDiv.style.backgroundImage = `url('${url}')`;
-                } else {
-                    // FALLBACK: Benutzereinstellung (Farbe) ODER Hintergrund.jpg
-                    // Wenn Farbe != Weiss, nimm Farbe. Sonst Bild.
-                    if(settings.bgColor && settings.bgColor.toLowerCase() !== '#ffffff') {
-                        kidsDiv.style.backgroundImage = 'none';
-                        kidsDiv.style.backgroundColor = settings.bgColor;
-                    } else {
-                        // Standard Hintergrund-Bild
-                        kidsDiv.style.backgroundImage = "url('hintergrund.jpg')";
-                        kidsDiv.style.backgroundColor = "#fff";
-                    }
+            const mode = settings.bgMode;
+
+            // Reset styles first
+            kidsDiv.style.backgroundImage = '';
+            kidsDiv.style.backgroundColor = '';
+
+            if (mode === 'default') {
+                kidsDiv.style.backgroundImage = "url('hintergrund.jpg')";
+                kidsDiv.style.backgroundColor = "#fff"; // Fallback falls Bild fehlt
+            } 
+            else if (mode === 'color') {
+                kidsDiv.style.backgroundColor = settings.bgColor || '#ffffff';
+            }
+            else if (mode === 'image') {
+                 // Versuche eigenes Bild aus DB zu laden
+                if(!db) { // Falls DB noch nicht bereit, Fallback auf Default
+                     kidsDiv.style.backgroundImage = "url('hintergrund.jpg')"; return;
                 }
-            };
+                const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
+                const req = store.get(SYSTEM_BG_ID);
+                req.onsuccess = () => {
+                    if(req.result && req.result.imageBlob) {
+                        const url = URL.createObjectURL(req.result.imageBlob);
+                        kidsDiv.style.backgroundImage = `url('${url}')`;
+                    } else {
+                        // Modus ist 'image', aber kein Bild da -> Fallback auf Default
+                        kidsDiv.style.backgroundImage = "url('hintergrund.jpg')";
+                    }
+                };
+            }
         }
 
         // --- SETTINGS DB SYNC ---
@@ -455,14 +492,20 @@
             document.getElementById('sleep-timer-input').value = settings.sleepTimerMinutes;
             document.getElementById('check-colorful').checked = settings.colorfulControls;
             document.getElementById('start-mode-input').value = settings.startMode || 'parent';
+            // Neue BG Settings
+            document.getElementById('bg-mode-select').value = settings.bgMode || 'default';
             document.getElementById('bg-color-input').value = settings.bgColor || '#ffffff';
+            updateBgUIState(); // UI anpassen
         }
         function saveSettings() {
             settings.maxVolume = document.getElementById('max-vol-input').value / 100;
             settings.sleepTimerMinutes = parseInt(document.getElementById('sleep-timer-input').value);
             settings.colorfulControls = document.getElementById('check-colorful').checked;
             settings.startMode = document.getElementById('start-mode-input').value;
+            // Neue BG Settings lesen
+            settings.bgMode = document.getElementById('bg-mode-select').value;
             settings.bgColor = document.getElementById('bg-color-input').value;
+
             localStorage.setItem('jukeboxSettings_v15', JSON.stringify(settings));
             if(db) {
                 const tx = db.transaction(["tracks"], "readwrite");
@@ -638,35 +681,6 @@
             if(!currentPlayingTagId) return;
             const pos = audioPlayer.currentTime; const tx = db.transaction(["tracks"], "readwrite"); const store = tx.objectStore("tracks"); const getReq = store.get(currentPlayingTagId);
             getReq.onsuccess = function() { const record = getReq.result; if(record) { record.lastTrackIndex = currentTrackIndex; record.lastTime = pos; store.put(record); } };
-        }
-        function saveTrackLink(tagId) {
-            const audioFiles = document.getElementById('audio-input').files; const imgFile = document.getElementById('img-input').files[0]; const name = document.getElementById('track-name').value;
-            const playlistArray = Array.from(audioFiles); const fileNames = playlistArray.map(f => f.name); const imgName = imgFile ? imgFile.name : null;
-            const tx = db.transaction(["tracks"], "readwrite"); const store = tx.objectStore("tracks");
-            store.put({tagId: tagId, name: name, playlist: playlistArray, imageBlob: imgFile, playlistFileNames: fileNames, imageFileName: imgName, lastTrackIndex:0, lastTime:0});
-            tx.oncomplete = () => { showStatus(`Gespeichert: ${name}`); document.getElementById('scan-status').innerText = "OK!"; document.getElementById('track-name').value = ""; document.getElementById('audio-input').value = ""; document.getElementById('img-input').value = ""; loadTagList(); };
-        }
-        function autoFillName() { const input = document.getElementById('audio-input'); if(input.files.length > 0) document.getElementById('track-name').value = input.files[0].name.replace(/\.[^/.]+$/, ""); }
-        function loadTagList() {
-            const list = document.getElementById('tag-list'); list.innerHTML = ""; const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
-            store.openCursor().onsuccess = e => { 
-                const cursor = e.target.result; 
-                if(cursor) { 
-                    if(cursor.value.tagId !== SYSTEM_BG_ID && cursor.value.tagId !== SYSTEM_SETTINGS_ID) {
-                        const div = document.createElement("div"); div.className = "tag-list-item"; let status = (cursor.value.playlist && cursor.value.playlist.length > 0) ? '<span style="color:#2ecc71">✔ OK</span>' : '<span class="missing-audio-badge">⚠️ Audio fehlt</span>'; div.innerHTML = `<div class="tag-info-row"><strong>${cursor.value.name}</strong>${status}</div><div style="font-size:0.75em; color:#aaa; margin-top:2px;">Dateien: ${cursor.value.playlistFileNames ? cursor.value.playlistFileNames.join(', ') : '-'}</div>`; list.appendChild(div); 
-                    }
-                    cursor.continue(); 
-                } 
-            };
-        }
-        function goToKidsMode() {
-            isParentMode = false; document.getElementById('parent-mode').style.display = 'none'; document.getElementById('kids-mode').style.display = 'flex';
-            applyButtonColors(); applyKidsDesign(); updateVolumeUI(); setPlayButtonState(false); if(!isNfcScanning) startNFC();
-        }
-        function handleSecretSwitch() {
-            if(isParentMode) return; clickCount++; 
-            if(clickCount>=5) { forceSaveCurrentPosition(); isParentMode=true; document.getElementById('parent-mode').style.display='flex'; document.getElementById('kids-mode').style.display='none'; audioPlayer.pause(); clickCount=0; } 
-            setTimeout(()=>{clickCount=0;},2000); 
         }
         function startSleepTimer() {
             if(sleepTimerId) clearTimeout(sleepTimerId); document.getElementById('sleep-indicator').style.display = 'none';
