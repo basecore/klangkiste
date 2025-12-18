@@ -1,4 +1,4 @@
-# 🎵 Jukebox PWA (v31) - Die DIY "Toniebox" fürs Handy
+# 🎵 Jukebox PWA (v32) - Die DIY "Toniebox" fürs Handy
 
 ![Jukebox Banner](https://via.placeholder.com/1200x300?text=Jukebox+PWA+-+Kinder+Musik+Player)
 
@@ -12,8 +12,8 @@ Entwickelt als lokale Lösung ohne Cloud-Zwang, ohne Tracking und komplett koste
 
 | **Eltern-Modus (Admin)** | **Kinder-Modus (Player)** |
 |:---:|:---:|
-| ![Eltern Modus](https://via.placeholder.com/300x600?text=Screenshot+Eltern+Modus+Platzhalter) | ![Kinder Modus](https://via.placeholder.com/300x600?text=Screenshot+Kinder+Modus+Platzhalter) |
-| *Verwaltung, Upload & Settings* | *Große Tasten, Cover & Visuals* |
+| <img src="parent1.png" width="180"> <img src="parent2.png" width="180"> <img src="parent3.png" width="180"> | <img src="children1.png" width="200"> |
+| *Tag-Verwaltung, Settings & Upload* | *Einfache Bedienung & Cover-Art* |
 
 ---
 
@@ -23,13 +23,12 @@ Da dies eine Web-App ist, die auf Standard-Smartphone-Hardware läuft, gibt es U
 
 1.  **❌ Keine "Wegnahme"-Erkennung:**
     * Die Musik stoppt **nicht**, wenn die Figur vom Handy genommen wird.
-    * *Grund:* Smartphone-NFC-Leser registrieren nur den Moment des "Scannens" (einmaliges Event). Sie prüfen nicht dauerhaft, ob der Tag noch da ist.
+    * *Grund:* Smartphone-NFC-Leser registrieren nur den Moment des "Scannens" (einmaliges Event).
     * *Lösung:* Zum Stoppen muss der Pause-Button auf dem Display gedrückt werden.
 
 2.  **❌ Keine Original-Tonies:**
-    * Original Tonie-Figuren können in der Regel **nicht** verwendet werden.
-    * *Grund:* Die NFC-Chips in Original-Tonies sind oft proprietär oder durch die dicke Bodenplatte für schwache Handy-Sensoren schwer lesbar. Zudem stören die verbauten Magnete oft den Kompass/Sensor des Handys.
-    * *Lösung:* Nutze günstige Standard-NFC-Sticker (NTAG213/215) und klebe sie unter eigene Spielfiguren (Schleich, Lego, etc.).
+    * Original Tonie-Figuren können oft nicht gelesen werden (proprietäre Chips/Verschlüsselung oder Störung durch Magnete).
+    * *Lösung:* Nutze günstige **NTAG213** oder **NTAG215** Sticker und klebe sie unter eigene Spielfiguren.
 
 3.  **⚠️ iOS / iPhone Einschränkungen:**
     * Apple unterstützt *Web NFC* im Safari-Browser aktuell noch nicht.
@@ -37,13 +36,12 @@ Da dies eine Web-App ist, die auf Standard-Smartphone-Hardware läuft, gibt es U
 
 ---
 
-## ✨ Features (v31)
+## ✨ Features (v32)
 
 ### 🎧 Audio & Steuerung
-* **🔊 Intelligente Lautstärkebegrenzung:** Du legst ein Limit fest (z.B. 40%). Der Lautstärkebalken im Kinder-Modus skaliert sich darauf. "Vollgas" beim Kind sind dann exakt deine 40%.
-* **📜 CUE-Sheet Support:** Unterstützung für Hörspiele mit Kapiteln.
-    * Lade eine `.cue`-Datei hoch, und die App zeigt echte Kapitelnamen an.
-    * **Skip-Track:** Ein extra Button `⏭️` erscheint, um direkt zum nächsten Kapitel zu springen.
+* **💾 Smart Resume (Neu in v32):** Die App speichert die Position sofort beim Pausieren oder Minimieren der App. Beim nächsten Start des gleichen Tags geht es exakt dort weiter.
+* **🔊 Intelligente Lautstärkebegrenzung:** Du legst ein Limit fest (z.B. 40%). Der Lautstärkebalken im Kinder-Modus skaliert sich darauf (Logarithmisch).
+* **📜 CUE-Sheet Support:** Lade `.cue`-Dateien hoch, um echte Kapitelnamen anzuzeigen und den `⏭️` Skip-Button zu nutzen.
 * **⏱️ Anzeige:** Korrekte Zeitanzeige in `mm:ss`.
 
 ### 🔋 Energie & Display
@@ -54,7 +52,7 @@ Da dies eine Web-App ist, die auf Standard-Smartphone-Hardware läuft, gibt es U
 
 ### 🛠️ Technik
 * **NFC-Start:** Musik startet sofort beim Scannen eines Tags.
-* **Offline-First:** Alle Daten (MP3, Cover) werden im Browser-Speicher (IndexedDB) gehalten. Kein Internet nötig beim Abspielen.
+* **Offline-First:** Alle Daten (MP3, Cover) werden im Browser-Speicher (IndexedDB) gehalten.
 * **Backup & Restore:** Datenbank kann exportiert und auf anderen Geräten importiert werden.
 
 ---
@@ -63,27 +61,27 @@ Da dies eine Web-App ist, die auf Standard-Smartphone-Hardware läuft, gibt es U
 
 ### 1. Benötigte Hardware
 * **Android Smartphone** mit NFC (empfohlen).
-* **NFC-Tags** (Typ: NTAG213, NTAG215 oder NTAG216) – gibt es günstig als Sticker oder Karten.
-* Optional: Bluetooth-Lautsprecher für besseren Klang.
+* **NFC-Tags** (Typ: NTAG213, NTAG215 oder NTAG216).
+* Optional: Bluetooth-Lautsprecher.
 
 ### 2. Software-Setup (Hosting)
-Damit Sensoren (Eco-Modus) und NFC funktionieren, **MUSS** die App über einen Server laufen. Einfaches Öffnen der Datei (`file://`) reicht nicht!
+Damit Sensoren (Eco-Modus) und NFC funktionieren, **MUSS** die App über einen Server laufen.
 
 **Option A: Lokal auf dem Handy (Offline / Empfohlen)**
 1.  Erstelle einen Ordner `Jukebox` auf dem internen Speicher des Handys.
-2.  Kopiere alle Dateien (`index.html`, `manifest.json`, `sw.js`, Icons) dort hinein.
-3.  Installiere eine Webserver-App aus dem PlayStore (z.B. *"Web Server for Chrome"* oder *"Simple HTTP Server"*).
-4.  Starte den Server in der App und öffne die angezeigte Adresse (meist `http://127.0.0.1:8080`) in **Chrome**.
+2.  Kopiere alle Dateien (`index.html`, `manifest.json`, `sw.js`, Icons, Bilder) dort hinein.
+3.  Installiere eine Webserver-App (z.B. *"Web Server for Chrome"*).
+4.  Starte den Server und öffne die Adresse (meist `http://127.0.0.1:8080`) in **Chrome**.
 
 **Option B: Online (GitHub Pages)**
-1.  Lade die Dateien in ein GitHub Repository hoch.
+1.  Lade die Dateien in ein GitHub Repository hoch (inkl. Bilder).
 2.  Aktiviere "GitHub Pages" in den Repository-Einstellungen.
 3.  Öffne die URL (`https://dein-name.github.io/...`) auf dem Handy.
 
 ### 3. Als App installieren (PWA)
 1.  Öffne die URL in **Chrome** auf dem Android-Gerät.
 2.  Tippe auf das Menü (3 Punkte) -> **"Zum Startbildschirm hinzufügen"** oder **"App installieren"**.
-3.  Starte die App nun über das Icon auf dem Homescreen (Vollbild, ohne Adressleiste).
+3.  Starte die App nun über das Icon auf dem Homescreen.
 
 ---
 
@@ -95,15 +93,15 @@ Damit Sensoren (Eco-Modus) und NFC funktionieren, **MUSS** die App über einen S
 3.  **(Optional) Cue:** Wähle eine passende `.cue` Datei für Kapitelmarken.
 4.  **Cover:** Wähle ein Bild.
 5.  **Name:** Gib dem Hörspiel einen Namen.
-6.  Klicke auf **"📡 Tag scannen & speichern"** und halte den NFC-Tag an die Rückseite.
+6.  Klicke auf **"📡 Tag scannen & speichern"** und halte den NFC-Tag an.
 
 ### Einstellungen (WICHTIG!)
-* ⚠️ **Hardware-Tasten:** Stelle die physischen Lautstärke-Tasten am Handy auf **100%**. Nur so kann die App per Software drosseln.
+* ⚠️ **Hardware-Tasten:** Stelle die physischen Lautstärke-Tasten am Handy auf **100%**.
 * **Limit:** Schiebe den Regler "Maximale Lautstärke" auf das gewünschte Limit.
 * **Test:** Drücke auf **"🔊 Test-Ton"**, um die Maximallautstärke zu prüfen.
 
 ### Kinder-Modus verlassen
-Es gibt keinen sichtbaren "Zurück"-Button, damit Kinder nicht aus Versehen die Einstellungen öffnen.
+Es gibt keinen sichtbaren "Zurück"-Button.
 ➡️ **Tippe 5x schnell hintereinander in die obere rechte Ecke des Bildschirms.**
 
 ---
@@ -113,7 +111,8 @@ Es gibt keinen sichtbaren "Zurück"-Button, damit Kinder nicht aus Versehen die 
 * `index.html` - Der komplette Code der App.
 * `manifest.json` - PWA Konfiguration.
 * `sw.js` - Service Worker (für Offline-Support).
-* `icon.png` / `icon512_rounded.png` - App Icons.
+* `icon.png` - App Icon.
+* `parent1.png`, `parent2.png`, `parent3.png`, `children1.png` - Screenshots für Readme.
 
 ## 👨‍💻 Credits
 Entwickelt von Sebastian Rößer.
