@@ -1,7 +1,5 @@
 # 🎵 Jukebox PWA (v32) - Die DIY "Toniebox" fürs Handy
 
-![Jukebox Banner](https://via.placeholder.com/1200x300?text=Jukebox+PWA+-+Kinder+Musik+Player)
-
 Eine kinderfreundliche Musik-Player-App, die als Progressive Web App (PWA) direkt im Browser läuft. Sie ermöglicht es, Musik und Hörspiele über **NFC-Tags** (wie bei einer Toniebox) zu starten. Ideal, um alten Smartphones neues Leben als Kinder-Abspielgerät einzuhauchen.
 
 Entwickelt als lokale Lösung ohne Cloud-Zwang, ohne Tracking und komplett kostenlos.
