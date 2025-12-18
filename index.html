@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jukebox V18</title>
+    <title>Jukebox V19</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -19,6 +19,7 @@
             --red-danger: #ff4757;
             --blue-time: #3498db;
             --purple-admin: #9b59b6;
+            /* Farben für Bunte Knöpfe */
             --yellow-btn: #f1c40f;
             --blue-btn: #3498db;
             --purple-btn: #9b59b6;
@@ -237,11 +238,18 @@
         <button class="btn-switch-kids" onclick="goToKidsMode()">▶ ZUM KINDER-MODUS</button>
         <div class="hint-text">💡 Tipp: 5x oben rechts tippen für Admin-Menü.</div>
 
-        <h1>🔧 Jukebox V18</h1>
+        <h1>🔧 Jukebox V19</h1>
         <div id="nfc-warning" class="browser-warning">⚠️ NFC API nicht verfügbar. Bitte Chrome nutzen.</div>
 
         <div class="card">
             <h2>⚙️ Einstellungen</h2>
+            
+            <label>Start-Modus:</label>
+            <select id="start-mode-input" onchange="saveSettings()" style="background: rgba(46, 204, 113, 0.2); border: 1px solid #2ecc71;">
+                <option value="parent">Eltern-Modus (Standard)</option>
+                <option value="kids">Direkt Kinder-Modus</option>
+            </select>
+
             <label>Maximale Lautstärke:</label>
             <input type="range" id="max-vol-input" min="10" max="100" value="100" style="width:100%" oninput="updateSettingsUI()">
             <div style="text-align: right; font-size: 0.8em; margin-bottom: 15px;" id="vol-display">100%</div>
@@ -296,7 +304,7 @@
         </div>
 
         <div class="footer-info">
-            <p>Jukebox NFC V18 (Clean SVG)</p>
+            <p>Jukebox NFC V19 (Start-Option)</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
         </div>
@@ -352,7 +360,7 @@
     <script>
         let db; let isParentMode = true; let ndef; let clickCount = 0; 
         const audioPlayer = document.getElementById('audio-player');
-        let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: false };
+        let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: false, startMode: 'parent' };
         let sleepTimerId = null; let showRemainingTime = true; 
         let currentPlayingTagId = null; let currentTrackIndex = 0; let currentPlaylist = []; 
         let isNfcScanning = false; let isLinkModeActive = false;
@@ -369,6 +377,15 @@
             db.createObjectStore("tracks", { keyPath: "tagId" });
         };
         request.onsuccess = function(event) { db = event.target.result; loadTagList(); };
+
+        // --- STARTUP LOGIC ---
+        // Wenn in den Settings "kids" steht, direkt umschalten
+        if (settings.startMode === 'kids') {
+            // Kurze Verzögerung, damit DOM sicher da ist
+            setTimeout(() => {
+                goToKidsMode();
+            }, 100);
+        }
 
         // --- NFC ---
         async function startNFC() {
@@ -552,13 +569,19 @@
         function saveSettings() {
             settings.maxVolume = document.getElementById('max-vol-input').value / 100; settings.sleepTimerMinutes = parseInt(document.getElementById('sleep-timer-input').value);
             settings.colorfulControls = document.getElementById('check-colorful').checked;
+            settings.startMode = document.getElementById('start-mode-input').value;
             localStorage.setItem('jukeboxSettings_v15', JSON.stringify(settings));
         }
         function loadSettings() {
             const saved = localStorage.getItem('jukeboxSettings_v15');
             if (saved) {
-                settings = JSON.parse(saved); document.getElementById('max-vol-input').value = settings.maxVolume * 100; document.getElementById('vol-display').innerText = (settings.maxVolume * 100) + "%"; document.getElementById('sleep-timer-input').value = settings.sleepTimerMinutes;
+                settings = JSON.parse(saved); 
+                document.getElementById('max-vol-input').value = settings.maxVolume * 100; 
+                document.getElementById('vol-display').innerText = (settings.maxVolume * 100) + "%"; 
+                document.getElementById('sleep-timer-input').value = settings.sleepTimerMinutes;
                 document.getElementById('check-colorful').checked = settings.colorfulControls;
+                // Neue Einstellung laden, fallback 'parent'
+                document.getElementById('start-mode-input').value = settings.startMode || 'parent';
             }
         }
         function startSleepTimer() {
