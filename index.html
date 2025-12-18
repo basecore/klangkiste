@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jukebox V32 SaveFix</title>
+    <title>Jukebox V33 AutoNFC</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -289,7 +289,7 @@
         <button class="btn-switch-kids" onclick="goToKidsMode()">▶ ZUM KINDER-MODUS</button>
         <div class="hint-text">💡 Tipp: 5x oben rechts tippen für Admin-Menü.</div>
         
-        <h1>🔧 Jukebox V32</h1>
+        <h1>🔧 Jukebox V33</h1>
         <div id="nfc-warning" class="browser-warning">⚠️ NFC API nicht verfügbar. Bitte Chrome nutzen.</div>
 
         <div class="card">
@@ -422,7 +422,7 @@
         </div>
 
         <div class="footer-info">
-            <p>Jukebox NFC V32 (Save Fix)</p>
+            <p>Jukebox NFC V33 (Auto NFC Start)</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
         </div>
@@ -558,6 +558,7 @@
             req.onsuccess = () => {
                 if(req.result && req.result.data) {
                     settings = req.result.data; updateUIFromSettings();
+                    // Wenn Startmodus "Kids" ist, gehen wir dahin UND versuchen NFC zu starten
                     if (settings.startMode === 'kids') { setTimeout(() => { goToKidsMode(); }, 100); }
                 } else { saveSettings(); }
             };
@@ -619,7 +620,6 @@
         async function releaseWakeLock() { if (wakeLock !== null) { await wakeLock.release(); wakeLock = null; } stubbornVideo.pause(); }
         document.addEventListener('visibilitychange', async () => { if (document.visibilityState === 'visible' && settings.enableWakeLock) { requestWakeLock(); } });
 
-        // FIX: Speichern beim Verlassen der App
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden') {
                 forceSaveCurrentPosition();
@@ -686,7 +686,7 @@
                             if (isLinkModeActive) { saveTrackLink(event.serialNumber); isLinkModeActive = false; } else { showStatus("Tag erkannt: " + event.serialNumber); }
                         } else { playTrackByTag(event.serialNumber); }
                     };
-                } catch (error) { console.log(error); isNfcScanning=false; }
+                } catch (error) { console.log("NFC Fehler (Autostart blockiert?):", error); isNfcScanning=false; }
             }
         }
 
@@ -802,7 +802,6 @@
                 if(audioPlayer.src) { audioPlayer.play(); setPlayButtonState(true); startSleepTimer(); requestWakeLock(); } 
                 else { showStatus("Tag?"); } 
             } else { 
-                // FIX: Speichern beim Pausieren
                 audioPlayer.pause(); 
                 setPlayButtonState(false); 
                 stopSleepTimer(); 
@@ -862,6 +861,7 @@
         });
 
         function toggleTimeDisplayMode() { showRemainingTime = !showRemainingTime; updateTimeDisplay(); }
+        // Fallback: Global click listener startet NFC, falls Autostart fehlschlägt
         document.body.addEventListener('click', async () => { if(!ndef && "NDEFReader" in window) { try { await startNFC(); } catch(e) {} } }, { once: true });
 
         function goToKidsMode() {
@@ -871,6 +871,9 @@
             applyKidsDesign(); applyButtonColors();
             if (document.documentElement.requestFullscreen) { document.documentElement.requestFullscreen().catch((e) => {}); }
             if(settings.enableEcoMode) updateEcoModeState(false);
+            
+            // NEU: Versuch den Scanner sofort zu starten (ohne Klick)
+            startNFC().catch(err => console.log("Autostart NFC fehlgeschlagen (Klick nötig)", err));
         }
 
         function handleSecretSwitch() {
