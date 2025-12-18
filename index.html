@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jukebox V24</title>
+    <title>Jukebox V24 Fixed</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -79,6 +79,7 @@
             display: flex; align-items: center; justify-content: center;
             border: 4px solid white; position: relative;
         }
+
         #album-img { width: 100%; height: 100%; object-fit: cover; display: none; }
         #album-placeholder { font-size: 60px; color: #ccc; }
 
@@ -94,15 +95,18 @@
             display: flex; align-items: center; justify-content: center;
             gap: 25px; margin-bottom: 15px; width: 100%;
         }
+
         #volume-display-container {
             width: 85%; height: 25px; background-color: rgba(255,255,255,0.7);
             border-radius: 15px; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
+
         #volume-bar {
             height: 100%; width: 50%; background-color: var(--green-safe);
             transition: width 0.2s, background-color 0.5s;
         }
+
         .controls-nav-row {
             display: flex; align-items: center; justify-content: center;
             gap: 30px; width: 100%; margin-bottom: 40px; 
@@ -114,6 +118,7 @@
             align-items: center; justify-content: center; font-weight: bold;
             transition: transform 0.1s; color: #576574; 
         }
+
         .btn-control:active { transform: scale(0.92); }
         .btn-control svg { width: 50%; height: 50%; fill: currentColor; }
 
@@ -121,6 +126,7 @@
             width: 110px; height: 110px; background-color: var(--green-safe); color: white;
         }
         .btn-play svg { width: 60%; height: 60%; }
+
         .btn-secondary {
             width: 75px; height: 75px; background-color: var(--btn-color); color: #2f3542;
         }
@@ -150,12 +156,15 @@
             height: 100vh; background-color: #2d3436; color: white;
             overflow-y: auto;
         }
+
         .card {
             background: rgba(255,255,255,0.1); padding: 15px;
             border-radius: 10px; margin-bottom: 20px;
             border: 1px solid rgba(255,255,255,0.1);
         }
+
         h2 { margin-top: 0; font-size: 1.1rem; color: #74b9ff; }
+
         input[type="file"], input[type="text"], select {
             width: 100%; padding: 12px; background: rgba(0,0,0,0.3);
             border: 1px solid #555; border-radius: 5px; color: white;
@@ -168,12 +177,15 @@
         .checkbox-wrapper { display: flex; align-items: center; margin-bottom: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px;}
         .checkbox-wrapper input { width: auto; margin-right: 15px; transform: scale(1.5); }
         .checkbox-wrapper span { font-size: 0.9em; }
+
         label { display: block; margin-bottom: 5px; font-size: 0.9em; color: #aaa; }
+
         button.btn-admin {
             background-color: #74b9ff; border: none; padding: 12px;
             border-radius: 8px; color: #2d3436; font-weight: bold;
             font-size: 16px; width: 100%; margin-top: 10px; cursor: pointer;
         }
+
         .btn-io-group { display: flex; gap: 10px; margin-top: 10px; }
         .btn-export { background-color: var(--purple-admin); color: white; }
         .btn-import { background-color: var(--green-safe); color: white; position: relative;}
@@ -183,22 +195,26 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             opacity: 0; cursor: pointer;
         }
+
         .btn-switch-kids {
             background-color: var(--green-safe); color: white; padding: 15px;
             border: none; border-radius: 10px; font-size: 1.2rem;
             font-weight: bold; width: 100%; margin-bottom: 15px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
+
         .hint-text {
             background: rgba(255, 165, 2, 0.2); padding: 10px;
             border-radius: 5px; font-size: 0.85em; margin-bottom: 20px;
             border-left: 3px solid orange;
         }
+
         .footer-info {
             margin-top: auto; padding-top: 20px; padding-bottom: 20px;
             text-align: center; font-size: 0.75em; color: #888;
             border-top: 1px solid rgba(255,255,255,0.1);
         }
+
         .tag-list-item {
             background: rgba(0,0,0,0.3); padding: 15px; margin-top: 5px;
             border-radius: 5px; font-size: 0.9em; display: flex;
@@ -206,6 +222,7 @@
         }
         .tag-info-row { display: flex; align-items: center; justify-content: space-between; }
         .tag-action-row { display: flex; gap: 5px; margin-top: 5px;}
+
         .btn-fix-audio {
             background-color: #f1c40f; color: #333; border: none;
             padding: 5px 10px; border-radius: 4px; font-size: 0.8em;
@@ -214,20 +231,24 @@
         .missing-audio-badge { color: #ff4757; font-weight: bold; font-size: 0.8em; }
 
         #mode-switch-secret { position: fixed; top: 0; right: 0; width: 80px; height: 80px; z-index: 9999; }
+
         #status-msg {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.9); color: white; padding: 10px 20px;
             border-radius: 30px; display: none; z-index: 1000; text-align: center;
         }
+
         #flash-overlay {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: rgba(46, 204, 113, 0.5); pointer-events: none;
             opacity: 0; transition: opacity 0.2s; z-index: 2000;
         }
+
         .browser-warning {
             background-color: #ff4757; color: white; padding: 15px;
             border-radius: 10px; margin-bottom: 20px; display: none;
         }
+
         /* Hilfsklasse zum Verstecken von Design-Optionen */
         .hidden-container { display: none; }
     </style>
@@ -235,12 +256,13 @@
 <body>
 
     <div id="mode-switch-secret" onclick="handleSecretSwitch()"></div>
+    
     <div id="flash-overlay"></div>
 
     <div id="parent-mode">
         <button class="btn-switch-kids" onclick="goToKidsMode()">▶ ZUM KINDER-MODUS</button>
         <div class="hint-text">💡 Tipp: 5x oben rechts tippen für Admin-Menü.</div>
-
+        
         <h1>🔧 Jukebox V24</h1>
         <div id="nfc-warning" class="browser-warning">⚠️ NFC API nicht verfügbar. Bitte Chrome nutzen.</div>
 
@@ -281,7 +303,7 @@
                 <option value="image">Eigenes Hintergrund-Bild</option>
             </select>
 
-            <div id="bg-color-container" class="hidden-container">
+            <div id="bg-color-container" class="hidden-container"> 
                  <label>Wähle eine Farbe:</label>
                  <input type="color" id="bg-color-input" value="#ffffff" onchange="saveSettings()">
             </div>
@@ -303,10 +325,13 @@
             <h2>🎵 Neuen Tag anlernen</h2>
             <label>1. Audio Datei(en)</label>
             <input type="file" id="audio-input" multiple accept="audio/*, .m4a, .mp3, .ogg, .wav, .flac" onchange="autoFillName()">
+            
             <label>2. Cover Bild</label>
             <input type="file" id="img-input" accept="image/*">
+            
             <label>3. Name</label>
             <input type="text" id="track-name" placeholder="Name...">
+            
             <button class="btn-admin" onclick="activateLinkMode()">📡 Tag scannen & speichern</button>
             <p id="scan-status" style="color: #74b9ff; margin-top: 10px; font-weight:bold; min-height: 20px;"></p>
         </div>
@@ -334,7 +359,7 @@
         </div>
 
         <div class="footer-info">
-            <p>Jukebox NFC V24 (Explicit BG Mode)</p>
+            <p>Jukebox NFC V24 (Fixed)</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
         </div>
@@ -387,7 +412,8 @@
     <script>
         let db; let isParentMode = true; let ndef; let clickCount = 0; 
         const audioPlayer = document.getElementById('audio-player');
-        // Default Settings (jetzt mit bgMode)
+        
+        // Default Settings
         let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: false, startMode: 'parent', bgMode: 'default', bgColor: '#ffffff' };
         let sleepTimerId = null; let showRemainingTime = true; 
         let currentPlayingTagId = null; let currentTrackIndex = 0; let currentPlaylist = []; 
@@ -397,35 +423,35 @@
         const SYSTEM_SETTINGS_ID = "system_settings"; 
 
         if (!("NDEFReader" in window)) document.getElementById('nfc-warning').style.display = 'block';
+
         loadSettings(); // Lokal laden
 
         // DB INIT
         const DB_NAME = "MusicBoxDB_v15";
         const request = indexedDB.open(DB_NAME, 1);
+
         request.onupgradeneeded = function(event) {
             db = event.target.result;
             if (db.objectStoreNames.contains("tracks")) db.deleteObjectStore("tracks");
             db.createObjectStore("tracks", { keyPath: "tagId" });
         };
+
         request.onsuccess = function(event) { 
-            db = event.target.result; 
-            loadTagList();
-            syncSettingsFromDB(); 
+             db = event.target.result; 
+             loadTagList();
+             syncSettingsFromDB(); 
         };
 
         // --- BACKGROUND LOGIC ---
-        // Zeigt nur die passenden Controls im Eltern-Modus an
         function updateBgUIState() {
             const mode = document.getElementById('bg-mode-select').value;
             document.getElementById('bg-color-container').style.display = 'none';
             document.getElementById('bg-image-container').style.display = 'none';
-
             if (mode === 'color') {
                 document.getElementById('bg-color-container').style.display = 'block';
             } else if (mode === 'image') {
                 document.getElementById('bg-image-container').style.display = 'block';
             }
-            // bei 'default' bleibt beides unsichtbar
         }
 
         function saveBackgroundImage(input) {
@@ -434,31 +460,29 @@
             store.put({tagId: SYSTEM_BG_ID, name: "System Background", imageBlob: file});
             tx.oncomplete = () => { showStatus("Hintergrund gespeichert 🖼️"); input.value = ""; applyKidsDesign(); };
         }
+
         function deleteBackgroundImage() {
             const tx = db.transaction(["tracks"], "readwrite"); const store = tx.objectStore("tracks");
             store.delete(SYSTEM_BG_ID);
             tx.oncomplete = () => { showStatus("Eigenes Bild gelöscht"); applyKidsDesign(); };
         }
 
-        // Wendet das Design basierend auf dem gewählten Modus an
         function applyKidsDesign() {
             const kidsDiv = document.getElementById('kids-mode');
             const mode = settings.bgMode;
-
-            // Reset styles first
+            
             kidsDiv.style.backgroundImage = '';
             kidsDiv.style.backgroundColor = '';
 
             if (mode === 'default') {
                 kidsDiv.style.backgroundImage = "url('hintergrund.jpg')";
-                kidsDiv.style.backgroundColor = "#fff"; // Fallback falls Bild fehlt
+                kidsDiv.style.backgroundColor = "#fff"; 
             } 
             else if (mode === 'color') {
                 kidsDiv.style.backgroundColor = settings.bgColor || '#ffffff';
             }
-            else if (mode === 'image') {
-                 // Versuche eigenes Bild aus DB zu laden
-                if(!db) { // Falls DB noch nicht bereit, Fallback auf Default
+            else if (mode === 'image') { 
+                if(!db) { 
                      kidsDiv.style.backgroundImage = "url('hintergrund.jpg')"; return;
                 }
                 const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
@@ -468,7 +492,6 @@
                         const url = URL.createObjectURL(req.result.imageBlob);
                         kidsDiv.style.backgroundImage = `url('${url}')`;
                     } else {
-                        // Modus ist 'image', aber kein Bild da -> Fallback auf Default
                         kidsDiv.style.backgroundImage = "url('hintergrund.jpg')";
                     }
                 };
@@ -486,32 +509,36 @@
                 } else { saveSettings(); }
             };
         }
+
         function updateUIFromSettings() {
             document.getElementById('max-vol-input').value = settings.maxVolume * 100; 
             document.getElementById('vol-display').innerText = (settings.maxVolume * 100) + "%"; 
             document.getElementById('sleep-timer-input').value = settings.sleepTimerMinutes;
             document.getElementById('check-colorful').checked = settings.colorfulControls;
             document.getElementById('start-mode-input').value = settings.startMode || 'parent';
-            // Neue BG Settings
+            
             document.getElementById('bg-mode-select').value = settings.bgMode || 'default';
             document.getElementById('bg-color-input').value = settings.bgColor || '#ffffff';
-            updateBgUIState(); // UI anpassen
+            updateBgUIState(); 
         }
+
         function saveSettings() {
             settings.maxVolume = document.getElementById('max-vol-input').value / 100;
             settings.sleepTimerMinutes = parseInt(document.getElementById('sleep-timer-input').value);
             settings.colorfulControls = document.getElementById('check-colorful').checked;
             settings.startMode = document.getElementById('start-mode-input').value;
-            // Neue BG Settings lesen
+            
             settings.bgMode = document.getElementById('bg-mode-select').value;
             settings.bgColor = document.getElementById('bg-color-input').value;
 
             localStorage.setItem('jukeboxSettings_v15', JSON.stringify(settings));
+
             if(db) {
                 const tx = db.transaction(["tracks"], "readwrite");
                 tx.objectStore("tracks").put({ tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: settings });
             }
         }
+
         function loadSettings() {
             const saved = localStorage.getItem('jukeboxSettings_v15');
             if (saved) {
@@ -519,6 +546,7 @@
                 if (settings.startMode === 'kids') { setTimeout(() => { goToKidsMode(); }, 100); }
             }
         }
+
         function updateSettingsUI() {
             const vol = document.getElementById('max-vol-input').value; document.getElementById('vol-display').innerText = vol + "%"; saveSettings();
         }
@@ -543,6 +571,7 @@
                 }
             };
         }
+
         async function importDatabaseMetadata(input) {
             const file = input.files[0]; if(!file) return;
             const reader = new FileReader();
@@ -581,6 +610,7 @@
                 } catch (error) { console.log(error); isNfcScanning=false; }
             }
         }
+
         function activateLinkMode() {
             const f = document.getElementById('audio-input').files; const n = document.getElementById('track-name').value;
             if(f.length===0 || n==="") { alert("Datei/Name?"); return; }
@@ -601,20 +631,31 @@
                     const placeEl = document.getElementById('album-placeholder');
                     if(track.imageBlob) { imgEl.src = URL.createObjectURL(track.imageBlob); imgEl.style.display="block"; placeEl.style.display="none"; } 
                     else { imgEl.style.display="none"; placeEl.style.display="block"; }
+                    
                     currentPlayingTagId = tagId; currentPlaylist = track.playlist;
                     let startIndex = track.lastTrackIndex || 0; let startTime = track.lastTime || 0;
                     if(startIndex >= currentPlaylist.length) startIndex = 0;
+                    
                     playPlaylistIndex(startIndex, startTime);
+                    
+                    // Switch to Kids Mode if scanned in Parent Mode
+                    if (isParentMode) {
+                        goToKidsMode();
+                    }
+                    
                 } else { showStatus("Tag unbekannt"); }
             };
         }
+
         function playPlaylistIndex(index, startTime = 0) {
             if(index >= currentPlaylist.length) return;
             currentTrackIndex = index;
             const file = currentPlaylist[index];
             const audioUrl = URL.createObjectURL(file);
+            
             if(currentPlaylist.length > 1) document.getElementById('playlist-info').innerText = `Teil ${index+1} von ${currentPlaylist.length}`;
             else document.getElementById('playlist-info').innerText = "";
+            
             audioPlayer.src = audioUrl;
             audioPlayer.onloadedmetadata = () => {
                 if(startTime > 0 && startTime < audioPlayer.duration - 2) audioPlayer.currentTime = startTime;
@@ -624,12 +665,14 @@
                 audioPlayer.onloadedmetadata = null;
             };
         }
+
         audioPlayer.onended = () => {
             if(currentPlayingTagId && currentPlaylist.length > 0) {
                 if(currentTrackIndex + 1 < currentPlaylist.length) playPlaylistIndex(currentTrackIndex + 1, 0);
                 else { setPlayButtonState(false); currentTrackIndex = 0; forceSaveCurrentPosition(); }
             }
         };
+
         async function smartRelinkFiles(input) {
             const files = Array.from(input.files); if(files.length === 0) return;
             showStatus(`Prüfe ${files.length} Dateien...`);
@@ -651,37 +694,44 @@
             };
             tx.oncomplete = () => { showStatus(`${fixedCount} repariert! 🎉`); loadTagList(); input.value = ""; };
         }
+
         function togglePlay() {
             if (audioPlayer.paused) { 
-                if(audioPlayer.src) { audioPlayer.play(); setPlayButtonState(true); startSleepTimer(); } else { showStatus("Tag?"); } 
-            } else { audioPlayer.pause(); setPlayButtonState(false); stopSleepTimer(); }
+                 if(audioPlayer.src) { audioPlayer.play(); setPlayButtonState(true); startSleepTimer(); } else { showStatus("Tag?"); } 
+             } else { audioPlayer.pause(); setPlayButtonState(false); stopSleepTimer(); }
         }
+
         function restartPlaylist() { if(currentPlayingTagId) { showStatus("Start..."); playPlaylistIndex(0, 0); } }
         function skipForward() { if(audioPlayer.src) { audioPlayer.currentTime += 30; showStatus("+30 Sek"); } }
+
         function changeVolume(change) {
             let newVol = audioPlayer.volume + change; if(newVol > settings.maxVolume) newVol = settings.maxVolume; if(newVol < 0) newVol = 0;
             audioPlayer.volume = newVol; updateVolumeUI();
         }
+
         function updateVolumeUI() {
             let pct = (audioPlayer.volume / settings.maxVolume) * 100; if(pct > 100) pct = 100;
             const bar = document.getElementById('volume-bar'); bar.style.width = pct + "%";
             if(pct < 40) bar.style.backgroundColor = "var(--green-safe)"; else if (pct < 75) bar.style.backgroundColor = "var(--orange-warn)"; else bar.style.backgroundColor = "var(--red-danger)";
         }
+
         function setPlayButtonState(isPlaying) {
             const btn = document.getElementById('btn-play-main');
             if (isPlaying) { 
-                btn.style.backgroundColor = "var(--red-danger)"; 
-                btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'; 
-            } else { 
-                btn.style.backgroundColor = "var(--green-safe)"; 
-                btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'; 
-            }
+                 btn.style.backgroundColor = "var(--red-danger)"; 
+                 btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'; 
+             } else { 
+                 btn.style.backgroundColor = "var(--green-safe)"; 
+                 btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'; 
+             }
         }
+
         function forceSaveCurrentPosition() {
             if(!currentPlayingTagId) return;
             const pos = audioPlayer.currentTime; const tx = db.transaction(["tracks"], "readwrite"); const store = tx.objectStore("tracks"); const getReq = store.get(currentPlayingTagId);
             getReq.onsuccess = function() { const record = getReq.result; if(record) { record.lastTrackIndex = currentTrackIndex; record.lastTime = pos; store.put(record); } };
         }
+
         function startSleepTimer() {
             if(sleepTimerId) clearTimeout(sleepTimerId); document.getElementById('sleep-indicator').style.display = 'none';
             if(settings.sleepTimerMinutes > 0 && !audioPlayer.paused) {
@@ -689,27 +739,151 @@
                 sleepTimerId = setTimeout(() => { fadeOutAndStop(); }, settings.sleepTimerMinutes * 60 * 1000);
             }
         }
+
         function stopSleepTimer() { if(sleepTimerId) clearTimeout(sleepTimerId); document.getElementById('sleep-indicator').style.display = 'none'; }
+
         function fadeOutAndStop() {
             let vol = audioPlayer.volume;
             const fade = setInterval(() => { if(vol > 0.05) { vol -= 0.05; audioPlayer.volume = vol; } else { clearInterval(fade); audioPlayer.pause(); setPlayButtonState(false); forceSaveCurrentPosition(); audioPlayer.volume = Math.min(settings.maxVolume, 0.5); showStatus("Gute Nacht 😴"); } }, 200);
         }
+
         function clearDatabase() { if(confirm("Löschen?")) { db.close(); indexedDB.deleteDatabase(DB_NAME); location.reload(); } }
         function showStatus(msg) { const el = document.getElementById('status-msg'); el.innerText = msg; el.style.display = 'block'; setTimeout(() => { el.style.display = 'none'; }, 3000); }
         function formatTime(s) { return `${Math.floor(s/60)}:${Math.floor(s%60)}`; }
+        
         function applyButtonColors() {
             const volDown = document.getElementById('btn-vol-down'); const volUp = document.getElementById('btn-vol-up'); const back = document.getElementById('btn-reset'); const skip = document.getElementById('btn-skip');
             if (settings.colorfulControls) { volDown.classList.add('btn-colorful-vol-down'); volUp.classList.add('btn-colorful-vol-up'); back.classList.add('btn-colorful-back'); skip.classList.add('btn-colorful-skip'); } 
             else { volDown.classList.remove('btn-colorful-vol-down'); volUp.classList.remove('btn-colorful-vol-up'); back.classList.remove('btn-colorful-back'); skip.classList.remove('btn-colorful-skip'); }
         }
+
         audioPlayer.addEventListener('timeupdate', () => {
             if(isNaN(audioPlayer.duration)) { document.getElementById('time-text').innerText = "--:--"; return; }
             const current = audioPlayer.currentTime; const total = audioPlayer.duration; const pct = (current/total)*100;
             document.getElementById('time-progress').style.width = pct + "%";
             document.getElementById('time-text').innerText = showRemainingTime ? "-" + formatTime(total-current) : formatTime(current);
         });
+
         function toggleTimeDisplayMode() { showRemainingTime = !showRemainingTime; updateTimeDisplay(); }
+
         document.body.addEventListener('click', async () => { if(!ndef && "NDEFReader" in window) { try { await startNFC(); } catch(e) {} } }, { once: true });
+
+        // --- HINZUGEFÜGTE / FEHLENDE FUNKTIONEN ---
+
+        function goToKidsMode() {
+            document.getElementById('parent-mode').style.display = 'none';
+            document.getElementById('kids-mode').style.display = 'flex';
+            isParentMode = false;
+            applyKidsDesign();
+            applyButtonColors();
+            // Vollbild versuchen
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch((e) => {});
+            }
+        }
+
+        function handleSecretSwitch() {
+            clickCount++;
+            setTimeout(() => { clickCount = 0; }, 2000); // Reset nach 2 Sekunden
+            if (clickCount >= 5) {
+                document.getElementById('kids-mode').style.display = 'none';
+                document.getElementById('parent-mode').style.display = 'flex';
+                isParentMode = true;
+                clickCount = 0;
+                if (document.exitFullscreen && document.fullscreenElement) {
+                    document.exitFullscreen().catch((e) => {});
+                }
+            }
+        }
+
+        function autoFillName() {
+            const input = document.getElementById('audio-input');
+            const nameField = document.getElementById('track-name');
+            if (input.files.length > 0 && nameField.value === "") {
+                let name = input.files[0].name;
+                // Endung entfernen (letzter Punkt)
+                if(name.lastIndexOf('.') > 0) {
+                    name = name.substring(0, name.lastIndexOf('.'));
+                }
+                nameField.value = name;
+            }
+        }
+
+        function saveTrackLink(tagId) {
+            const audioFiles = Array.from(document.getElementById('audio-input').files);
+            const imgFile = document.getElementById('img-input').files[0];
+            const name = document.getElementById('track-name').value;
+
+            if (audioFiles.length === 0 || !name) { 
+                alert("Bitte Audio und Name wählen!"); 
+                return; 
+            }
+
+            const fileNames = audioFiles.map(f => f.name);
+
+            const record = {
+                tagId: tagId,
+                name: name,
+                playlist: audioFiles,
+                playlistFileNames: fileNames,
+                imageBlob: imgFile || null,
+                imageFileName: imgFile ? imgFile.name : null,
+                lastTrackIndex: 0,
+                lastTime: 0
+            };
+
+            const tx = db.transaction(["tracks"], "readwrite");
+            tx.objectStore("tracks").put(record);
+            tx.oncomplete = () => {
+                showStatus("Tag gespeichert! ✅");
+                loadTagList();
+                // Reset inputs
+                document.getElementById('track-name').value = "";
+                document.getElementById('audio-input').value = "";
+                document.getElementById('img-input').value = "";
+                document.getElementById('scan-status').innerText = "";
+            };
+        }
+
+        function loadTagList() {
+            const list = document.getElementById('tag-list');
+            if(!list) return;
+            list.innerHTML = "";
+            const tx = db.transaction(["tracks"], "readonly");
+            const store = tx.objectStore("tracks");
+            
+            store.openCursor().onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    const track = cursor.value;
+                    if(track.tagId !== SYSTEM_BG_ID && track.tagId !== SYSTEM_SETTINGS_ID) {
+                        const div = document.createElement('div');
+                        div.className = "tag-list-item";
+                        div.innerHTML = `
+                            <div class="tag-info-row">
+                                <strong>${track.name}</strong>
+                                <span style="font-size:0.8em; color:#aaa;">ID: ${track.tagId}</span>
+                            </div>
+                            <div class="tag-action-row">
+                                <button class="btn-fix-audio" onclick="playTrackByTag('${track.tagId}')">▶ Testen</button>
+                                <button class="btn-fix-audio" style="background:#ff7675; color:white;" onclick="deleteTrack('${track.tagId}')">Löschen</button>
+                            </div>
+                        `;
+                        list.appendChild(div);
+                    }
+                    cursor.continue();
+                }
+            };
+        }
+
+        function deleteTrack(id) {
+            if(confirm("Wirklich löschen?")) {
+                const tx = db.transaction(["tracks"], "readwrite");
+                tx.objectStore("tracks").delete(id);
+                tx.oncomplete = () => loadTagList();
+            }
+        }
+
         // SW Register
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
     </script>
