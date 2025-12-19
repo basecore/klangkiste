@@ -31,10 +31,10 @@ Da dies eine Web-App ist, die auf Standard-Smartphone-Hardware läuft, gibt es U
 3.  **🔓 Original-Tonies verwenden (Experten-Info):**
     * Grundsätzlich ist die App für **eigene NFC-Sticker (NTAG213/215)** gedacht.
     * Original-Tonies sind oft verschlüsselt oder im "Privacy Mode".
-    * **Möglichkeit ("Klopf-Methode"):** Wenn du eine Tonie-Figur verwenden willst, klopfe sie mehrmals schnell gegen eine echte Toniebox. Dies öffnet kurzzeitig den Privacy-Modus, sodass das Handy die ID lesen kann.
+    * **Möglichkeit ("Klopf-Methode"):** Wenn du eine Tonie-Figur verwenden willst, klopfe sie mehrmals schnell gegen eine echte Toniebox (aktiviert). Dies öffnet kurzzeitig den Privacy-Modus, sodass das Handy die ID lesen kann.
     * **Nachteil:** Sobald die Figur wieder regulär auf einer Toniebox stand, ist der Modus wieder zu und du musst erneut "klopfen", bevor das Handy sie erkennt.
     * **Wichtig:** Die App liest **nicht** die Musik von der Figur! Du musst die Audio-Datei (MP3) selbst besitzen und auf das Handy laden.
-    * *Tipp:* Um Audio von deinen eigenen Tonies zu sichern/konvertieren, schau dir das **Python-Script hier im GitHub-Repository** an.
+    * *Tipp:* Um Audio von deinen eigenen Tonies zu sichern/konvertieren, nutze das Python-Script `taf2mp3_smart.py` in diesem Repository.
 
 ---
 
@@ -117,7 +117,7 @@ Es gibt keinen sichtbaren "Zurück"-Button.
 * `sw.js` - Service Worker (für Offline-Support).
 * `icon.png` - App Icon.
 * `parent1.png`... - Screenshots.
-* `tonie_export.py` (optional) - Script zum Extrahieren von Audio von der Toniebox (siehe GitHub).
+* `taf2mp3_smart.py` - Script zum Konvertieren von Tonie-Dateien (siehe Limitierungen).
 
 ## 👨‍💻 Credits
 Entwickelt von Sebastian Rößer.
