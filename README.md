@@ -15,30 +15,37 @@ Entwickelt als lokale Lösung ohne Cloud-Zwang, ohne Tracking und komplett koste
 
 ---
 
-## 🚫 Bekannte Limitierungen (Bitte lesen!)
+## ⚠️ Wichtige Hinweise & Limitierungen
 
 Da dies eine Web-App ist, die auf Standard-Smartphone-Hardware läuft, gibt es Unterschiede zur echten Toniebox:
 
 1.  **❌ Keine "Wegnahme"-Erkennung:**
     * Die Musik stoppt **nicht**, wenn die Figur vom Handy genommen wird.
     * *Grund:* Smartphone-NFC-Leser registrieren nur den Moment des "Scannens" (einmaliges Event).
-    * *Lösung:* Zum Stoppen muss der Pause-Button auf dem Display gedrückt werden oder ein anderer NFC-Tag gelesen werden.
+    * *Lösung:* Zum Stoppen muss der Pause-Button auf dem Display gedrückt werden.
 
-2.  **❌ Keine Original-Tonies:**
-    * Original Tonie-Figuren können oft nicht gelesen werden (proprietäre Chips/Verschlüsselung oder Störung durch Magnete).
-    * *Lösung:* Nutze günstige **NTAG213** oder **NTAG215** Sticker und klebe sie unter eigene Spielfiguren.
-
-3.  **⚠️ iOS / iPhone Einschränkungen:**
+2.  **⚠️ iOS / iPhone Einschränkungen:**
     * Apple unterstützt *Web NFC* im Safari-Browser aktuell noch nicht.
     * *Folge:* Auf iPhones funktioniert die App nur als Player (Manuelle Auswahl). Das **Anlernen und Scannen von Tags geht nur unter Android**.
+
+3.  **🔓 Original-Tonies verwenden (Experten-Info):**
+    * Grundsätzlich ist die App für **eigene NFC-Sticker (NTAG213/215)** gedacht.
+    * Original-Tonies sind oft verschlüsselt oder im "Privacy Mode".
+    * **Möglichkeit ("Klopf-Methode"):** Wenn du eine Tonie-Figur verwenden willst, klopfe sie mehrmals schnell gegen eine echte Toniebox. Dies öffnet kurzzeitig den Privacy-Modus, sodass das Handy die ID lesen kann.
+    * **Nachteil:** Sobald die Figur wieder regulär auf einer Toniebox stand, ist der Modus wieder zu und du musst erneut "klopfen", bevor das Handy sie erkennt.
+    * **Wichtig:** Die App liest **nicht** die Musik von der Figur! Du musst die Audio-Datei (MP3) selbst besitzen und auf das Handy laden.
+    * *Tipp:* Um Audio von deinen eigenen Tonies zu sichern/konvertieren, schau dir das **Python-Script hier im GitHub-Repository** an.
 
 ---
 
 ## ✨ Features (v33)
 
+### 🚀 Performance & Komfort
+* **⚡ Auto-Start NFC (Neu in v33):** Der Scanner startet nun sofort, wenn der Kinder-Modus geöffnet wird. Kein extra Tippen aufs Display mehr nötig (auf unterstützten Geräten).
+* **💾 Smart Resume:** Die App speichert die Position sofort beim Pausieren oder Minimieren. Beim nächsten Start des gleichen Tags geht es exakt dort weiter.
+
 ### 🎧 Audio & Steuerung
-* **💾 Smart Resume (Neu in v33):** Die App speichert die Position sofort beim Pausieren oder Minimieren der App. Beim nächsten Start des gleichen Tags geht es exakt dort weiter.
-* **🔊 Intelligente Lautstärkebegrenzung:** Du legst ein Limit fest (z.B. 40%). Der Lautstärkebalken im Kinder-Modus skaliert sich darauf (Logarithmisch).
+* **🔊 Intelligente Lautstärkebegrenzung:** Du legst ein Limit fest (z.B. 40%). Der Lautstärkebalken im Kinder-Modus skaliert sich darauf (Logarithmisch für natürliches Hören).
 * **📜 CUE-Sheet Support:** Lade `.cue`-Dateien hoch, um echte Kapitelnamen anzuzeigen und den `⏭️` Skip-Button zu nutzen.
 * **⏱️ Anzeige:** Korrekte Zeitanzeige in `mm:ss`.
 
@@ -49,8 +56,7 @@ Da dies eine Web-App ist, die auf Standard-Smartphone-Hardware läuft, gibt es U
 * **💡 Screen Wake Lock:** Verhindert, dass das Handy in den Sperrbildschirm geht (nutzt Video-Loop-Trick für maximale Kompatibilität).
 
 ### 🛠️ Technik
-* **NFC-Start:** Musik startet sofort beim Scannen eines Tags.
-* **Offline-First:** Alle Daten (MP3, Cover) werden im Browser-Speicher (IndexedDB) gehalten.
+* **Offline-First:** Alle Daten (MP3, Cover) werden im Browser-Speicher (IndexedDB) gehalten. Kein Internet nötig beim Abspielen.
 * **Backup & Restore:** Datenbank kann exportiert und auf anderen Geräten importiert werden.
 
 ---
@@ -59,7 +65,7 @@ Da dies eine Web-App ist, die auf Standard-Smartphone-Hardware läuft, gibt es U
 
 ### 1. Benötigte Hardware
 * **Android Smartphone** mit NFC (empfohlen).
-* **NFC-Tags** (Typ: NTAG213, NTAG215 oder NTAG216).
+* **NFC-Tags** (Typ: NTAG213, NTAG215 oder NTAG216) – oder Original-Tonies (siehe oben).
 * Optional: Bluetooth-Lautsprecher.
 
 ### 2. Software-Setup (Hosting)
@@ -91,7 +97,7 @@ Damit Sensoren (Eco-Modus) und NFC funktionieren, **MUSS** die App über einen S
 3.  **(Optional) Cue:** Wähle eine passende `.cue` Datei für Kapitelmarken.
 4.  **Cover:** Wähle ein Bild.
 5.  **Name:** Gib dem Hörspiel einen Namen.
-6.  Klicke auf **"📡 Tag scannen & speichern"** und halte den NFC-Tag an.
+6.  Klicke auf **"📡 Tag scannen & speichern"** und halte den NFC-Tag (oder geklopften Tonie) an die Rückseite.
 
 ### Einstellungen (WICHTIG!)
 * ⚠️ **Hardware-Tasten:** Stelle die physischen Lautstärke-Tasten am Handy auf **100%**.
@@ -110,8 +116,8 @@ Es gibt keinen sichtbaren "Zurück"-Button.
 * `manifest.json` - PWA Konfiguration.
 * `sw.js` - Service Worker (für Offline-Support).
 * `icon.png` - App Icon.
-* `parent1.png`, `parent2.png`, `parent3.png` - Screenshots Eltern-Modus.
-* `children1.png`, `children2.png`, `children3.png` - Screenshots Kinder-Modus.
+* `parent1.png`... - Screenshots.
+* `tonie_export.py` (optional) - Script zum Extrahieren von Audio von der Toniebox (siehe GitHub).
 
 ## 👨‍💻 Credits
 Entwickelt von Sebastian Rößer.
