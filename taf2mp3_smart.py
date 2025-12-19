@@ -9,16 +9,18 @@ import sys
 import struct
 
 # --- KONFIGURATION ---
-SOURCE_DIR = "."         # Ordner mit TAF-Dateien
+SOURCE_DIR = "."         
 OUTPUT_DIR = "mp3_converted"
 JSON_FILE = "tonies.json"
-TAF_HEADER_SIZE = 4096   # Größe des Headers
-OPUS_SAMPLE_RATE = 48000.0 # Tonie Standard Samplerate
+HEADER_SIZE = 4096       
+OPUS_SAMPLE_RATE = 48000.0
 
-# --- TAF & OGG ANALYSE FUNKTIONEN (NEU) ---
+# ==========================================
+# TEIL 1: DIE NEUE, ROBUSTE TECHNIK (CUE)
+# ==========================================
 
 def read_varint(data, offset):
-    """Liest einen Protobuf Varint sicher aus."""
+    """Liest einen Protobuf-Wert Byte für Byte."""
     value = 0
     shift = 0
     curr = offset
@@ -31,164 +33,150 @@ def read_varint(data, offset):
         shift += 7
     return value, curr
 
-def get_real_chapters(filepath):
+def get_real_chapters_robust(filepath):
     """
-    Liest die echten Kapitelmarken (Page IDs) aus dem TAF-Header.
-    Entspricht der Logik der TonieToolbox (tonie_header.proto).
+    Sucht 'aggressiv' nach der Kapitelliste im Header.
+    Findet auch Kapitel, wenn der Header unsauber ist.
     """
-    chapters = []
+    best_chapters = []
     try:
         with open(filepath, "rb") as f:
-            header_data = f.read(TAF_HEADER_SIZE)
-            idx = 0
-            limit = len(header_data)
+            data = f.read(HEADER_SIZE)
             
-            # Suche nach Feld 4 (chapterPages)
-            while idx < limit:
-                try:
-                    tag, idx = read_varint(header_data, idx)
-                    field = tag >> 3
-                    wire = tag & 0x07
-                    
-                    if field == 4:
-                        if wire == 2: # Packed
-                            length, idx = read_varint(header_data, idx)
-                            end = idx + length
-                            while idx < end:
-                                val, idx = read_varint(header_data, idx)
-                                chapters.append(val)
-                            break 
-                        else: # Not packed (selten)
-                            val, idx = read_varint(header_data, idx)
-                            chapters.append(val)
-                    else:
-                        # Skip unknown fields
-                        if wire == 0: read_varint(header_data, idx)
-                        elif wire == 1: idx += 8
-                        elif wire == 5: idx += 4
-                        elif wire == 2:
-                            l, idx = read_varint(header_data, idx)
-                            idx += l
-                        else: break
-                except: break
-    except Exception as e:
-        print(f"  ⚠️  Warnung beim Header-Lesen: {e}")
-        
-    return sorted(list(set([0] + chapters)))
+            # Wir suchen überall nach dem Byte 0x22 (Kennung für Kapitel-Liste)
+            for i in range(len(data) - 2):
+                if data[i] == 0x22:
+                    try:
+                        length = data[i+1]
+                        start = i + 2
+                        end = start + length
+                        if end > len(data): continue
+                        
+                        temp = []
+                        curr = start
+                        while curr < end:
+                            val, curr = read_varint(data, curr)
+                            temp.append(val)
+                        
+                        # Plausibilitäts-Check: Sind es mehr Tracks als vorher gefunden?
+                        # Und sind sie sortiert? (Track 2 kommt nach Track 1)
+                        if len(temp) > len(best_chapters):
+                            if all(temp[j] <= temp[j+1] for j in range(len(temp)-1)):
+                                best_chapters = temp
+                    except: continue
+    except: pass
 
-def scan_ogg_granules(filepath):
-    """
-    Scannt die OGG-Datei und map Page-Sequence -> Zeitstempel (Granule).
-    Dies liefert die physikalisch korrekten Zeiten.
-    """
+    # Kapitel 0 ist immer der Start
+    return sorted(list(set([0] + best_chapters)))
+
+def scan_ogg_times(filepath):
+    """Scannt die Audio-Daten nach exakten Zeitstempeln."""
     page_map = {}
     try:
         with open(filepath, "rb") as f:
-            f.seek(TAF_HEADER_SIZE)
+            f.seek(HEADER_SIZE)
             file_size = os.fstat(f.fileno()).st_size
             
             while f.tell() < file_size:
-                # OggS Magic suchen
-                if f.read(4) != b'OggS':
-                    f.seek(-3, 1) # Byte für Byte weiter
+                # Sync suchen (falls Datenmüll dazwischen ist)
+                pos = f.tell()
+                sig = f.read(4)
+                if sig != b'OggS':
+                    if not sig: break
+                    f.seek(pos + 1)
                     continue
                 
-                # Header parsen (27 bytes total, 4 schon gelesen)
                 head = f.read(23)
                 if len(head) < 23: break
                 
-                # <BBQLLLB: Granule ist Index 2, PageSeq ist Index 4, Segments ist Index 6
+                # Header auspacken
                 data = struct.unpack("<BBQLLLB", head)
-                granule_pos = data[2]
-                page_seq = data[4]
+                granule = data[2] # Zeit
+                seq = data[4]     # Page Nummer
                 n_segs = data[6]
                 
-                # Body überspringen
+                # Inhalt überspringen
                 seg_table = f.read(n_segs)
                 body_size = sum(seg_table)
                 f.seek(body_size, 1)
                 
-                page_map[page_seq] = granule_pos
-    except Exception as e:
-        print(f"  ⚠️  Warnung beim Audio-Scan: {e}")
-        
+                page_map[seq] = granule
+    except: pass
     return page_map
 
-def granule_to_cue_time(granule):
-    """Konvertiert Granules (48kHz) in MM:SS:FF"""
+def granule_to_cue(granule):
+    """Rechnet Samples in CUE-Zeit um."""
     seconds = granule / OPUS_SAMPLE_RATE
     m = int(seconds // 60)
     s = int(seconds % 60)
     f = int((seconds - int(seconds)) * 75)
     return f"{m:02d}:{s:02d}:{f:02d}"
 
-# --- HELFER FUNKTIONEN ---
+# ==========================================
+# TEIL 2: HELFER & UI (WIE IM ALTEN SKRIPT)
+# ==========================================
 
-def show_setup_guide():
+def show_header():
     print("=" * 70)
-    print("TAF zu MP3 ULTIMATE (mit nativer CUE-Berechnung)".center(70))
+    print("TAF 2 MP3 COMPLETE (Mit Auto-CUE)".center(70))
     print("=" * 70)
-    print("1. Legen Sie .taf Dateien in diesen Ordner.")
-    print("2. Legen Sie die 'tonies.json' daneben.")
-    print("3. Stellen Sie sicher, dass 'ffmpeg' installiert ist.")
-    print("=" * 70)
-    print()
 
-def load_tonies_json(json_path):
-    print(f"📂 Lade Datenbank: {json_path}")
+def load_json_db(path):
+    print(f"📂 Lade Datenbank: {path}")
     try:
-        with open(json_path, 'r', encoding='utf-8') as f:
+        with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        hash_map = {}
+        db = {}
         for entry in data:
             pic = entry.get('pic')
             if not pic: continue
             for h in entry.get('hash', []):
-                hash_map[h.lower()] = {
+                db[h.lower()] = {
                     'pic': pic,
                     'title': entry.get('title', 'Unknown'),
                     'series': entry.get('series', ''),
-                    'episodes': entry.get('episodes', ''),
                     'tracks': entry.get('tracks', [])
                 }
-        print(f"✓ Datenbank geladen: {len(hash_map)} Einträge")
+        print(f"✓ {len(db)} Einträge geladen.")
         print()
-        return hash_map
+        return db
     except:
-        print("✗ tonies.json Fehler (oder nicht gefunden). Mache ohne Metadaten weiter.")
+        print("⚠️  tonies.json nicht gefunden oder fehlerhaft. Mache ohne Metadaten weiter.")
+        print()
         return {}
 
-def get_audio_hash(filepath):
-    sha1 = hashlib.sha1()
+def get_hash(path):
+    s = hashlib.sha1()
     try:
-        with open(filepath, 'rb') as f:
-            f.seek(TAF_HEADER_SIZE)
+        with open(path, 'rb') as f:
+            f.seek(HEADER_SIZE)
             while True:
-                data = f.read(65536)
-                if not data: break
-                sha1.update(data)
-        return sha1.hexdigest().lower()
+                d = f.read(65536)
+                if not d: break
+                s.update(d)
+        return s.hexdigest().lower()
     except: return None
 
-def sanitize_filename(name):
-    return "".join([c if c.isalnum() or c in " .-_()" else "_" for c in name]).strip()
-
-def download_image(url, path):
+def download_cover(url, target):
     try:
         r = requests.get(url, timeout=10)
         if r.status_code == 200:
-            with open(path, 'wb') as f: f.write(r.content)
+            with open(target, 'wb') as f: f.write(r.content)
             return True
     except: pass
     return False
 
-# --- HAUPT FUNKTION ---
+def clean_filename(name):
+    return "".join([c if c.isalnum() or c in " .-_()" else "_" for c in name]).strip()
 
-def convert_taf_to_mp3():
-    show_setup_guide()
+# ==========================================
+# TEIL 3: HAUPTPROGRAMM
+# ==========================================
+
+def main():
+    show_header()
     
-    hash_db = load_tonies_json(JSON_FILE)
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    # 1. Dateien suchen & Anzeigen
     taf_files = sorted(glob.glob(os.path.join(SOURCE_DIR, "*.taf")))
     
     if not taf_files:
@@ -196,127 +184,140 @@ def convert_taf_to_mp3():
         input("Enter zum Beenden...")
         return
 
-    print(f"Gefunden: {len(taf_files)} Dateien")
+    print("📁 Gefundene Dateien:")
+    for i, f in enumerate(taf_files, 1):
+        size = os.path.getsize(f) / (1024*1024)
+        print(f"  {i}. {os.path.basename(f)} ({size:.1f} MB)")
+    print()
+    print(f"Gesamt: {len(taf_files)} Dateien.")
     print("-" * 70)
+    
+    input("Drücken Sie Enter zum Starten...")
+    print()
 
+    # 2. Datenbank laden
+    db = load_json_db(JSON_FILE)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    # 3. Verarbeitungsschleife
     for i, taf_path in enumerate(taf_files, 1):
         filename = os.path.basename(taf_path)
         base_name = os.path.splitext(filename)[0]
-        output_mp3 = os.path.join(OUTPUT_DIR, f"{base_name}.mp3")
+        mp3_out = os.path.join(OUTPUT_DIR, f"{base_name}.mp3")
         
-        print(f"[{i}/{len(taf_files)}] Verarbeite: {filename}")
+        print(f"[{i}/{len(taf_files)}] Bearbeite: {filename}")
         
-        # 1. Metadaten holen
-        sys.stdout.write("  -> Prüfe Hash... ")
+        # A) Metadaten holen
+        sys.stdout.write("  🔎 Suche Infos... ")
         sys.stdout.flush()
-        audio_hash = get_audio_hash(taf_path)
-        meta = hash_db.get(audio_hash, {})
+        file_hash = get_hash(taf_path)
+        meta = db.get(file_hash, {})
         
         title = meta.get('title', base_name)
         series = meta.get('series', title)
-        tracks_meta = meta.get('tracks', [])
+        track_names = meta.get('tracks', [])
         
-        print(f"✓ ({title})")
+        print(f"Found: {title}")
         
-        # Cover laden
-        cover_path = "temp_cover.jpg"
+        # B) Cover laden
+        cover_tmp = "temp_cover.jpg"
         has_cover = False
         if meta.get('pic'):
-            if download_image(meta['pic'], cover_path):
+            if download_cover(meta['pic'], cover_tmp):
                 has_cover = True
 
-        # 2. MP3 Konvertierung
-        if not os.path.exists(output_mp3):
-            sys.stdout.write("  -> Konvertiere Audio (ffmpeg)... ")
+        # C) MP3 Konvertierung
+        if not os.path.exists(mp3_out):
+            sys.stdout.write("  🎵 Konvertiere Audio... ")
             sys.stdout.flush()
             try:
-                # Audio-Daten lesen
                 with open(taf_path, "rb") as f:
-                    f.seek(TAF_HEADER_SIZE)
+                    f.seek(HEADER_SIZE)
                     audio_data = f.read()
                 
                 cmd = ['ffmpeg', '-y', '-f', 'ogg', '-i', 'pipe:0']
-                if has_cover:
-                    cmd.extend(['-i', cover_path, '-map', '0:0', '-map', '1:0', 
-                                '-c:v', 'copy', '-id3v2_version', '3', 
-                                '-metadata:s:v', 'title="Cover"', '-metadata:s:v', 'comment="Front"'])
                 
-                cmd.extend(['-c:a', 'libmp3lame', '-q:a', '2', 
-                            '-metadata', f'title={title}', 
-                            '-metadata', f'artist={series}', 
-                            output_mp3])
+                if has_cover:
+                    cmd += ['-i', cover_tmp, '-map', '0:0', '-map', '1:0', 
+                            '-c:v', 'copy', '-id3v2_version', '3', 
+                            '-metadata:s:v', 'title="Cover"', '-metadata:s:v', 'comment="Front"']
+                
+                cmd += ['-c:a', 'libmp3lame', '-q:a', '2', 
+                        '-metadata', f'title={title}', 
+                        '-metadata', f'artist={series}', 
+                        mp3_out]
                 
                 proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 proc.communicate(input=audio_data)
-                print("✓")
+                print("✓ Done")
             except Exception as e:
                 print(f"✗ Fehler: {e}")
         else:
-            print("  -> MP3 existiert bereits (überspringe Konvertierung).")
+            print("  ⏭️  MP3 existiert schon.")
 
-        # 3. CUE Sheet erstellen (NEUE LOGIK)
-        sys.stdout.write("  -> Analysiere Kapitel... ")
+        # D) CUE Sheet (DIE MAGIE)
+        sys.stdout.write("  ✂️  Erstelle Kapitel (Robust Scan)... ")
         sys.stdout.flush()
         
-        # A) Echte Kapitel aus Header
-        chapters = get_real_chapters(taf_path)
+        # 1. Kapitel-Liste finden (Brute Force)
+        chapters = get_real_chapters_robust(taf_path)
         
-        # B) Zeitstempel aus OGG Struktur
-        if chapters:
-            page_map = scan_ogg_granules(taf_path)
+        if chapters and len(chapters) > 1:
+            # 2. Zeiten aus OGG holen
+            page_map = scan_ogg_times(taf_path)
             
-            safe_title = sanitize_filename(title)
-            cue_path = os.path.join(OUTPUT_DIR, f"{safe_title}.cue")
+            clean_title = clean_filename(title)
+            cue_path = os.path.join(OUTPUT_DIR, f"{clean_title}.cue")
             
-            # Cover kopieren
+            # Cover auch kopieren
             if has_cover:
-                shutil.copy(cover_path, os.path.join(OUTPUT_DIR, f"{safe_title}.jpg"))
+                shutil.copy(cover_tmp, os.path.join(OUTPUT_DIR, f"{clean_title}.jpg"))
 
             try:
-                with open(cue_path, "w", encoding="utf-8") as cue:
-                    cue.write(f'REM CREATED BY TAF2MP3 ULTIMATE\n')
-                    cue.write(f'TITLE "{title}"\n')
-                    cue.write(f'PERFORMER "{series}"\n')
-                    cue.write(f'FILE "{os.path.basename(output_mp3)}" MP3\n')
+                with open(cue_path, "w", encoding="utf-8") as f:
+                    f.write(f'REM CREATED BY TAF2MP3 COMPLETE\n')
+                    f.write(f'TITLE "{title}"\n')
+                    f.write(f'PERFORMER "{series}"\n')
+                    f.write(f'FILE "{os.path.basename(mp3_out)}" MP3\n')
                     
-                    track_counter = 1
+                    track_no = 1
                     for page_idx in chapters:
-                        # Zeit berechnen
-                        timestamp = "00:00:00"
+                        # Zeit ermitteln
+                        time_str = "00:00:00"
                         if page_idx > 0:
-                            # Startzeit = Ende der vorherigen Page
                             prev = page_idx - 1
-                            limit = 100 # Suche bis zu 100 Pages zurück falls Lücken
-                            while prev >= 0 and prev not in page_map and limit > 0:
-                                prev -= 1
-                                limit -= 1
+                            # Falls Lücke in Pages, rückwärts suchen
+                            tries = 100
+                            while prev >= 0 and prev not in page_map and tries > 0:
+                                prev -= 1; tries -= 1
                             
                             if prev in page_map:
-                                timestamp = granule_to_cue_time(page_map[prev])
+                                time_str = granule_to_cue(page_map[prev])
                         
-                        # Titel aus JSON oder generisch
-                        track_title = f"Chapter {track_counter}"
-                        if track_counter <= len(tracks_meta):
-                            track_title = tracks_meta[track_counter-1]
+                        # Name ermitteln
+                        t_name = f"Chapter {track_no}"
+                        if track_no <= len(track_names):
+                            t_name = track_names[track_no-1]
                             
-                        cue.write(f'  TRACK {track_counter:02d} AUDIO\n')
-                        cue.write(f'    TITLE "{track_title}"\n')
-                        cue.write(f'    INDEX 01 {timestamp}\n')
+                        f.write(f'  TRACK {track_no:02d} AUDIO\n')
+                        f.write(f'    TITLE "{t_name}"\n')
+                        f.write(f'    INDEX 01 {time_str}\n')
+                        track_no += 1
                         
-                        track_counter += 1
                 print(f"✓ ({len(chapters)} Tracks)")
             except Exception as e:
-                print(f"✗ Fehler beim Schreiben der CUE: {e}")
+                print(f"✗ Fehler CUE: {e}")
         else:
             print("✗ Keine Kapitel im Header gefunden.")
 
         # Cleanup
-        if os.path.exists(cover_path): os.remove(cover_path)
+        if os.path.exists(cover_tmp): os.remove(cover_tmp)
         print()
 
     print("=" * 70)
-    print(f"Fertig! Dateien liegen in: {os.path.abspath(OUTPUT_DIR)}")
-    input("Enter zum Beenden...")
+    print("Fertig! Alle Dateien wurden verarbeitet.")
+    print(f"Ordner: {os.path.abspath(OUTPUT_DIR)}")
+    input("Drücken Sie Enter zum Beenden...")
 
 if __name__ == "__main__":
-    convert_taf_to_mp3()
+    main()
