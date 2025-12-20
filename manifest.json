@@ -8,13 +8,13 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "icon512_maskable.png",
+      "src": "assets/icons/icon512_maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "icon512_rounded.png",
+      "src": "assets/icons/icon512_rounded.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
