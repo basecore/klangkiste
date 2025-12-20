@@ -3,6 +3,7 @@ const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
+  './assets/limit.mp3',
   './assets/img/hintergrund.jpg',
   './assets/icons/icon.png',
   './assets/icons/icon512_maskable.png',
