@@ -1,6 +1,5 @@
-# 🎵 Jukebox PWA (v35) - Die DIY "Toniebox" fürs Handy
+# 🎵 Jukebox PWA (v40) - Die DIY "Toniebox" fürs Handy
 
-![Jukebox Banner](https://via.placeholder.com/1200x300?text=Jukebox+PWA+-+Kinder+Musik+Player)
 
 Eine kinderfreundliche Musik-Player-App, die als Progressive Web App (PWA) direkt im Browser läuft. Sie ermöglicht es, Musik und Hörspiele über **NFC-Tags** (wie bei einer Toniebox) zu starten. Ideal, um alten Smartphones neues Leben als Kinder-Abspielgerät einzuhauchen.
 
@@ -40,12 +39,13 @@ Da dies eine Web-App ist, die auf Standard-Smartphone-Hardware läuft, gibt es U
 
 ---
 
-## ✨ Features (v35)
+## ✨ Features (v40)
 
 ### 🚀 Performance & Komfort
+* **📂 Massen-Import (Ordner):** Wähle einen ganzen Ordner mit Hörspielen aus. Die App importiert automatisch alle passenden Paare (MP3 + Cover + Cue) als manuelle Einträge.
 * **⚡ Auto-Start NFC:** Der Scanner startet nun sofort, wenn der Kinder-Modus geöffnet wird. Kein extra Tippen aufs Display mehr nötig (auf unterstützten Geräten).
 * **💾 Smart Resume:** Die App speichert die Position sofort beim Pausieren oder Minimieren. Beim nächsten Start des gleichen Tags geht es exakt dort weiter.
-* **✏️ Edit & Manual Mode (Neu in v35):**
+* **✏️ Edit & Manual Mode:**
     * Speichere Hörspiele **ohne NFC-Tag** (für späteres Verknüpfen oder reine Listen-Nutzung).
     * Bearbeite bestehende Einträge (Cover tauschen, Cues hinzufügen) und ziehe sie auf neue Tags um.
 
@@ -97,14 +97,17 @@ Damit Sensoren (Eco-Modus) und NFC funktionieren, **MUSS** die App über einen S
 ## 📖 Bedienungsanleitung
 
 ### Musik hinzufügen (Eltern-Modus)
+**Einzeln:**
 1.  Klicke auf **"Neuen Tag anlernen"**.
-2.  **Audio:** Wähle die MP3-Datei(en).
-3.  **(Optional) Cue:** Wähle eine passende `.cue` Datei für Kapitelmarken.
-4.  **Cover:** Wähle ein Bild.
-5.  **Name:** Gib dem Hörspiel einen Namen.
-6.  **Speichern:**
-    * Variante A: Klicke auf **"📡 Tag scannen & speichern"** und halte den NFC-Tag an.
-    * Variante B: Klicke auf **"💾 Ohne NFC speichern"**, um es erst einmal nur in der Liste zu haben.
+2.  Wähle Audio, (optional) Cue und Cover.
+3.  Wähle:
+    * **"📡 Tag scannen & speichern"** (Direkt auf NFC).
+    * **"💾 Ohne NFC speichern"** (Nur in Liste).
+
+**Massen-Import (Ordner):**
+1.  Klicke auf **"📂 Massen-Import (Ordner)"**.
+2.  Wähle deinen Ordner mit Hörspielen aus.
+3.  *Wichtig:* MP3, JPG und CUE müssen den **gleichen Dateinamen** haben (z.B. `Conni.mp3` und `Conni.jpg`), damit sie automatisch gruppiert werden.
 
 ### Einstellungen (WICHTIG!)
 * ⚠️ **Hardware-Tasten:** Stelle die physischen Lautstärke-Tasten am Handy auf **100%**.
