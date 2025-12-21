@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jukebox V38 PathFix</title>
+    <title>Jukebox V39 BulkFix</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -303,7 +303,7 @@
         <button class="btn-switch-kids" onclick="goToKidsMode()">▶ ZUM KINDER-MODUS</button>
         <div class="hint-text">💡 Tipp: 5x oben rechts tippen für Admin-Menü.</div>
         
-        <h1>🔧 Jukebox V38</h1>
+        <h1>🔧 Jukebox V39</h1>
         <div id="nfc-warning" class="browser-warning">⚠️ NFC API nicht verfügbar. Bitte Chrome nutzen.</div>
 
         <div class="card">
@@ -459,7 +459,7 @@
         </div>
 
         <div class="footer-info">
-            <p>Jukebox NFC V38 (Path Fix)</p>
+            <p>Jukebox NFC V39 (Bulk Fix)</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
         </div>
@@ -581,7 +581,7 @@
             const mode = settings.bgMode;
             kidsDiv.style.backgroundImage = ''; kidsDiv.style.backgroundColor = '';
             if (mode === 'default') { 
-                kidsDiv.style.backgroundImage = "url('assets/img/hintergrund.jpg')"; // PFAD KORRIGIERT
+                kidsDiv.style.backgroundImage = "url('assets/img/hintergrund.jpg')";
                 kidsDiv.style.backgroundColor = "#fff"; 
             } 
             else if (mode === 'color') { kidsDiv.style.backgroundColor = settings.bgColor || '#ffffff'; }
@@ -717,12 +717,14 @@
             }; reader.readAsText(file);
         }
 
-        // --- BULK IMPORT ---
+        // --- BULK IMPORT (REPAIRED) ---
         async function handleBulkImport(input) {
             const files = Array.from(input.files);
             if(files.length === 0) return;
+            
             showStatus(`Analysiere ${files.length} Dateien...`);
             
+            // 1. Gruppieren
             const groups = {};
             files.forEach(f => {
                 const path = f.webkitRelativePath || f.name;
@@ -740,32 +742,11 @@
                 else if (ext === 'cue') { groups[basePath].cue = f; }
             });
 
+            // 2. Verarbeitung SEQUENTIELL
             let count = 0;
-            const tx = db.transaction(["tracks"], "readwrite");
-            const store = tx.objectStore("tracks");
-
-            const processGroup = async (key) => {
-                const g = groups[key];
-                if(g.audio.length === 0) return; 
-
-                let cueTracks = null;
-                if(g.cue) {
-                    try { const text = await readFileAsText(g.cue); cueTracks = parseCueSheet(text); } catch(e) { console.log("CUE Error", e); }
-                }
-
-                const fileNames = g.audio.map(f => f.name);
-                const tagId = "manual_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
-                
-                const record = {
-                    tagId: tagId, name: g.name.replace(/_/g, ' '), 
-                    playlist: g.audio, playlistFileNames: fileNames,
-                    imageBlob: g.img, imageFileName: g.img ? g.img.name : null,
-                    cueTracks: cueTracks, lastTrackIndex: 0, lastTime: 0
-                };
-                
-                store.put(record);
-                count++;
-            };
+            
+            // Wir müssen die Keys extrahieren, um sie nacheinander abzuarbeiten
+            const groupKeys = Object.keys(groups);
 
             const readFileAsText = (file) => {
                 return new Promise((resolve, reject) => {
@@ -775,11 +756,49 @@
                 });
             };
 
-            const promises = [];
-            for (const key in groups) { promises.push(processGroup(key)); }
-            await Promise.all(promises);
+            for (const key of groupKeys) {
+                const g = groups[key];
+                if(g.audio.length === 0) continue;
 
-            tx.oncomplete = () => { showStatus(`${count} Hörspiele importiert! 🎉`); loadTagList(); input.value = ""; };
+                // Schritt A: CUE Lesen (Async)
+                let cueTracks = null;
+                if(g.cue) {
+                    try {
+                        const text = await readFileAsText(g.cue);
+                        cueTracks = parseCueSheet(text);
+                    } catch(e) { console.log("CUE Skip", e); }
+                }
+
+                // Schritt B: Speichern (Neue Transaktion pro Item -> Stabil!)
+                // Wir packen das in eine Promise, damit die Schleife wartet
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction(["tracks"], "readwrite");
+                    const store = tx.objectStore("tracks");
+                    
+                    const fileNames = g.audio.map(f => f.name);
+                    const tagId = "manual_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
+                    
+                    const record = {
+                        tagId: tagId,
+                        name: g.name.replace(/_/g, ' '),
+                        playlist: g.audio,
+                        playlistFileNames: fileNames,
+                        imageBlob: g.img,
+                        imageFileName: g.img ? g.img.name : null,
+                        cueTracks: cueTracks,
+                        lastTrackIndex: 0, lastTime: 0
+                    };
+                    
+                    store.put(record);
+                    
+                    tx.oncomplete = () => { count++; resolve(); };
+                    tx.onerror = (e) => { console.log("DB Error", e); resolve(); }; // Continue on error
+                });
+            }
+
+            showStatus(`${count} Hörspiele importiert! 🎉`);
+            loadTagList();
+            input.value = "";
         }
 
         // --- NFC LOGIC ---
