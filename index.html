@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jukebox V39 BulkFix</title>
+    <title>Jukebox V40 LimitFile</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -303,7 +303,7 @@
         <button class="btn-switch-kids" onclick="goToKidsMode()">▶ ZUM KINDER-MODUS</button>
         <div class="hint-text">💡 Tipp: 5x oben rechts tippen für Admin-Menü.</div>
         
-        <h1>🔧 Jukebox V39</h1>
+        <h1>🔧 Jukebox V40</h1>
         <div id="nfc-warning" class="browser-warning">⚠️ NFC API nicht verfügbar. Bitte Chrome nutzen.</div>
 
         <div class="card">
@@ -459,7 +459,7 @@
         </div>
 
         <div class="footer-info">
-            <p>Jukebox NFC V39 (Bulk Fix)</p>
+            <p>Jukebox NFC V40 (Limit File & Bulk Fix)</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
         </div>
@@ -581,7 +581,7 @@
             const mode = settings.bgMode;
             kidsDiv.style.backgroundImage = ''; kidsDiv.style.backgroundColor = '';
             if (mode === 'default') { 
-                kidsDiv.style.backgroundImage = "url('assets/img/hintergrund.jpg')";
+                kidsDiv.style.backgroundImage = "url('assets/img/hintergrund.jpg')"; 
                 kidsDiv.style.backgroundColor = "#fff"; 
             } 
             else if (mode === 'color') { kidsDiv.style.backgroundColor = settings.bgColor || '#ffffff'; }
@@ -648,11 +648,16 @@
             if(pct < 40) bar.style.backgroundColor = "var(--green-safe)"; else if (pct < 75) bar.style.backgroundColor = "var(--orange-warn)"; else bar.style.backgroundColor = "var(--red-danger)";
         }
 
+        // --- LIMIT FILE FIX ---
         function playTestTone() {
-            const AudioContext = window.AudioContext || window.webkitAudioContext; const audioCtx = new AudioContext(); const oscillator = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
-            oscillator.connect(gainNode); gainNode.connect(audioCtx.destination); oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); 
-            const sliderLinear = settings.maxVolume; gainNode.gain.setValueAtTime(Math.pow(sliderLinear, 2), audioCtx.currentTime);
-            oscillator.start(); showStatus("Spiele Limit-Test... 🔊"); setTimeout(() => { oscillator.stop(); audioCtx.close(); }, 500);
+            const testAudio = new Audio('assets/limit.mp3');
+            // Logarithmische Kurve wie im Player: (SliderValue^2)
+            testAudio.volume = Math.pow(settings.maxVolume, 2);
+            showStatus("🔊 Spiele Test-Datei...");
+            testAudio.play().catch(e => {
+                console.log("Fehler:", e);
+                showStatus("Fehler: limit.mp3 fehlt?");
+            });
         }
 
         // --- WAKE LOCK & ECO ---
@@ -717,14 +722,13 @@
             }; reader.readAsText(file);
         }
 
-        // --- BULK IMPORT (REPAIRED) ---
+        // --- BULK IMPORT (SEQUENTIELL FIX) ---
         async function handleBulkImport(input) {
             const files = Array.from(input.files);
             if(files.length === 0) return;
             
             showStatus(`Analysiere ${files.length} Dateien...`);
             
-            // 1. Gruppieren
             const groups = {};
             files.forEach(f => {
                 const path = f.webkitRelativePath || f.name;
@@ -744,8 +748,6 @@
 
             // 2. Verarbeitung SEQUENTIELL
             let count = 0;
-            
-            // Wir müssen die Keys extrahieren, um sie nacheinander abzuarbeiten
             const groupKeys = Object.keys(groups);
 
             const readFileAsText = (file) => {
@@ -760,7 +762,6 @@
                 const g = groups[key];
                 if(g.audio.length === 0) continue;
 
-                // Schritt A: CUE Lesen (Async)
                 let cueTracks = null;
                 if(g.cue) {
                     try {
@@ -769,8 +770,6 @@
                     } catch(e) { console.log("CUE Skip", e); }
                 }
 
-                // Schritt B: Speichern (Neue Transaktion pro Item -> Stabil!)
-                // Wir packen das in eine Promise, damit die Schleife wartet
                 await new Promise((resolve, reject) => {
                     const tx = db.transaction(["tracks"], "readwrite");
                     const store = tx.objectStore("tracks");
@@ -792,7 +791,7 @@
                     store.put(record);
                     
                     tx.oncomplete = () => { count++; resolve(); };
-                    tx.onerror = (e) => { console.log("DB Error", e); resolve(); }; // Continue on error
+                    tx.onerror = (e) => { console.log("DB Error", e); resolve(); };
                 });
             }
 
