@@ -1,4 +1,6 @@
-# 🎵 Jukebox PWA (v33) - Die DIY "Toniebox" fürs Handy
+# 🎵 Jukebox PWA (v35) - Die DIY "Toniebox" fürs Handy
+
+![Jukebox Banner](https://via.placeholder.com/1200x300?text=Jukebox+PWA+-+Kinder+Musik+Player)
 
 Eine kinderfreundliche Musik-Player-App, die als Progressive Web App (PWA) direkt im Browser läuft. Sie ermöglicht es, Musik und Hörspiele über **NFC-Tags** (wie bei einer Toniebox) zu starten. Ideal, um alten Smartphones neues Leben als Kinder-Abspielgerät einzuhauchen.
 
@@ -38,11 +40,14 @@ Da dies eine Web-App ist, die auf Standard-Smartphone-Hardware läuft, gibt es U
 
 ---
 
-## ✨ Features (v33)
+## ✨ Features (v35)
 
 ### 🚀 Performance & Komfort
-* **⚡ Auto-Start NFC (Neu in v33):** Der Scanner startet nun sofort, wenn der Kinder-Modus geöffnet wird. Kein extra Tippen aufs Display mehr nötig (auf unterstützten Geräten).
+* **⚡ Auto-Start NFC:** Der Scanner startet nun sofort, wenn der Kinder-Modus geöffnet wird. Kein extra Tippen aufs Display mehr nötig (auf unterstützten Geräten).
 * **💾 Smart Resume:** Die App speichert die Position sofort beim Pausieren oder Minimieren. Beim nächsten Start des gleichen Tags geht es exakt dort weiter.
+* **✏️ Edit & Manual Mode (Neu in v35):**
+    * Speichere Hörspiele **ohne NFC-Tag** (für späteres Verknüpfen oder reine Listen-Nutzung).
+    * Bearbeite bestehende Einträge (Cover tauschen, Cues hinzufügen) und ziehe sie auf neue Tags um.
 
 ### 🎧 Audio & Steuerung
 * **🔊 Intelligente Lautstärkebegrenzung:** Du legst ein Limit fest (z.B. 40%). Der Lautstärkebalken im Kinder-Modus skaliert sich darauf (Logarithmisch für natürliches Hören).
@@ -97,7 +102,9 @@ Damit Sensoren (Eco-Modus) und NFC funktionieren, **MUSS** die App über einen S
 3.  **(Optional) Cue:** Wähle eine passende `.cue` Datei für Kapitelmarken.
 4.  **Cover:** Wähle ein Bild.
 5.  **Name:** Gib dem Hörspiel einen Namen.
-6.  Klicke auf **"📡 Tag scannen & speichern"** und halte den NFC-Tag (oder geklopften Tonie) an die Rückseite.
+6.  **Speichern:**
+    * Variante A: Klicke auf **"📡 Tag scannen & speichern"** und halte den NFC-Tag an.
+    * Variante B: Klicke auf **"💾 Ohne NFC speichern"**, um es erst einmal nur in der Liste zu haben.
 
 ### Einstellungen (WICHTIG!)
 * ⚠️ **Hardware-Tasten:** Stelle die physischen Lautstärke-Tasten am Handy auf **100%**.
