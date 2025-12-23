@@ -1,4 +1,4 @@
-# 🎵 Jukebox PWA (v42) - Die DIY "Toniebox" fürs Handy
+# 🎵 Jukebox PWA (v44) - Die DIY "Toniebox" fürs Handy
 
 Eine kinderfreundliche Musik-Player-App, die als Progressive Web App (PWA) direkt im Browser läuft. Sie ermöglicht es, Musik und Hörspiele über **NFC-Tags** (wie bei einer Toniebox) zu starten. Ideal, um alten Smartphones neues Leben als Kinder-Abspielgerät einzuhauchen.
 
@@ -34,37 +34,32 @@ Da dies eine Web-App ist, die auf Standard-Smartphone-Hardware läuft, gibt es U
     * **Möglichkeit ("Klopf-Methode"):** Wenn du eine Tonie-Figur verwenden willst, klopfe sie mehrmals schnell gegen eine echte Toniebox (aktiviert). Dies öffnet kurzzeitig den Privacy-Modus, sodass das Handy die ID lesen kann.
     * **Nachteil:** Sobald die Figur wieder regulär auf einer Toniebox stand, ist der Modus wieder zu und du musst erneut "klopfen", bevor das Handy sie erkennt.
     * **Wichtig:** Die App liest **nicht** die Musik von der Figur! Du musst die Audio-Datei (MP3) selbst besitzen und auf das Handy laden.
-    * *Tipp:* Um Audio von deinen eigenen Tonies zu sichern/konvertieren, nutze das Python-Script `taf_jukebox_final.py` in diesem Repository.
+    * *Tipp:* Um Audio von deinen eigenen Tonies zu sichern/konvertieren, nutze das Python-Script `tools/taf_jukebox_final.py` in diesem Repository.
 
 ---
 
-## ✨ Features (v42)
+## ✨ Features (v44)
 
 ### 🚀 Performance & Komfort
-* **📂 Massen-Import (Smart):**
+* **📂 Massen-Import (Hybrid):**
     * Ziehe einen ganzen Ordner mit Hörspielen in die App.
-    * Erkennt automatisch eine `jukebox.json` (vom Python-Script) für perfekte Metadaten.
-    * Fallback: Gruppiert Dateien mit gleichem Namen automatisch (MP3 + Cover + Cue).
-* **⚡ Auto-Start NFC:** Der Scanner startet nun sofort, wenn der Kinder-Modus geöffnet wird. Kein extra Tippen aufs Display mehr nötig.
-* **💾 Smart Resume:** Die App speichert die Position sofort beim Pausieren oder Minimieren. Beim nächsten Start des gleichen Tags geht es exakt dort weiter.
-* **✏️ Edit & Manual Mode:**
-    * Speichere Hörspiele **ohne NFC-Tag** (für späteres Verknüpfen oder reine Listen-Nutzung).
-    * Bearbeite bestehende Einträge (Cover tauschen, Cues hinzufügen) und ziehe sie auf neue Tags um.
+    * **Smart:** Nutzt automatisch eine `jukebox.json` (vom Python-Script) für perfekte Metadaten.
+    * **Fallback:** Findet die App weitere MP3s, fragt sie dich, ob diese "klassisch" (via Dateiname) importiert werden sollen.
+* **🔄 JSON-Sync (Neu in v44):**
+    * **Backup Sichern:** Exportiert die Datenbank als `jukebox.json` im exakt gleichen Format wie das Python-Script.
+    * **Backup Laden:** Importiert eine JSON und aktualisiert intelligent vorhandene Einträge (Metadaten-Update), ohne dass Audio-Dateien neu hochgeladen werden müssen.
+* **⚡ Auto-Start NFC:** Der Scanner startet sofort im Kinder-Modus. Kein extra Tippen nötig.
+* **💾 Smart Resume:** Speichert die exakte Position beim Pausieren oder Minimieren der App.
 
 ### 🎧 Audio & Steuerung
-* **🔊 Intelligente Lautstärkebegrenzung:** Du legst ein Limit fest (z.B. 40%). Der Lautstärkebalken im Kinder-Modus skaliert sich darauf (Logarithmisch für natürliches Hören).
-* **📜 CUE-Sheet Support:** Lade `.cue`-Dateien hoch, um echte Kapitelnamen anzuzeigen und den `⏭️` Skip-Button zu nutzen.
-* **⏱️ Anzeige:** Korrekte Zeitanzeige in `mm:ss`.
+* **🔊 Intelligente Lautstärkebegrenzung:** Du legst ein Limit fest (z.B. 40%). Der Lautstärkebalken im Kinder-Modus skaliert sich darauf (Logarithmisch).
+* **📜 CUE-Sheet Support:** Lade `.cue`-Dateien hoch für echte Kapitelnamen und exaktes Skipping.
+* **✏️ Edit Mode:** Bearbeite Einträge nachträglich, tausche Cover oder ziehe sie auf neue NFC-Tags um.
 
 ### 🔋 Energie & Display
 * **🌗 Eco-Modus (OLED-Sparmodus):**
-    * Legt man das Handy mit dem Display nach unten auf den Tisch, wird der Bildschirm schwarz.
-    * Die Musik läuft weiter, das Handy sperrt sich nicht. Spart extrem Akku.
-* **💡 Screen Wake Lock:** Verhindert, dass das Handy in den Sperrbildschirm geht (nutzt Video-Loop-Trick für maximale Kompatibilität).
-
-### 🛠️ Technik
-* **Offline-First:** Alle Daten (MP3, Cover) werden im Browser-Speicher (IndexedDB) gehalten. Kein Internet nötig beim Abspielen.
-* **Backup & Restore:** Datenbank kann exportiert und auf anderen Geräten importiert werden.
+    * Legt man das Handy mit dem Display nach unten auf den Tisch, wird der Bildschirm schwarz. Spart extrem Akku.
+* **💡 Screen Wake Lock:** Verhindert den Sperrbildschirm (nutzt Video-Loop-Trick).
 
 ---
 
@@ -85,8 +80,8 @@ Damit Sensoren (Eco-Modus) und NFC funktionieren, **MUSS** die App über einen S
 4.  Starte den Server und öffne die Adresse (meist `http://127.0.0.1:8080`) in **Chrome**.
 
 **Option B: Online (GitHub Pages)**
-1.  Lade die Dateien in ein GitHub Repository hoch (inkl. aller Unterordner).
-2.  Aktiviere "GitHub Pages" in den Repository-Einstellungen.
+1.  Lade die Dateien in ein GitHub Repository hoch.
+2.  Aktiviere "GitHub Pages" in den Settings.
 3.  Öffne die URL (`https://dein-name.github.io/...`) auf dem Handy.
 
 ### 3. Als App installieren (PWA)
@@ -99,17 +94,20 @@ Damit Sensoren (Eco-Modus) und NFC funktionieren, **MUSS** die App über einen S
 ## 📖 Bedienungsanleitung
 
 ### Musik hinzufügen (Eltern-Modus)
-**Einzeln:**
+**Variante A: Einzeln**
 1.  Klicke auf **"Neuen Tag anlernen"**.
 2.  Wähle Audio, (optional) Cue und Cover.
-3.  Wähle:
-    * **"📡 Tag scannen & speichern"** (Direkt auf NFC).
-    * **"💾 Ohne NFC speichern"** (Nur in Liste).
+3.  Wähle **"📡 Tag scannen"** (NFC) oder **"💾 Ohne NFC speichern"** (Liste).
 
-**Massen-Import (Ordner):**
+**Variante B: Massen-Import (Ordner)**
 1.  Klicke auf **"📂 Massen-Import (Ordner)"**.
-2.  Wähle deinen Ordner mit Hörspielen aus.
-3.  Wenn du das Python-Script genutzt hast, wähle den Ordner `jukebox_output` (enthält `jukebox.json` für perfekte Erkennung).
+2.  Wähle deinen Ordner (z.B. den Output vom Python-Script).
+3.  Die App liest die `jukebox.json` und verknüpft automatisch Audio & Bilder.
+
+**Variante C: Datenbank Sync**
+1.  Klicke auf **"Backup Laden"** und wähle eine `jukebox.json`.
+2.  Die App erstellt Einträge für alle Hörspiele.
+3.  Klicke danach auf **"🪄 Automatisch reparieren"** und wähle den Ordner mit den MP3s, um die Audiodateien massenhaft zuzuordnen.
 
 ### Einstellungen (WICHTIG!)
 * ⚠️ **Hardware-Tasten:** Stelle die physischen Lautstärke-Tasten am Handy auf **100%**.
@@ -133,7 +131,7 @@ Es gibt keinen sichtbaren "Zurück"-Button.
     * `limit.mp3` - Test-Audio Datei für Lautstärke.
 * `docs/screenshots/` - Bilder für diese Anleitung.
 * `tools/`
-    * `taf_jukebox_final.py` - Script zum Konvertieren von Tonie-Dateien inkl. Metadaten.
+    * `taf_jukebox_final.py` - Script zum Konvertieren von Tonie-Dateien.
 
 ---
 
