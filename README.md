@@ -10,12 +10,28 @@ Entwickelt als lokale Lösung: **Kein Cloud-Zwang, kein Tracking, komplett koste
 
 ## 📸 Vorschau
 
-| **Eltern-Modus (Admin)** | **Kinder-Modus (Player)** | **📚 Bibliothek (Übersicht)** | **ℹ️ Bibliothek (Info)** |
-|:---:|:---:|:---:|:---:|
-| <img src="docs/screenshots/parent1.png" width="150"> | <img src="docs/screenshots/children1.png" width="150"> | <img src="docs/screenshots/library_grid.png" width="150"> | <img src="docs/screenshots/library_info.png" width="150"> |
-| *Verwaltung & Settings* | *Player & Cover* | *Filtern & Stöbern* | *Details & Beschreibung* |
+Die App ist in zwei Bereiche unterteilt: Den geschützten **Eltern-Modus** (Verwaltung) und den kindersicheren **Player-Modus**.
 
-*(Bitte speichere zwei Screenshots unter `docs/screenshots/library_grid.png` und `docs/screenshots/library_info.png` ab, damit sie hier erscheinen)*
+### 👶 Kinder-Modus & Bibliothek
+Hier spielen die Kinder. Große Bilder, keine Text-Menüs, einfache Bedienung.
+
+| **Der Player** | **Die Bibliothek** |
+|:---:|:---:|
+| <img src="docs/screenshots/kid-mode1.png" width="100%"> | <img src="docs/screenshots/library_grid.png" width="100%"> |
+| *Große Steuerung & Cover* | *Visuelles Stöbern & Filtern* |
+
+| **Info-Overlay (Neu!)** | **Design-Anpassung** |
+|:---:|:---:|
+| <img src="docs/screenshots/library_info.png" width="100%"> | <img src="docs/screenshots/parent-mode2.png" width="100%"> |
+| *Details zu Dauer & Alter* | *Bibliothek an/ausschalten* |
+
+### 🔧 Eltern-Modus (Admin)
+Hier verwaltest du die Datenbank, importierst Musik und stellst Limits ein.
+
+| **Einstellungen & Limits** | **Datenbank & Import** |
+|:---:|:---:|
+| <img src="docs/screenshots/parent-mode1.png" width="100%"> | <img src="docs/screenshots/parent-mode4.png" width="100%"> |
+| *Lautstärkelimit & Timer* | *Massen-Import & Reparatur* |
 
 ---
 
@@ -30,7 +46,7 @@ Zusätzlich zur NFC-Steuerung können Kinder nun visuell durch ihre Sammlung st�
 * **ℹ️ Info-Overlay:** Ein Klick auf den kleinen **"i"-Button** auf dem Cover öffnet ein Fenster mit Beschreibungstext, Laufzeit und Altersempfehlung.
 
 ### 🛡️ Erweiterte Eltern-Kontrolle
-* **Bibliothek sperren:** Du kannst in den Einstellungen den Haken bei *"📚 Bibliothek im Kinder-Modus erlauben"* entfernen, wenn das Kind nur mit physischen Figuren spielen soll.
+* **Bibliothek sperren:** Du kannst in den Einstellungen den Haken bei *"📚 Bibliothek im Kinder-Modus erlauben"* entfernen, wenn das Kind nur mit physischen Figuren spielen soll (siehe Screenshot oben).
 * **Start-Modus:** Lege fest, ob die App beim Öffnen direkt im gesicherten Kinder-Modus starten soll.
 
 ---
