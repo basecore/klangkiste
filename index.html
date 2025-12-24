@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jukebox V53 Library</title>
+    <title>Jukebox V54 Library Plus</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -56,7 +56,7 @@
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            padding: 20px; padding-top: 40px;
+            padding: 20px; padding-top: 60px; /* Mehr Platz oben für Titel */
             box-sizing: border-box;
             transition: background 0.3s ease;
             z-index: 50; 
@@ -81,6 +81,7 @@
             display: -webkit-box; -webkit-line-clamp: 3; 
             -webkit-box-orient: vertical; overflow: hidden; 
             white-space: normal; min-height: 6.5rem; 
+            margin-top: 10px; /* Abstand zum Library Button */
         }
         
         #playlist-info {
@@ -178,12 +179,14 @@
             overflow-y: auto;
             flex-direction: column;
             padding: 20px; box-sizing: border-box;
-            padding-bottom: 80px; /* Platz für Close Button */
+            /* Layout Fix: Padding oben erhöht, damit nichts verdeckt wird */
+            padding-top: 40px; 
+            padding-bottom: 90px;
         }
 
         .lib-header {
             display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 20px; margin-top: 10px;
         }
 
         .lib-title {
@@ -192,8 +195,11 @@
 
         /* Filter Leiste */
         .filter-scroll-container {
-            display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px;
-            scrollbar-width: none; /* Firefox */
+            display: flex; gap: 10px; overflow-x: auto; 
+            padding-bottom: 15px; /* Platz für Schatten */
+            padding-top: 5px;
+            margin-bottom: 10px;
+            scrollbar-width: none;
         }
         .filter-scroll-container::-webkit-scrollbar { display: none; }
 
@@ -201,10 +207,11 @@
             background: rgba(255,255,255,0.2); color: white;
             padding: 8px 16px; border-radius: 20px; white-space: nowrap;
             font-size: 0.9rem; border: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.2s;
+            transition: all 0.2s; cursor: pointer;
         }
         .filter-chip.active {
             background: var(--green-safe); border-color: var(--green-safe); font-weight: bold;
+            box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4);
         }
 
         /* Recent Section */
@@ -214,10 +221,10 @@
             display: flex; gap: 15px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 10px;
         }
         .recent-card {
-            min-width: 120px; width: 120px; display: flex; flex-direction: column; gap: 5px;
+            min-width: 120px; width: 120px; display: flex; flex-direction: column; gap: 5px; position: relative;
         }
 
-        /* Main Grid (2 Spalten) */
+        /* Main Grid */
         .library-grid {
             display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
         }
@@ -232,7 +239,7 @@
         .lib-cover-wrap {
             width: 100%; aspect-ratio: 1 / 1; background: #eee;
             display: flex; align-items: center; justify-content: center;
-            overflow: hidden;
+            overflow: hidden; position: relative;
         }
         .lib-cover-img { width: 100%; height: 100%; object-fit: cover; }
         .lib-placeholder { font-size: 40px; }
@@ -247,6 +254,18 @@
             font-size: 0.7rem; color: #636e72; margin-top: 5px; display: block;
         }
 
+        /* INFO BUTTON AUF KARTE */
+        .lib-card-info-btn {
+            position: absolute; top: 8px; right: 8px;
+            width: 30px; height: 30px; border-radius: 50%;
+            background: rgba(255,255,255,0.9);
+            color: #2980b9; border: none;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-family: serif; font-size: 1.1rem; font-style: italic;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            z-index: 5;
+        }
+
         /* Floating Close Button */
         #btn-close-lib {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -259,10 +278,37 @@
         /* Button im Kids Mode um Library zu öffnen */
         #btn-open-lib {
             position: absolute; top: 20px; left: 20px;
-            background: rgba(255,255,255,0.2); color: white;
-            border: none; width: 50px; height: 50px; border-radius: 50%;
+            background: rgba(255,255,255,0.25); color: white;
+            border: none; width: 55px; height: 55px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             backdrop-filter: blur(5px); z-index: 55;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        /* INFO MODAL */
+        #lib-info-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 80;
+            align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;
+        }
+        .info-modal-content {
+            background: white; width: 100%; max-width: 400px; max-height: 80vh;
+            border-radius: 20px; padding: 25px; overflow-y: auto;
+            position: relative; text-align: center;
+        }
+        .info-modal-cover {
+            width: 120px; height: 120px; border-radius: 10px; object-fit: cover;
+            margin-bottom: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .info-modal-h { font-size: 1.2rem; font-weight: bold; color: #2c3e50; margin-bottom: 5px; }
+        .info-modal-meta { color: #7f8c8d; font-size: 0.9rem; margin-bottom: 15px; }
+        .info-modal-desc { 
+            text-align: left; font-size: 0.95rem; line-height: 1.5; color: #34495e; 
+            background: #f7f9fa; padding: 15px; border-radius: 10px;
+        }
+        .btn-close-modal {
+            background: #2ecc71; color: white; border: none; padding: 10px 20px;
+            border-radius: 20px; margin-top: 20px; font-weight: bold; width: 100%;
         }
 
         /* PARENT MODE UI */
@@ -410,7 +456,7 @@
         <button class="btn-switch-kids" onclick="goToKidsMode()">▶ ZUM KINDER-MODUS</button>
         <div class="hint-text">💡 Tipp: 5x oben rechts tippen für Admin-Menü.</div>
         
-        <h1>🔧 Jukebox V53</h1>
+        <h1>🔧 Jukebox V54</h1>
         <div id="nfc-warning" class="browser-warning">⚠️ NFC API nicht verfügbar. Bitte Chrome nutzen.</div>
 
         <div class="card">
@@ -462,6 +508,10 @@
 
         <div class="card" style="border-left: 3px solid #e84393;">
             <h2>🎨 Design für Kinder-Modus</h2>
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="check-enable-lib" onchange="saveSettings()">
+                <div><strong>📚 Bibliothek im Kinder-Modus erlauben</strong><br><span style="font-size:0.8em; color:#ccc;">Deaktivieren für reine Tag-Steuerung</span></div>
+            </div>
             <div class="checkbox-wrapper">
                 <input type="checkbox" id="check-colorful" onchange="saveSettings()">
                 <span>🎨 Bunte Knöpfe für Kinder</span>
@@ -546,7 +596,7 @@
         </div>
 
         <div class="footer-info">
-            <p>Jukebox NFC V53 Library</p>
+            <p>Jukebox NFC V54</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
             <p style="margin-top:10px;">
@@ -620,6 +670,16 @@
         <button id="btn-close-lib" onclick="closeLibrary()">Zurück zum Player</button>
     </div>
 
+    <div id="lib-info-modal" onclick="closeAlbumInfo()">
+        <div class="info-modal-content" onclick="event.stopPropagation()">
+            <img id="info-modal-img" class="info-modal-cover" src="">
+            <div id="info-modal-title" class="info-modal-h">Titel</div>
+            <div id="info-modal-meta" class="info-modal-meta">Info</div>
+            <div id="info-modal-desc" class="info-modal-desc">Beschreibung...</div>
+            <button class="btn-close-modal" onclick="closeAlbumInfo()">Schließen</button>
+        </div>
+    </div>
+
     <div id="status-msg"></div>
     <audio id="audio-player"></audio>
 
@@ -649,7 +709,7 @@
         });
 
         let currentKidsVolumePct = 1.0; 
-        let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: false, startMode: 'parent', bgMode: 'default', bgColor: '#ffffff', enableWakeLock: false, enableEcoMode: false };
+        let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: false, startMode: 'parent', bgMode: 'default', bgColor: '#ffffff', enableWakeLock: false, enableEcoMode: false, enableLibrary: true };
         let sleepTimerId = null; let showRemainingTime = true; 
         let currentPlayingTagId = null; let currentTrackIndex = 0; let currentPlaylist = []; 
         let isNfcScanning = false; let isLinkModeActive = false;
@@ -746,6 +806,7 @@
             document.getElementById('bg-color-input').value = settings.bgColor || '#ffffff';
             document.getElementById('check-wakelock').checked = settings.enableWakeLock || false;
             document.getElementById('check-ecomode').checked = settings.enableEcoMode || false;
+            document.getElementById('check-enable-lib').checked = settings.enableLibrary !== false; // Default true
             updateBgUIState(); 
         }
 
@@ -759,6 +820,7 @@
             settings.bgColor = document.getElementById('bg-color-input').value;
             settings.enableWakeLock = document.getElementById('check-wakelock').checked;
             settings.enableEcoMode = document.getElementById('check-ecomode').checked;
+            settings.enableLibrary = document.getElementById('check-enable-lib').checked;
             localStorage.setItem('jukeboxSettings_v15', JSON.stringify(settings));
             if(db) { const tx = db.transaction(["tracks"], "readwrite"); tx.objectStore("tracks").put({ tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: settings }); }
         }
@@ -1378,6 +1440,13 @@
                 applyKidsDesign(); 
                 applyButtonColors();
 
+                // TOGGLE LIBRARY BUTTON BASED ON SETTINGS
+                if(settings.enableLibrary !== false) {
+                     document.getElementById('btn-open-lib').style.display = 'flex';
+                } else {
+                     document.getElementById('btn-open-lib').style.display = 'none';
+                }
+
                 if (document.documentElement.requestFullscreen) { document.documentElement.requestFullscreen().catch((e) => {}); }
                 if(settings.enableEcoMode) updateEcoModeState(false);
                 
@@ -1643,6 +1712,12 @@
                  // Fallback Logic falls nötig
             }
 
+            // INFO BUTTON EINBAUEN
+            let infoBtnHtml = "";
+            if(!isSmall) { // Info Button nur auf großen Karten
+                 infoBtnHtml = `<button class="lib-card-info-btn" onclick="showAlbumInfo(event, '${track.tagId}')">i</button>`;
+            }
+
             let metaInfo = "";
             if(!isSmall && track.meta) {
                  if(track.meta.runtime) metaInfo += `⏱️ ${track.meta.runtime} min`;
@@ -1651,6 +1726,7 @@
             div.innerHTML = `
                 <div class="lib-cover-wrap" style="${isSmall ? 'border-radius:10px;' : ''}">
                     ${imgHtml}
+                    ${infoBtnHtml}
                 </div>
                 ${!isSmall ? `
                 <div class="lib-card-body">
@@ -1659,6 +1735,53 @@
                 </div>` : ''}
             `;
             return div;
+        }
+
+        // --- ALBUM INFO MODAL LOGIC ---
+        function showAlbumInfo(event, tagId) {
+            event.stopPropagation(); // Verhindert dass das Album gestartet wird
+            
+            const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
+            store.get(tagId).onsuccess = (e) => {
+                const track = e.target.result;
+                if(!track) return;
+
+                const modal = document.getElementById('lib-info-modal');
+                const imgEl = document.getElementById('info-modal-img');
+                const titleEl = document.getElementById('info-modal-title');
+                const metaEl = document.getElementById('info-modal-meta');
+                const descEl = document.getElementById('info-modal-desc');
+
+                // Bild
+                if(track.imageBlob) imgEl.src = URL.createObjectURL(track.imageBlob);
+                else imgEl.src = "";
+
+                // Text
+                titleEl.innerText = track.name;
+                
+                // Meta
+                let metaText = [];
+                if(track.meta) {
+                    if(track.meta.age_recommendation) metaText.push(`Ab ${track.meta.age_recommendation} J.`);
+                    if(track.meta.genre) metaText.push(track.meta.genre);
+                    if(track.meta.runtime) metaText.push(`${track.meta.runtime} min`);
+                }
+                metaEl.innerText = metaText.join(" • ");
+
+                // Beschreibung (Description)
+                if(track.meta && track.meta.description) {
+                    descEl.innerText = track.meta.description;
+                    descEl.style.display = 'block';
+                } else {
+                    descEl.style.display = 'none';
+                }
+
+                modal.style.display = 'flex';
+            };
+        }
+
+        function closeAlbumInfo() {
+            document.getElementById('lib-info-modal').style.display = 'none';
         }
 
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
