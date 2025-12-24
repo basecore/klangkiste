@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jukebox-v57-offline'; // <--- HIER ÄNDERN!
+const CACHE_NAME = 'jukebox-v58-offline'; // <--- HIER ÄNDERN!
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
