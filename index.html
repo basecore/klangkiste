@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jukebox V58 Polished</title>
+    <title>Jukebox V59 Rewind</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -153,6 +153,7 @@
         .btn-colorful-vol-up { background-color: var(--red-danger) !important; color: white !important; }
         .btn-colorful-back { background-color: var(--blue-btn) !important; color: white !important; }
         .btn-colorful-skip { background-color: var(--purple-btn) !important; color: white !important; }
+        .btn-colorful-rewind { background-color: #e17055 !important; color: white !important; } /* NEU: Orange */
         .btn-colorful-next { background-color: #00cec9 !important; color: white !important; }
 
         #time-container {
@@ -356,7 +357,7 @@
         label { display: block; margin-bottom: 5px; font-size: 0.9em; color: #aaa; }
         
         .file-info { font-size: 0.8em; color: #00cec9; margin-top:-5px; margin-bottom: 10px; display: block; font-style: italic; 
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* Text Abschneiden Fix */
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
         button.btn-admin {
@@ -467,14 +468,14 @@
             width: 100px; height: 100%; aspect-ratio: auto; flex-shrink: 0;
         }
         .admin-list .admin-card-body {
-            width: 100%; min-width: 0; /* Important for flex truncate */
+            width: 100%; min-width: 0; /* Fix für Flexbox-Umbruch */
             display: flex; flex-direction: column; justify-content: space-between;
         }
         .admin-list .admin-card-title {
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .admin-list .admin-actions {
-            margin-top: 5px; /* Platz sicherstellen */
+            margin-top: 5px;
         }
 
         /* Erweiterte Metadaten Felder */
@@ -539,7 +540,7 @@
         <button class="btn-switch-kids" onclick="goToKidsMode()">▶ ZUM KINDER-MODUS</button>
         <div class="hint-text">💡 Tipp: 5x oben rechts tippen für Admin-Menü.</div>
         
-        <h1>🔧 Jukebox V58</h1>
+        <h1>🔧 Jukebox V59</h1>
         <div id="nfc-warning" class="browser-warning">⚠️ NFC API nicht verfügbar. Bitte Chrome nutzen.</div>
 
         <div class="card">
@@ -720,7 +721,7 @@
         </div>
 
         <div class="footer-info">
-            <p>Jukebox NFC V58</p>
+            <p>Jukebox NFC V59</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
             <p style="margin-top:10px;">
@@ -764,6 +765,11 @@
              <button id="btn-reset" class="btn-control btn-secondary" onclick="restartPlaylist()" title="Reset">
                  <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
              </button>
+             
+             <button id="btn-rewind" class="btn-control btn-secondary" onclick="skipBack()" title="-30s">
+                 <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm9 0V6l-8.5 6 8.5 6z"/></svg>
+             </button>
+
              <button id="btn-skip" class="btn-control btn-secondary" onclick="skipForward()" title="Skip">
                  <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
              </button>
@@ -808,8 +814,8 @@
     <audio id="audio-player"></audio>
 
     <script>
-        // --- SAFE INITIALIZATION (V58) ---
-        // Sicherstellen, dass Library unsichtbar ist (ohne !important Override Problematik)
+        // --- SAFE INITIALIZATION (V59) ---
+        // Library Mode sicher ausblenden (ohne !important Override)
         try {
             document.getElementById('library-mode').style.display = 'none';
         } catch(e){}
@@ -1455,9 +1461,8 @@
                     // DATEINAMEN ANZEIGEN (V58 FIX)
                     if (r.playlistFileNames && r.playlistFileNames.length > 0) {
                         const fileListStr = r.playlistFileNames.join(', ');
-                        // Falls zu lang, kürzen wir nicht im JS, sondern CSS (text-overflow) regelt das.
                         document.getElementById('audio-info').innerText = fileListStr;
-                        document.getElementById('audio-info').title = fileListStr; // Tooltip für vollen Namen
+                        document.getElementById('audio-info').title = fileListStr;
                     } else {
                         document.getElementById('audio-info').innerText = "Keine Audio-Datei";
                     }
@@ -1466,7 +1471,6 @@
                     document.getElementById('img-info').innerText = r.imageFileName ? r.imageFileName : "Standard";
                     
                     document.getElementById('scan-card').classList.add("editing-highlight");
-                    // Scroll to top
                     document.getElementById('parent-mode').scrollTo({top:0, behavior:'smooth'});
                 }
             };
@@ -1513,20 +1517,38 @@
         }
 
         // --- PLAYBACK ---
+        function skipBack() { 
+            if(audioPlayer.src) { 
+                audioPlayer.currentTime -= 30; 
+                showStatus("-30 Sek"); 
+            } 
+        }
+
         function playTrackByTag(tagId) {
+            // NEU V59: Nicht neustarten, wenn gleicher Tag
+            if (currentPlayingTagId === tagId) {
+                if(audioPlayer.paused) {
+                    audioPlayer.play();
+                    setPlayButtonState(true);
+                    startSleepTimer();
+                    requestWakeLock();
+                    showStatus("Fortgesetzt ▶️");
+                } else {
+                    showStatus("Spielt bereits 🔊");
+                }
+                return;
+            }
+
             if(currentPlayingTagId && currentPlayingTagId !== tagId) forceSaveCurrentPosition();
             
-            // WICHTIG: Transaktion muss jetzt "readwrite" sein, damit wir den Timestamp speichern können
             const tx = db.transaction(["tracks"], "readwrite");
             const store = tx.objectStore("tracks");
             
             store.get(tagId).onsuccess = (e) => {
                 const track = e.target.result;
                 if(track) {
-                    // --- NEU: Zeitstempel für "Zuletzt gehört" speichern ---
                     track.lastPlayedTimestamp = Date.now();
                     store.put(track);
-                    // -----------------------------------------------------
 
                     if(!track.playlist || track.playlist.length === 0) { showStatus("⚠️ Audio fehlt!"); return; }
                     document.getElementById('track-title-display').innerText = track.name;
@@ -1642,10 +1664,14 @@
         function applyButtonColors() {
             try {
                 const volDown = document.getElementById('btn-vol-down'); const volUp = document.getElementById('btn-vol-up'); const back = document.getElementById('btn-reset'); const skip = document.getElementById('btn-skip'); const next = document.getElementById('btn-next-track');
+                const rewind = document.getElementById('btn-rewind'); // NEU V59
+
                 if (settings && settings.colorfulControls) { 
                     volDown.classList.add('btn-colorful-vol-down'); volUp.classList.add('btn-colorful-vol-up'); back.classList.add('btn-colorful-back'); skip.classList.add('btn-colorful-skip'); next.classList.add('btn-colorful-next');
+                    rewind.classList.add('btn-colorful-rewind');
                 } else { 
                     volDown.classList.remove('btn-colorful-vol-down'); volUp.classList.remove('btn-colorful-vol-up'); back.classList.remove('btn-colorful-back'); skip.classList.remove('btn-colorful-skip'); next.classList.remove('btn-colorful-next');
+                    rewind.classList.remove('btn-colorful-rewind');
                 }
             } catch(e) {}
         }
@@ -1863,213 +1889,6 @@
             };
         }
         function deleteTrack(id) { if(confirm("Wirklich löschen?")) { const tx = db.transaction(["tracks"], "readwrite"); tx.objectStore("tracks").delete(id); tx.oncomplete = () => loadTagList(); } }
-
-        // --- LIBRARY MODE LOGIC (NEU) ---
-
-        let currentLibFilter = 'all';
-
-        function openLibrary() {
-            // WICHTIG: Display Block setzen, kein Flex mehr!
-            // Da wir das !important im CSS entfernt haben, klappt das jetzt.
-            document.getElementById('library-mode').style.display = 'block';
-            renderLibrary();
-        }
-
-        function closeLibrary() {
-            document.getElementById('library-mode').style.display = 'none';
-        }
-
-        function renderLibrary() {
-            const contentArea = document.getElementById('lib-content-area');
-            const filterContainer = document.getElementById('lib-filters');
-            contentArea.innerHTML = "";
-            
-            // 1. Daten holen
-            const tx = db.transaction(["tracks"], "readonly");
-            const store = tx.objectStore("tracks");
-            const request = store.getAll();
-
-            request.onsuccess = (e) => {
-                let tracks = e.target.result;
-                
-                // System-Dateien filtern
-                tracks = tracks.filter(t => t.tagId !== "system_bg" && t.tagId !== "system_settings");
-
-                // --- FILTER GENERIEREN (Dynamisch) ---
-                // Wir bauen die Filter nur einmal oder resetten sie
-                if(filterContainer.children.length <= 2) { 
-                    // Nur generieren wenn noch nicht da (Standard: Alle, Zuletzt)
-                    const genres = new Set();
-                    const ages = new Set();
-                    
-                    tracks.forEach(t => {
-                        if(t.meta && t.meta.genre) genres.add(t.meta.genre);
-                        if(t.meta && t.meta.age_recommendation) ages.add(t.meta.age_recommendation);
-                    });
-
-                    // Alter Sortieren
-                    Array.from(ages).sort((a,b) => a-b).forEach(age => {
-                        addFilterChip(`Ab ${age} Jahren`, `age_${age}`);
-                    });
-                    
-                    // Genre hinzufügen
-                    Array.from(genres).sort().forEach(genre => {
-                         addFilterChip(genre, `genre_${genre}`);
-                    });
-                }
-
-                // --- ZULETZT GEHÖRT SEKTION (nur bei 'all' oder 'recent') ---
-                if (currentLibFilter === 'all' || currentLibFilter === 'recent') {
-                    const recentTracks = [...tracks].filter(t => t.lastPlayedTimestamp).sort((a, b) => b.lastPlayedTimestamp - a.lastPlayedTimestamp).slice(0, 3);
-                    
-                    if (recentTracks.length > 0) {
-                        const recentDiv = document.createElement('div');
-                        // clearfix für sicheren Stand
-                        recentDiv.innerHTML = `<div class="section-title">Zuletzt gehört 🕒</div><div class="recent-grid" id="recent-grid-target"></div>`;
-                        contentArea.appendChild(recentDiv);
-                        const target = recentDiv.querySelector('#recent-grid-target');
-                        
-                        recentTracks.forEach(t => {
-                            target.appendChild(createLibCard(t, true));
-                        });
-                    }
-                }
-
-                if (currentLibFilter === 'recent') return; // Bei "Recent" zeigen wir nur die oberen an
-
-                // --- HAUPT GRID ---
-                const gridDiv = document.createElement('div');
-                gridDiv.className = 'library-grid';
-                if(currentLibFilter === 'all') gridDiv.style.marginTop = "10px";
-                
-                // Filtern
-                let filteredTracks = tracks;
-                if (currentLibFilter.startsWith('age_')) {
-                    const age = parseInt(currentLibFilter.split('_')[1]);
-                    // Zeige alle, die für dieses Alter ODER jünger geeignet sind, ODER exakt dieses Alter
-                    filteredTracks = tracks.filter(t => t.meta && t.meta.age_recommendation == age);
-                } else if (currentLibFilter.startsWith('genre_')) {
-                    const g = currentLibFilter.replace('genre_', '');
-                    filteredTracks = tracks.filter(t => t.meta && t.meta.genre === g);
-                }
-
-                // Sortieren (Alphabetisch)
-                filteredTracks.sort((a, b) => a.name.localeCompare(b.name));
-
-                filteredTracks.forEach(t => {
-                    gridDiv.appendChild(createLibCard(t));
-                });
-                
-                contentArea.appendChild(gridDiv);
-            };
-        }
-
-        function addFilterChip(label, value) {
-            const container = document.getElementById('lib-filters');
-            if(container.querySelector(`[data-val="${value}"]`)) return;
-            
-            const chip = document.createElement('div');
-            chip.className = 'filter-chip';
-            chip.innerText = label;
-            chip.dataset.val = value;
-            chip.onclick = function() { applyLibFilter(value, this); };
-            container.appendChild(chip);
-        }
-
-        function applyLibFilter(filterVal, el) {
-            currentLibFilter = filterVal;
-            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-            if(el) el.classList.add('active');
-            renderLibrary();
-        }
-
-        function createLibCard(track, isSmall = false) {
-            const div = document.createElement('div');
-            div.className = isSmall ? 'recent-card' : 'lib-card';
-            div.onclick = () => {
-                closeLibrary();
-                playTrackByTag(track.tagId);
-            };
-
-            let imgHtml = `<div class="lib-placeholder">🎵</div>`;
-            if (track.imageBlob) {
-                const url = URL.createObjectURL(track.imageBlob);
-                imgHtml = `<img src="${url}" class="lib-cover-img" loading="lazy">`;
-            } else if (track.imageFileName === "Standard") {
-                 // Fallback Logic falls nötig
-            }
-
-            // INFO BUTTON EINBAUEN
-            let infoBtnHtml = "";
-            if(!isSmall) { // Info Button nur auf großen Karten
-                 infoBtnHtml = `<button class="lib-card-info-btn" onclick="showAlbumInfo(event, '${track.tagId}')">i</button>`;
-            }
-
-            let metaInfo = "";
-            if(!isSmall && track.meta) {
-                 if(track.meta.runtime) metaInfo += `⏱️ ${track.meta.runtime} min`;
-            }
-
-            div.innerHTML = `
-                <div class="lib-cover-wrap" style="${isSmall ? 'border-radius:10px;' : ''}">
-                    ${imgHtml}
-                    ${infoBtnHtml}
-                </div>
-                ${!isSmall ? `
-                <div class="lib-card-body">
-                    <div class="lib-card-title">${track.name}</div>
-                    <span class="lib-meta-tag">${metaInfo}</span>
-                </div>` : ''}
-            `;
-            return div;
-        }
-
-        // --- ALBUM INFO MODAL LOGIC ---
-        function showAlbumInfo(event, tagId) {
-            event.stopPropagation(); // Verhindert dass das Album gestartet wird
-            
-            const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
-            store.get(tagId).onsuccess = (e) => {
-                const track = e.target.result;
-                if(!track) return;
-
-                const modal = document.getElementById('lib-info-modal');
-                const imgEl = document.getElementById('info-modal-img');
-                const titleEl = document.getElementById('info-modal-title');
-                const metaEl = document.getElementById('info-modal-meta');
-                const descEl = document.getElementById('info-modal-desc');
-
-                // Bild
-                if(track.imageBlob) imgEl.src = URL.createObjectURL(track.imageBlob);
-                else imgEl.src = "";
-
-                // Text
-                titleEl.innerText = track.name;
-                
-                // Meta
-                let metaText = [];
-                if(track.meta) {
-                    if(track.meta.age_recommendation) metaText.push(`Ab ${track.meta.age_recommendation} J.`);
-                    if(track.meta.genre) metaText.push(track.meta.genre);
-                    if(track.meta.runtime) metaText.push(`${track.meta.runtime} min`);
-                }
-                metaEl.innerText = metaText.join(" • ");
-
-                // Beschreibung (Description)
-                if(track.meta && track.meta.description) {
-                    descEl.innerText = track.meta.description;
-                    descEl.style.display = 'block';
-                } else {
-                    descEl.style.display = 'none';
-                }
-
-                modal.style.display = 'flex';
-            };
-        }
-
-        function closeAlbumInfo() {
-            document.getElementById('lib-info-modal').style.display = 'none';
-        }
 
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
     </script>
