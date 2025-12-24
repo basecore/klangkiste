@@ -24,48 +24,701 @@
     "filter_age": 3
   },
   {
-    "tagId": "manual_auto_generated_id_02",
-    "name": "Benjamin Blümchen - Der Zoo-Kindergarten",
+    "tagId": "manual_1766486595867_zgkm6",
+    "name": "Book Tonie - Der Weihnachtosaurus",
     "playlistFileNames": [
-      "Benjamin Blümchen - Der Zoo-Kindergarten.mp3"
+      "Book Tonie - Der Weihnachtosaurus.mp3"
     ],
-    "imageFileName": "Benjamin Blümchen - Der Zoo-Kindergarten.jpg",
+    "imageFileName": "Book Tonie - Der Weihnachtosaurus.jpg",
     "meta": {
-      "series": "Benjamin Blümchen",
-      "episode": "Der Zoo-Kindergarten",
-      "description": "Weil die Neustädter Kindergärten in den Sommerferien alle schließen, haben viele Kinder ein Problem: Wo sollen sie hingehen, wenn ihre Eltern arbeiten müssen? Ganz einfach, denkt sich Benjamin, in den Zoo natürlich! Er will einen Ferien-Kindergarten aufmachen. Aber dafür muss er eine Prüfung bestehen. Und die ist nicht so einfach!",
+      "series": "Book Tonie",
+      "episode": "Der Weihnachtosaurus",
+      "description": "William liebt Weihnachten über alles. Doch seinen größten Wunsch kann niemand erfüllen: einen echten Dinosaurier. Da hat er die Rechnung aber ohne die Wichtel am Nordpol gemacht, die tief im Eis ein geheimnisvolles Ei entdecken. Der Weihnachtsmann persönlich brütet es aus und zur Verblüffung aller schlüpft ein kleiner Dino: der Weihnachtosaurus!",
+      "age_recommendation": 8,
+      "genre": "Hörbuch",
+      "language": "Deutsch",
+      "runtime": 309
+    },
+    "tags": [
+      "Weihnachten",
+      "Abenteuer",
+      "Hörbuch",
+      "Tiere",
+      "Dino"
+    ],
+    "filter_age": 8
+  },
+  {
+    "tagId": "manual_1766486596608_prwef",
+    "name": "Conni - Conni backt Pizza / Conni lernt Rad fahren",
+    "playlistFileNames": [
+      "Conni - Conni backt Pizza _ Conni lernt Rad fahren.mp3"
+    ],
+    "imageFileName": "Conni - Conni backt Pizza _ Conni lernt Rad fahren.jpg",
+    "meta": {
+      "series": "Conni",
+      "episode": "Conni backt Pizza / Conni lernt Rad fahren",
+      "description": "Conni backt Pizza: Conni hat die Nase voll – schon wieder Spinat und Kartoffelbrei... Da fällt Conni etwas ein: Sie will Pizza backen! Conni lernt Rad fahren: Anna, Connis Freundin, hat ein Fahrrad bekommen und Conni ist neidisch.",
       "age_recommendation": 3,
       "genre": "Hörspiel",
       "language": "Deutsch",
-      "runtime": 43
+      "runtime": 40
     },
     "tags": [
-      "Tiere",
+      "Hörspiel",
       "Lernen",
+      "Alltag"
+    ],
+    "filter_age": 3
+  },
+  {
+    "tagId": "manual_1766486596974_5iin9",
+    "name": "Das NEINhorn",
+    "playlistFileNames": [
+      "Das NEINhorn - Das NEINhorn _ Das NEINhorn und die SchLANGEWEILE.mp3"
+    ],
+    "imageFileName": "Das NEINhorn - Das NEINhorn _ Das NEINhorn und die SchLANGEWEILE.jpg",
+    "meta": {
+      "series": "Das NEINhorn",
+      "episode": "Das NEINhorn & Die SchLANGEWEILE",
+      "description": "Im Herzwald kommt ein kleines, schnickeldischnuckeliges Einhorn zur Welt. Aber obwohl alle ganz lilalieb zu ihm sind, sagt es zu allem 'NEIN'! Eines Tages bricht es aus der Zuckerwatte aus. Es trifft einen Waschbären, der nicht zuhören will, einen Hund, dem echt alles schnuppe ist, und eine Prinzessin, die immer Widerworte gibt.",
+      "age_recommendation": 4,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 45
+    },
+    "tags": [
+      "Hörspiel",
+      "Tiere",
+      "Humor",
+      "Abenteuer"
+    ],
+    "filter_age": 4
+  },
+  {
+    "tagId": "manual_1766486597458_llkz8",
+    "name": "Der kleine Drache Kokosnuss - Der kleine Drache Kokosnuss feiert Weihnachten",
+    "playlistFileNames": [
+      "Der kleine Drache Kokosnuss - Der kleine Drache Kokosnuss feiert Weihnachten. Englisch lernen mit dem kleinen Drachen Kokosnuss..mp3"
+    ],
+    "imageFileName": "Der kleine Drache Kokosnuss - Der kleine Drache Kokosnuss feiert Weihnachten. Englisch lernen mit dem kleinen Drachen Kokosnuss..jpg",
+    "meta": {
+      "series": "Der kleine Drache Kokosnuss",
+      "episode": "Feiert Weihnachten (Englisch lernen)",
+      "description": "Weihnachtsmann? Weihnachten? Davon haben Kokosnuss und Matilda noch nie gehört. Doch als das Yeminee mit leuchtenden Augen von Heiligabend erzählt, ist klar: Dieses Fest wollen die Drachen auch feiern! Gemeinsam mit ihrem britischen Freund Robert machen sie sich auf den Weg zum Weihnachtsmann.",
+      "age_recommendation": 5,
+      "genre": "Wissen",
+      "language": "Deutsch/Englisch",
+      "runtime": 72
+    },
+    "tags": [
+      "Weihnachten",
+      "Lernen",
+      "Wissen",
+      "Tiere",
+      "Abenteuer"
+    ],
+    "filter_age": 5
+  },
+  {
+    "tagId": "manual_1766486597889_jz8sz",
+    "name": "Der kleine Prinz - Der kleine Prinz (Neuauflage 2025)",
+    "playlistFileNames": [
+      "Der kleine Prinz - Der kleine Prinz (Neuauflage 2025).mp3"
+    ],
+    "imageFileName": "Der kleine Prinz - Der kleine Prinz (Neuauflage 2025).jpg",
+    "meta": {
+      "series": "Der kleine Prinz",
+      "episode": "Der kleine Prinz",
+      "description": "Die liebevolle Nacherzählung des Klassikers von Antoine de Saint-Exupéry. Der kleine Prinz erzählt von seiner Reise von Planet zu Planet und was er dabei über Freundschaft und Menschlichkeit lernt.",
+      "age_recommendation": 4,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 66
+    },
+    "tags": [
+      "Hörspiel",
+      "Märchen",
+      "Klassiker"
+    ],
+    "filter_age": 4
+  },
+  {
+    "tagId": "manual_1766486598383_p8opz",
+    "name": "Die Eiskönigin - Olaf taut auf",
+    "playlistFileNames": [
+      "Die Eiskönigin _ Olaf taut auf - Die Eiskönigin - Olaf taut auf.mp3"
+    ],
+    "imageFileName": "Die Eiskönigin _ Olaf taut auf - Die Eiskönigin - Olaf taut auf.jpg",
+    "meta": {
+      "series": "Die Eiskönigin",
+      "episode": "Olaf taut auf",
+      "description": "Olaf will die Weihnachtstraditionen aller Bewohner von Arendelle zusammentragen, damit sich Elsa und Anna die schönsten aussuchen können. Ein winterliches Abenteuer voller Herz und Humor.",
+      "age_recommendation": 4,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 47
+    },
+    "tags": [
+      "Weihnachten",
+      "Disney",
+      "Hörspiel",
+      "Abenteuer"
+    ],
+    "filter_age": 4
+  },
+  {
+    "tagId": "manual_1766486598946_7o3d6",
+    "name": "Die Eiskönigin - Völlig unverfroren",
+    "playlistFileNames": [
+      "Die Eiskönigin _ Völlig unverfroren - Die Eiskönigin.mp3"
+    ],
+    "imageFileName": "Die Eiskönigin _ Völlig unverfroren - Die Eiskönigin.jpg",
+    "meta": {
+      "series": "Die Eiskönigin",
+      "episode": "Völlig unverfroren",
+      "description": "Das Original-Hörspiel zum Kinofilm. Warum hat eigentlich nur Elsa diese magischen Kräfte? Anna macht sich auf die Suche nach ihrer Schwester, begleitet vom schroffen Kristoff und dem Rentier Sven.",
+      "age_recommendation": 4,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 71
+    },
+    "tags": [
+      "Disney",
+      "Hörspiel",
+      "Märchen",
+      "Abenteuer"
+    ],
+    "filter_age": 4
+  },
+  {
+    "tagId": "manual_1766486599463_ero0j",
+    "name": "Die Eiskönigin 2",
+    "playlistFileNames": [
+      "Die Eiskönigin II - Die Eiskönigin 2.mp3"
+    ],
+    "imageFileName": "Die Eiskönigin II - Die Eiskönigin 2.jpg",
+    "meta": {
+      "series": "Die Eiskönigin",
+      "episode": "Die Eiskönigin 2",
+      "description": "Warum hat eigentlich nur Elsa diese magischen Kräfte? Woher kommt diese Stimme, die nur Elsa hören kann? Gemeinsam mit Anna, Kristoff, Rentier Sven und dem lustigen Schneemann Olaf macht sich Elsa auf den Weg in einen verzauberten Wald.",
+      "age_recommendation": 4,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 70
+    },
+    "tags": [
+      "Disney",
+      "Hörspiel",
+      "Abenteuer"
+    ],
+    "filter_age": 4
+  },
+  {
+    "tagId": "manual_1766486599909_fc8so",
+    "name": "Die kleine Eule - Die kleine Eule feiert Weihnachten",
+    "playlistFileNames": [
+      "Die kleine Eule - Die kleine Eule feiert Weihnachten.mp3"
+    ],
+    "imageFileName": "Die kleine Eule - Die kleine Eule feiert Weihnachten.jpg",
+    "meta": {
+      "series": "Die kleine Eule",
+      "episode": "Die kleine Eule feiert Weihnachten",
+      "description": "Schöner kann Weihnachten wirklich nicht sein! Die kleine Eule backt Plätzchen, sucht den perfekten Weihnachtsbaum und feiert mit ihren Freunden im Wald ein wunderschönes Fest.",
+      "age_recommendation": 3,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 39
+    },
+    "tags": [
+      "Weihnachten",
+      "Tiere",
       "Hörspiel"
     ],
     "filter_age": 3
   },
   {
-    "tagId": "manual_auto_generated_id_03",
-    "name": "Benjamin Blümchen - Benjamin als Baggerfahrer",
+    "tagId": "manual_1766486600259_avr2w",
+    "name": "Die kleine Raupe Nimmersatt - Schlaf gut",
     "playlistFileNames": [
-      "Benjamin Blümchen - Benjamin als Baggerfahrer.mp3"
+      "Die kleine Raupe Nimmersatt - Schlaf gut_ Die kleine Raupe Nimmersatt und weitere Geschichten.mp3"
     ],
-    "imageFileName": "Benjamin Blümchen - Benjamin als Baggerfahrer.jpg",
+    "imageFileName": "Die kleine Raupe Nimmersatt - Schlaf gut_ Die kleine Raupe Nimmersatt und weitere Geschichten.jpg",
     "meta": {
-      "series": "Benjamin Blümchen",
-      "episode": "Benjamin als Baggerfahrer",
-      "description": "Da staunen Benjamin, Otto und Stella: Ein Transporter bringt neue Tiere für den Zoo. Aber viel zu früh – die Gehege sind noch nicht fertig! Und Karl ist im Urlaub. Was nun? Ganz einfach: Die drei Freunde bauen selbst drauflos. Leider hat der Bürgermeister etwas dagegen. Aber Benjamin lässt sich nicht das Baggern verbieten!",
+      "series": "Die kleine Raupe Nimmersatt",
+      "episode": "Schlaf gut",
+      "description": "Komm mit der kleinen Raupe Nimmersatt ins Traumland. Enthält sanfte Geschichten und Melodien, die beim Einschlafen helfen.",
       "age_recommendation": 3,
       "genre": "Hörspiel",
       "language": "Deutsch",
-      "runtime": 41
+      "runtime": 44
+    },
+    "tags": [
+      "Einschlafen",
+      "Tiere",
+      "Hörspiel"
+    ],
+    "filter_age": 3
+  },
+  {
+    "tagId": "manual_1766486600626_fmb7e",
+    "name": "Disney - Mickys Weihnachtsgeschichte",
+    "playlistFileNames": [
+      "Disney - Mickys Weihnachtsgeschichte.mp3"
+    ],
+    "imageFileName": "Disney - Mickys Weihnachtsgeschichte.jpg",
+    "meta": {
+      "series": "Disney",
+      "episode": "Mickys Weihnachtsgeschichte",
+      "description": "Der Klassiker von Charles Dickens im Disney-Gewand: Dagobert Duck ist der geizige Ebenezer Scrooge, der Weihnachten hasst. Doch dann besuchen ihn drei Geister...",
+      "age_recommendation": 4,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 43
+    },
+    "tags": [
+      "Weihnachten",
+      "Disney",
+      "Hörspiel",
+      "Klassiker"
+    ],
+    "filter_age": 4
+  },
+  {
+    "tagId": "manual_1766486600922_kgb9f",
+    "name": "Janosch - Ich mach dich gesund sagte der Bär",
+    "playlistFileNames": [
+      "Janosch - Ich mach dich gesund_ sagte der Bär.mp3"
+    ],
+    "imageFileName": "Janosch - Ich mach dich gesund_ sagte der Bär.jpg",
+    "meta": {
+      "series": "Janosch",
+      "episode": "Ich mach dich gesund, sagte der Bär",
+      "description": "„Ich bin ja so krank“, rief der kleine Tiger, „ich kann mich fast nicht mehr bewegen.“ „Halb so schlimm“, sagte der kleine Bär, „ich mach Dich gesund.“ Eine Geschichte über Freundschaft.",
+      "age_recommendation": 4,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 52
     },
     "tags": [
       "Tiere",
-      "Abenteuer",
+      "Hörspiel",
+      "Abenteuer"
+    ],
+    "filter_age": 4
+  },
+  {
+    "tagId": "manual_1766486601263_m3glm",
+    "name": "Janosch - Oh wie schön ist Panama",
+    "playlistFileNames": [
+      "Janosch - Oh_ wie schön ist Panama.mp3"
+    ],
+    "imageFileName": "Janosch - Oh_ wie schön ist Panama.jpg",
+    "meta": {
+      "series": "Janosch",
+      "episode": "Oh, wie schön ist Panama",
+      "description": "Der kleine Bär fischte eine Kiste aus dem Wasser, schnupperte daran und sagte: „Oooh, Bananen!“ Die Kiste roch nämlich nach Bananen. Und was stand auf der Kiste geschrieben? „Pa-na-ma“, las der kleine Bär ... „Die Kiste kommt aus Panama. Oh, Panama ist das Land meiner Träume ...“",
+      "age_recommendation": 5,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 55
+    },
+    "tags": [
+      "Tiere",
+      "Hörspiel",
+      "Abenteuer"
+    ],
+    "filter_age": 5
+  },
+  {
+    "tagId": "manual_1766486601578_t56z6",
+    "name": "Kleiner Eisbär - Lars hilf mir fliegen / Lars rettet die Rentiere",
+    "playlistFileNames": [
+      "Kleiner Eisbär - Lars_ hilf mir fliegen__ Lars rettet die Rentiere.mp3"
+    ],
+    "imageFileName": "Kleiner Eisbär - Lars_ hilf mir fliegen__ Lars rettet die Rentiere.jpg",
+    "meta": {
+      "series": "Kleiner Eisbär",
+      "episode": "Lars hilf mir fliegen",
+      "description": "Lars, der kleine Eisbär, erlebt spannende Abenteuer im ewigen Eis. Er hilft einem Papageitaucher beim Fliegen und rettet eine Herde Rentiere.",
+      "age_recommendation": 4,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 22
+    },
+    "tags": [
+      "Tiere",
+      "Hörspiel",
+      "Abenteuer"
+    ],
+    "filter_age": 4
+  },
+  {
+    "tagId": "manual_1766486601854_kinng",
+    "name": "Lauras Stern - Die allererste Bilderbuch Geschichte / Glitzernde Gutenacht-Geschichten",
+    "playlistFileNames": [
+      "Lauras Stern - Die allererste Bilderbuch Geschichte _ Glitzernde Gutenacht-Geschichten.mp3"
+    ],
+    "imageFileName": "Lauras Stern - Die allererste Bilderbuch Geschichte _ Glitzernde Gutenacht-Geschichten.jpg",
+    "meta": {
+      "series": "Lauras Stern",
+      "episode": "Die allererste Bilderbuch Geschichte",
+      "description": "Laura findet einen verletzten Stern, nimmt ihn mit nach Hause und pflegt ihn gesund. Enthält die allererste Geschichte und weitere Gutenacht-Geschichten.",
+      "age_recommendation": 5,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 58
+    },
+    "tags": [
+      "Einschlafen",
+      "Hörspiel",
+      "Märchen"
+    ],
+    "filter_age": 5
+  },
+  {
+    "tagId": "manual_1766486602291_m8mfn",
+    "name": "Lichterkinder - Die besten Weihnachts- und Winterlieder",
+    "playlistFileNames": [
+      "Lichterkinder - Die besten Weihnachts- und Winterlieder.mp3"
+    ],
+    "imageFileName": "Lichterkinder - Die besten Weihnachts- und Winterlieder.jpg",
+    "meta": {
+      "series": "Lichterkinder",
+      "episode": "Die besten Weihnachts- und Winterlieder",
+      "description": "Eine bunte Mischung aus modernen und traditionellen Weihnachtsliedern von und für Kinder.",
+      "age_recommendation": 3,
+      "genre": "Musik",
+      "language": "Deutsch",
+      "runtime": 53
+    },
+    "tags": [
+      "Weihnachten",
+      "Musik",
       "Hörspiel"
+    ],
+    "filter_age": 3
+  },
+  {
+    "tagId": "manual_1766486602622_rv7gd",
+    "name": "Lieblings-Kinderlieder - Weihnachtslieder 2",
+    "playlistFileNames": [
+      "Lieblings-Kinderlieder - Weihnachtslieder 2.mp3"
+    ],
+    "imageFileName": "Lieblings-Kinderlieder - Weihnachtslieder 2.jpg",
+    "meta": {
+      "series": "Lieblings-Kinderlieder",
+      "episode": "Weihnachtslieder 2",
+      "description": "Das kleine Reh bringt eine zweite Kollektion der schönsten Weihnachtslieder auf die Toniebox. Eine stimmungsvolle Auswahl an neu aufgelegten Klassikern.",
+      "age_recommendation": 3,
+      "genre": "Musik",
+      "language": "Deutsch",
+      "runtime": 55
+    },
+    "tags": [
+      "Weihnachten",
+      "Musik"
+    ],
+    "filter_age": 3
+  },
+  {
+    "tagId": "manual_1766486603007_pdcwg",
+    "name": "Lieblings-Klassiker - Eine Weihnachtsgeschichte und vier weitere Klassiker",
+    "playlistFileNames": [
+      "Lieblings-Klassiker - Eine Weihnachtsgeschichte und vier weitere Klassiker.mp3"
+    ],
+    "imageFileName": "Lieblings-Klassiker - Eine Weihnachtsgeschichte und vier weitere Klassiker.jpg",
+    "meta": {
+      "series": "Lieblings-Klassiker",
+      "episode": "Eine Weihnachtsgeschichte & weitere",
+      "description": "Enthält die berühmte Weihnachtsgeschichte von Charles Dickens sowie vier weitere Klassiker (Dr. Dolittle, Anne auf Green Gables, Oliver Twist, Reise zum Mittelpunkt der Erde).",
+      "age_recommendation": 3,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 70
+    },
+    "tags": [
+      "Weihnachten",
+      "Hörspiel",
+      "Klassiker",
+      "Abenteuer"
+    ],
+    "filter_age": 3
+  },
+  {
+    "tagId": "manual_1766486603585_2biaq",
+    "name": "Lieblings-Literatur - Eine Weihnachtsgeschichte",
+    "playlistFileNames": [
+      "Lieblings-Literatur - Eine Weihnachtsgeschichte.mp3"
+    ],
+    "imageFileName": "Lieblings-Literatur - Eine Weihnachtsgeschichte.jpg",
+    "meta": {
+      "series": "Lieblings-Literatur",
+      "episode": "Eine Weihnachtsgeschichte",
+      "description": "Ein Klassiker der Weltliteratur von Charles Dickens, einfühlsam und für Kinder verständlich nacherzählt. Für Ebenezer Scrooge ist Weihnachten nichts als Zeitverschwendung, bis ihn drei Geister besuchen.",
+      "age_recommendation": 8,
+      "genre": "Hörbuch",
+      "language": "Deutsch",
+      "runtime": 130
+    },
+    "tags": [
+      "Weihnachten",
+      "Hörbuch",
+      "Klassiker"
+    ],
+    "filter_age": 8
+  },
+  {
+    "tagId": "manual_1766486604102_61dl2",
+    "name": "Lieblings-Meisterstücke - Der Nussknacker",
+    "playlistFileNames": [
+      "Lieblings-Meisterstücke - Der Nussknacker.mp3"
+    ],
+    "imageFileName": "Lieblings-Meisterstücke - Der Nussknacker.jpg",
+    "meta": {
+      "series": "Lieblings-Meisterstücke",
+      "episode": "Der Nussknacker",
+      "description": "In der Weihnachtsnacht erwacht Claras Nussknacker zum Leben. Gemeinsam kämpfen sie gegen den Mausekönig und reisen ins Reich der Zuckerfee. Mit der Musik von Tschaikowski.",
+      "age_recommendation": 5,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 49
+    },
+    "tags": [
+      "Weihnachten",
+      "Märchen",
+      "Musik",
+      "Hörspiel"
+    ],
+    "filter_age": 5
+  },
+  {
+    "tagId": "manual_1766486604444_6odxe",
+    "name": "Lieblings-Meisterstücke - Die Zauberflöte",
+    "playlistFileNames": [
+      "Lieblings-Meisterstücke - Die Zauberflöte.mp3"
+    ],
+    "imageFileName": "Lieblings-Meisterstücke - Die Zauberflöte.jpg",
+    "meta": {
+      "series": "Lieblings-Meisterstücke",
+      "episode": "Die Zauberflöte",
+      "description": "Prinz Tamino soll die Prinzessin Pamina befreien. Mit einer Zauberflöte und dem lustigen Vogelfänger Papageno besteht er gefährliche Prüfungen. Mozarts Oper kindgerecht erzählt.",
+      "age_recommendation": 5,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 44
+    },
+    "tags": [
+      "Musik",
+      "Hörspiel",
+      "Märchen"
+    ],
+    "filter_age": 5
+  },
+  {
+    "tagId": "manual_1766486604700_e33sx",
+    "name": "Mickys großes Weihnachtsfest - Eingeschneit im Haus der Maus",
+    "playlistFileNames": [
+      "Mickys großes Weihnachtsfest - Eingeschneit im Haus der Maus.mp3"
+    ],
+    "imageFileName": "Mickys großes Weihnachtsfest - Eingeschneit im Haus der Maus.jpg",
+    "meta": {
+      "series": "Disney",
+      "episode": "Mickys großes Weihnachtsfest",
+      "description": "Im Wunderhaus ist die Weihnachtsshow vorbei, doch die Gäste sind eingeschneit! Micky hat eine Idee: Alle feiern gemeinsam Heiligabend. Nur Donald hat keine Lust, bis Jiminy Grille ihm hilft.",
+      "age_recommendation": 4,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 71
+    },
+    "tags": [
+      "Weihnachten",
+      "Disney",
+      "Hörspiel",
+      "Abenteuer"
+    ],
+    "filter_age": 4
+  },
+  {
+    "tagId": "manual_1766486605070_c3yd2",
+    "name": "Minimusiker - Lieblingslieder zur Weihnachtszeit",
+    "playlistFileNames": [
+      "Minimusiker - Lieblingslieder zur Weihnachtszeit.mp3"
+    ],
+    "imageFileName": "Minimusiker - Lieblingslieder zur Weihnachtszeit.jpg",
+    "meta": {
+      "series": "Minimusiker",
+      "episode": "Lieblingslieder zur Weihnachtszeit",
+      "description": "Die Minimusiker präsentieren eine bunte Mischung der schönsten Weihnachtslieder zum Mitsingen und Tanzen.",
+      "age_recommendation": 3,
+      "genre": "Musik",
+      "language": "Deutsch",
+      "runtime": 55
+    },
+    "tags": [
+      "Weihnachten",
+      "Musik"
+    ],
+    "filter_age": 3
+  },
+  {
+    "tagId": "manual_1766486605320_x9ybu",
+    "name": "Pumuckl - Spuk in der Werkstatt / Das verkaufte Bett",
+    "playlistFileNames": [
+      "Pumuckl - Spuk in der Werkstatt_Das verkaufte Bett.mp3"
+    ],
+    "imageFileName": "Pumuckl - Spuk in der Werkstatt_Das verkaufte Bett.jpg",
+    "meta": {
+      "series": "Pumuckl",
+      "episode": "Spuk in der Werkstatt / Das verkaufte Bett",
+      "description": "Hurra, der Pumuckl ist da! Er bleibt am Leimtopf kleben und muss nun bei Meister Eder bleiben. Zwei lustige Geschichten vom Klabautermann.",
+      "age_recommendation": 4,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 49
+    },
+    "tags": [
+      "Hörspiel",
+      "Abenteuer",
+      "Humor"
+    ],
+    "filter_age": 4
+  },
+  {
+    "tagId": "manual_1766486605788_z4qfj",
+    "name": "Weihnachtsmann Co. KG",
+    "playlistFileNames": [
+      "Weihnachtsmann _ Co. KG.mp3"
+    ],
+    "imageFileName": "Weihnachtsmann _ Co. KG.jpg",
+    "meta": {
+      "series": "Weihnachtsmann & Co. KG",
+      "episode": "Die magische Perle",
+      "description": "Der Weihnachtsmann und seine Elfen Trixi, Jordi und Gilfi müssen das Weihnachtsfest retten, denn der böse Grantelbart will es sabotieren.",
+      "age_recommendation": 5,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 55
+    },
+    "tags": [
+      "Weihnachten",
+      "Hörspiel",
+      "Abenteuer",
+      "Helden"
+    ],
+    "filter_age": 5
+  },
+  {
+    "tagId": "manual_1766486606201_2x9cn",
+    "name": "Weißt du eigentlich wie lieb ich dich hab",
+    "playlistFileNames": [
+      "Weißt du eigentlich_ wie lieb ich dich hab - Weißt du eigentlich_ wie lieb ich dich hab_.mp3"
+    ],
+    "imageFileName": "Weißt du eigentlich_ wie lieb ich dich hab - Weißt du eigentlich_ wie lieb ich dich hab_.jpg",
+    "meta": {
+      "series": "Weißt du eigentlich wie lieb ich dich hab",
+      "episode": "Hörbuch",
+      "description": "Der kleine Hase und der große Hase zeigen sich, wie sehr sie sich mögen. 'Ich hab dich lieb bis zum Mond... und wieder zurück.'",
+      "age_recommendation": 3,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 35
+    },
+    "tags": [
+      "Einschlafen",
+      "Tiere",
+      "Hörspiel"
+    ],
+    "filter_age": 3
+  },
+  {
+    "tagId": "manual_1766486606699_tee6b",
+    "name": "Adventskalender - Ein Fest für die Waldfreunde",
+    "playlistFileNames": [
+      "Adventskalender - Ein Fest für die Waldfreunde.mp3"
+    ],
+    "imageFileName": "Adventskalender - Ein Fest für die Waldfreunde.jpg",
+    "meta": {
+      "series": "Adventskalender",
+      "episode": "Ein Fest für die Waldfreunde",
+      "description": "Husky Stella und ihre Freunde planen eine Weihnachtsüberraschung im Wald. Jeden Tag im Advent gibt es ein neues Kapitel der Geschichte.",
+      "age_recommendation": 3,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 125
+    },
+    "tags": [
+      "Weihnachten",
+      "Tiere",
+      "Hörspiel",
+      "Abenteuer"
+    ],
+    "filter_age": 3
+  },
+  {
+    "tagId": "manual_1766486607339_7b9le",
+    "name": "Adventskalender - Wünsch dir was kleines Rentier",
+    "playlistFileNames": [
+      "Adventskalender - Wünsch dir was_ kleines Rentier - Adventskalender-Weihnachtshörspiel.mp3"
+    ],
+    "imageFileName": "Adventskalender - Wünsch dir was_ kleines Rentier - Adventskalender-Weihnachtshörspiel.jpg",
+    "meta": {
+      "series": "Adventskalender",
+      "episode": "Wünsch dir was, kleines Rentier",
+      "description": "Ein tonies® Original Weihnachtsabenteuer als Adventskalender. Eine lustige Hörspielgeschichte für jeden Tag im Dezember.",
+      "age_recommendation": 4,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 200
+    },
+    "tags": [
+      "Weihnachten",
+      "Tiere",
+      "Hörspiel"
+    ],
+    "filter_age": 4
+  },
+  {
+    "tagId": "manual_1766486608266_hgbor",
+    "name": "Lieblings-Kinderlieder - Weihnachtslieder",
+    "playlistFileNames": [
+      "Lieblings-Kinderlieder - Weihnachtslieder.mp3"
+    ],
+    "imageFileName": "Lieblings-Kinderlieder - Weihnachtslieder.jpg",
+    "meta": {
+      "series": "Lieblings-Kinderlieder",
+      "episode": "Weihnachtslieder",
+      "description": "Der Pinguin präsentiert die beliebtesten klassischen Weihnachtslieder wie 'O Tannenbaum' und 'Stille Nacht' zum Mitsingen.",
+      "age_recommendation": 3,
+      "genre": "Musik",
+      "language": "Deutsch",
+      "runtime": 54
+    },
+    "tags": [
+      "Weihnachten",
+      "Musik"
+    ],
+    "filter_age": 3
+  },
+  {
+    "tagId": "manual_1766486608746_ejqas",
+    "name": "Rolf Zuckowski - In der Weihnachtsbäckerei",
+    "playlistFileNames": [
+      "Rolf Zuckowski - In der Weihnachtsbäckerei.mp3"
+    ],
+    "imageFileName": "Rolf Zuckowski - In der Weihnachtsbäckerei.jpg",
+    "meta": {
+      "series": "Rolf Zuckowski",
+      "episode": "In der Weihnachtsbäckerei",
+      "description": "Rolf Zuckowski und seine Freunde singen die bekanntesten Weihnachtslieder für die ganze Familie. Mit 'In der Weihnachtsbäckerei' und vielen mehr.",
+      "age_recommendation": 3,
+      "genre": "Musik",
+      "language": "Deutsch",
+      "runtime": 57
+    },
+    "tags": [
+      "Weihnachten",
+      "Musik"
     ],
     "filter_age": 3
   }
