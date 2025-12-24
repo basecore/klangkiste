@@ -49,10 +49,15 @@ Die App muss nicht über den Play Store geladen werden, sondern wird direkt übe
 3.  **Warte kurz (bis zu 30 Sekunden):** Oft erscheint am unteren Bildschirmrand automatisch ein Hinweis *"Jukebox zum Startbildschirm hinzufügen"*.
 4.  Falls nicht, folge diesen Schritten:
 
-| 1. Menü öffnen | 2. Installieren | 3. Bestätigen | 4. Widget platzieren |
-|:---:|:---:|:---:|:---:|
-| <img src="docs/screenshots/install-app1.png" width="160"> | <img src="docs/screenshots/install-app2.png" width="160"> | <img src="docs/screenshots/install-app3.png" width="160"> | <img src="docs/screenshots/install-app4.png" width="160"> |
-| *Tippe oben rechts auf die 3 Punkte* | *Wähle "App installieren"* | *Klicke auf "Installieren"* | *Automatisch oder ziehen* |
+| **1. Menü öffnen** | **2. Installieren** |
+|:---:|:---:|
+| <img src="docs/screenshots/install-app1.png" width="180"> | <img src="docs/screenshots/install-app2.png" width="180"> |
+| *Tippe oben rechts auf die 3 Punkte* | *Wähle "App installieren"* |
+
+| **3. Bestätigen** | **4. Widget platzieren** |
+|:---:|:---:|
+| <img src="docs/screenshots/install-app3.png" width="180"> | <img src="docs/screenshots/install-app4.png" width="180"> |
+| *Klicke auf "Installieren"* | *Automatisch oder ziehen* |
 
 ---
 
