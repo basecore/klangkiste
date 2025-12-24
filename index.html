@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jukebox V54 Library Plus</title>
+    <title>Jukebox V55 Fixed Layout</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -170,23 +170,28 @@
             font-variant-numeric: tabular-nums;
         }
         
-        /* --- LIBRARY MODE (TIGERBOX STYLE) --- */
+        /* --- LIBRARY MODE (FIXED HEADER LAYOUT) --- */
         #library-mode {
-            display: none;
+            display: none; /* Toggled by JS to flex */
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: #2c3e50;
             z-index: 60; /* Über Kids Mode */
-            overflow-y: auto;
             flex-direction: column;
-            padding: 20px; box-sizing: border-box;
-            /* Layout Fix: Padding oben erhöht, damit nichts verdeckt wird */
-            padding-top: 40px; 
-            padding-bottom: 90px;
+            overflow: hidden; /* WICHTIG: Kein Scrollen auf Body */
+        }
+
+        /* Der feste Header-Bereich */
+        .lib-fixed-top {
+            flex-shrink: 0; /* Darf nicht schrumpfen */
+            padding: 30px 20px 10px 20px; /* Extra Platz oben für Notch */
+            background-color: #2c3e50;
+            z-index: 65; /* Über dem Content */
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2); /* Schatten für Tiefe */
         }
 
         .lib-header {
             display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 20px; margin-top: 10px;
+            margin-bottom: 15px;
         }
 
         .lib-title {
@@ -196,9 +201,7 @@
         /* Filter Leiste */
         .filter-scroll-container {
             display: flex; gap: 10px; overflow-x: auto; 
-            padding-bottom: 15px; /* Platz für Schatten */
-            padding-top: 5px;
-            margin-bottom: 10px;
+            padding-bottom: 5px; margin-bottom: 0;
             scrollbar-width: none;
         }
         .filter-scroll-container::-webkit-scrollbar { display: none; }
@@ -214,8 +217,21 @@
             box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4);
         }
 
+        /* Scrollbarer Inhaltsbereich */
+        #lib-content-area {
+            flex-grow: 1; /* Nimmt restlichen Platz ein */
+            overflow-y: auto; /* Scrollt hier drin */
+            padding: 20px;
+            padding-bottom: 100px; /* Platz für Close Button */
+            -webkit-overflow-scrolling: touch; /* Smooth scroll iOS */
+        }
+
         /* Recent Section */
-        .section-title { color: #dfe6e9; font-size: 1.1rem; margin-bottom: 10px; margin-top: 10px; font-weight: bold;}
+        .section-title { 
+            color: #dfe6e9; font-size: 1.1rem; 
+            margin-bottom: 10px; margin-top: 0; /* Reset margin top */
+            font-weight: bold;
+        }
         
         .recent-grid {
             display: flex; gap: 15px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 10px;
@@ -254,7 +270,7 @@
             font-size: 0.7rem; color: #636e72; margin-top: 5px; display: block;
         }
 
-        /* INFO BUTTON AUF KARTE */
+        /* INFO BUTTON */
         .lib-card-info-btn {
             position: absolute; top: 8px; right: 8px;
             width: 30px; height: 30px; border-radius: 50%;
@@ -456,7 +472,7 @@
         <button class="btn-switch-kids" onclick="goToKidsMode()">▶ ZUM KINDER-MODUS</button>
         <div class="hint-text">💡 Tipp: 5x oben rechts tippen für Admin-Menü.</div>
         
-        <h1>🔧 Jukebox V54</h1>
+        <h1>🔧 Jukebox V55</h1>
         <div id="nfc-warning" class="browser-warning">⚠️ NFC API nicht verfügbar. Bitte Chrome nutzen.</div>
 
         <div class="card">
@@ -596,7 +612,7 @@
         </div>
 
         <div class="footer-info">
-            <p>Jukebox NFC V54</p>
+            <p>Jukebox NFC V55</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
             <p style="margin-top:10px;">
@@ -655,14 +671,16 @@
     </div>
 
     <div id="library-mode">
-        <div class="lib-header">
-            <div class="lib-title">Meine Sammlung 📚</div>
-        </div>
-
-        <div class="filter-scroll-container" id="lib-filters">
-            <div class="filter-chip active" onclick="applyLibFilter('all', this)">Alle</div>
-            <div class="filter-chip" onclick="applyLibFilter('recent', this)">Zuletzt gehört</div>
+        <div class="lib-fixed-top">
+            <div class="lib-header">
+                <div class="lib-title">Meine Sammlung 📚</div>
             </div>
+
+            <div class="filter-scroll-container" id="lib-filters">
+                <div class="filter-chip active" onclick="applyLibFilter('all', this)">Alle</div>
+                <div class="filter-chip" onclick="applyLibFilter('recent', this)">Zuletzt gehört</div>
+                </div>
+        </div>
 
         <div id="lib-content-area">
             </div>
@@ -1585,6 +1603,7 @@
         let currentLibFilter = 'all';
 
         function openLibrary() {
+            // FIXED HEADER LAYOUT SWITCH
             document.getElementById('library-mode').style.display = 'flex';
             renderLibrary();
         }
@@ -1787,4 +1806,4 @@
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
     </script>
 </body>
-</html>
+        </html>
