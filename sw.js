@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jukebox-v60-scrollfix'; // <--- Version 60
+const CACHE_NAME = 'jukebox-v61-hotfix'; // <--- Version 61
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
