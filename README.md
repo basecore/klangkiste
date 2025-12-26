@@ -1,4 +1,4 @@
-# 🎵 Jukebox PWA (v65 Final)
+# 🎵 Jukebox PWA (v66 Stable)
 
 **Die smarte DIY "Toniebox" fürs Handy – 100% AI-Generated Code.**
 
@@ -8,15 +8,14 @@ Dieses Projekt ist eine kinderfreundliche Musik-Player-App, die alte Smartphones
 
 ---
 
-## ✨ Neue Funktionen in v65
+## ✨ Neue Funktionen in v66
 
-* ✅ **Fortschritts-Anzeige:** Hörspiele, die komplett zu Ende gehört wurden, erhalten nun einen **grünen Haken** auf dem Cover (in Bibliothek & Admin-Bereich).
+* ✅ **Fortschritts-Anzeige:** Hörspiele, die komplett zu Ende gehört wurden, erhalten nun einen **grünen Haken** auf dem Cover.
 * 📊 **Detaillierte Eltern-Statistik:**
-    * Dashboard repariert (lässt sich nun zuverlässig schließen).
-    * Anzeige: Hördauer, Top 5 Hörspiele, Tageszeit-Nutzung.
-    * Neuer Zähler: "Vollständig gehört".
+    * Dashboard zeigt Hördauer, Top 5 Hörspiele, Tageszeit-Nutzung & "Vollständig gehört".
+    * **Fix:** Das Schließen-Problem (X-Button) wurde behoben.
 * 🛠️ **System-Updates:**
-    * Z-Index Fix für Buttons im Eltern-Modus.
+    * **Fix:** Der Bibliotheks-Button im Kinder-Modus ist nun immer erreichbar (fixierte Position).
     * Verbesserter "Wackelschutz" im Kinder-Modus.
     * Lange Dateinamen werden im Editor nun korrekt umgebrochen.
 
@@ -45,7 +44,7 @@ Verwaltung der Inhalte und Einsicht in das Nutzungsverhalten.
 | **Verwaltung** | **Statistik (Neu)** |
 |:---:|:---:|
 | <img src="docs/screenshots/parent-mode.png" width="180"> | <img src="docs/screenshots/stats_view.png" width="180"> |
-| *Tags anlernen & Import* | *Hörverhalten analysieren* |
+| *Tags anlernen & Import* | *Hörverhalten & Fortschritt (✅)* |
 
 ---
 
@@ -56,10 +55,16 @@ Die App muss nicht über den App-Store geladen werden. Sie ist eine Webseite, di
 🔗 **Link zur App:** [https://basecore.github.io/jukebox/](https://basecore.github.io/jukebox/)
 
 **So installierst du sie korrekt (Android/Chrome):**
+
 1.  Öffne den Link in **Google Chrome**.
-2.  Warte kurz – oft erscheint unten eine Leiste *"Jukebox zum Startbildschirm hinzufügen"*.
-3.  Falls nicht: Tippe oben rechts auf das Menü (⋮) und wähle **"App installieren"** oder **"Zum Startbildschirm hinzufügen"**.
-4.  Starte die App nun direkt vom Homescreen (sie läuft dann im Vollbild ohne Adressleiste).
+2.  Tippe oben rechts auf das Menü (die drei Punkte `⋮`).
+3.  Wähle **"App installieren"** oder **"Zum Startbildschirm hinzufügen"**.
+4.  Bestätige die Installation.
+
+| **1. Menü öffnen** | **2. Installieren** | **3. Bestätigen** |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/Screenshot_20251226-082804_Chrome.png" width="160"> | <img src="docs/screenshots/Screenshot_20251226-082833_Chrome.png" width="160"> | <img src="docs/screenshots/Screenshot_20251226-082846_Chrome.png" width="160"> |
+| *Chrome Menü (3 Punkte)* | *App installieren* | *Automatisch hinzufügen* |
 
 *(iOS Nutzer verwenden Safari -> Teilen -> Zum Home-Bildschirm)*
 
@@ -81,7 +86,7 @@ Wenn dein Android-Gerät NFC hat:
 2.  Halte eine NFC-Karte oder Figur an das Handy.
 3.  Die Musik ist nun mit diesem Tag verknüpft. Im Kinder-Modus startet sie sofort beim Auflegen.
 
-### 3. Statistik ansehen (Neu)
+### 3. Statistik ansehen (Neu in v66)
 Klicke im Eltern-Modus oben rechts auf den Button **"📊 Statistik"**. Hier siehst du, was dein Kind wann und wie lange hört und welche Hörspiele bereits **vollständig (✅)** gehört wurden.
 
 ### 4. Kinder-Modus verlassen
@@ -124,11 +129,12 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 
 ## 📂 Dateistruktur
 
-* `index.html` - Der gesamte Quellcode der Anwendung (Logik & Design, v65).
-* `sw.js` - Der Service Worker für die Offline-Funktionalität (Cache v65).
+* `index.html` - Der gesamte Quellcode der Anwendung (Logik & Design, v66).
+* `sw.js` - Der Service Worker für die Offline-Funktionalität (Cache v66).
 * `manifest.json` - Konfiguration für das App-Icon und den Vollbild-Modus.
 * `assets/` - Ordner für Icons und Test-Sounds.
 * `tools/` - Enthält das Python-Script für den Import von Tonie-Dateien.
+* `docs/screenshots/` - Screenshots für diese Anleitung.
 
 ---
 
@@ -139,4 +145,4 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 
 ## 👨‍💻 Credits
 Entwickelt von Sebastian Rößer mit Unterstützung von **Google Gemini 3 Pro**.
-Version 65 "Final Stats Edition".
+Version 66 "Stable Stats Edition".
