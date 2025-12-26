@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jukebox-v65-final'; // WICHTIG: Version hochgezählt für Zwangs-Update
+const CACHE_NAME = 'jukebox-v66-stable'; // WICHTIG: Version hochgezählt für das finale Update
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
