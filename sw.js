@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jukebox-v62-stats'; // <--- WICHTIG: Version hochgezählt
+const CACHE_NAME = 'jukebox-v65-final'; // WICHTIG: Version hochgezählt für Zwangs-Update
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -18,7 +18,8 @@ self.addEventListener('install', (e) => {
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
-  self.skipWaiting(); // Zwingt den neuen SW sofort aktiv zu werden
+  // Zwingt den wartenden Service Worker sofort aktiv zu werden
+  self.skipWaiting(); 
 });
 
 // 2. Abrufen (Fetch): Erst Cache, dann Netzwerk
@@ -31,11 +32,13 @@ self.addEventListener('fetch', (e) => {
   );
 });
 
-// 3. Aktivieren: Alte Caches löschen (Aufräumen)
+// 3. Aktivieren: Alte Caches löschen (Aufräumen beim Update)
 self.addEventListener('activate', (e) => {
+  console.log('[Service Worker] Aktiviere Version:', CACHE_NAME);
   e.waitUntil(
     caches.keys().then((keyList) => {
       return Promise.all(keyList.map((key) => {
+        // Lösche alle Caches, die nicht der aktuellen Version entsprechen
         if (key !== CACHE_NAME) {
           console.log('[Service Worker] Entferne alten Cache:', key);
           return caches.delete(key);
@@ -43,5 +46,6 @@ self.addEventListener('activate', (e) => {
       }));
     })
   );
+  // Übernimmt sofort die Kontrolle über alle offenen Tabs
   return self.clients.claim();
 });
