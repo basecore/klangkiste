@@ -61,6 +61,7 @@
             transition: background 0.3s ease;
             z-index: 50; 
             overflow-y: auto; 
+            overflow-x: hidden; /* FIX: Verhindert seitliches Wackeln */
         }
         
         .kids-text-shadow {
@@ -356,8 +357,13 @@
 
         label { display: block; margin-bottom: 5px; font-size: 0.9em; color: #aaa; }
         
-        .file-info { font-size: 0.8em; color: #00cec9; margin-top:-5px; margin-bottom: 10px; display: block; font-style: italic; 
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        /* FIX: Dateinamen Umbruch */
+        .file-info { 
+            font-size: 0.8em; color: #00cec9; margin-top:-5px; margin-bottom: 10px; display: block; font-style: italic; 
+            white-space: normal; /* Erlaubt Umbruch */
+            word-wrap: break-word; /* Erzwingt Umbruch bei langen Wörtern */
+            word-break: break-all;
+            line-height: 1.3;
         }
 
         button.btn-admin {
@@ -626,13 +632,11 @@
             <span id="audio-info" class="file-info"></span>
             
             <div style="display:flex; gap:10px;">
-                <div style="flex:1;">
-                    <label style="font-size:0.8em;">Cue (Optional)</label>
+                <div style="flex:1; min-width: 0;"> <label style="font-size:0.8em;">Cue (Optional)</label>
                     <input type="file" id="cue-input" accept=".cue">
                     <span id="cue-info" class="file-info"></span>
                 </div>
-                <div style="flex:1;">
-                    <label style="font-size:0.8em;">Cover Bild</label>
+                <div style="flex:1; min-width: 0;"> <label style="font-size:0.8em;">Cover Bild</label>
                     <input type="file" id="img-input" accept="image/*">
                     <span id="img-info" class="file-info"></span>
                 </div>
@@ -2082,4 +2086,4 @@
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
     </script>
 </body>
-</html>
+                </html>
