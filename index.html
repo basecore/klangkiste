@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jukebox V65 Final</title>
+    <title>Jukebox V66 Stable</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -295,13 +295,15 @@
             z-index: 70;
         }
 
-        /* Button im Kids Mode um Library zu öffnen */
+        /* Button im Kids Mode um Library zu öffnen (FIXED POSITION V66) */
         #btn-open-lib {
-            position: absolute; top: 20px; left: 20px;
+            position: fixed; /* FIXED statt absolute verhindert Verschieben */
+            top: 20px; left: 20px;
             background: rgba(255,255,255,0.25); color: white;
             border: none; width: 55px; height: 55px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            backdrop-filter: blur(5px); z-index: 55;
+            backdrop-filter: blur(5px); 
+            z-index: 100; /* Höher als Content */
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
 
@@ -335,21 +337,23 @@
         #stats-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #2d3436; 
-            z-index: 20000; /* SEHR HOCH damit es über dem Secret Switch liegt */
+            z-index: 20000; /* FIX: Sehr hoch, über Secret Switch */
             padding: 20px; box-sizing: border-box; flex-direction: column; overflow-y: auto;
         }
         .stats-header {
             display: flex; justify-content: space-between; align-items: center;
             margin-bottom: 20px; border-bottom: 1px solid #555; padding-bottom: 10px;
-            position: relative; z-index: 20050;
+            position: relative; 
         }
         .stats-title { font-size: 1.5rem; color: #74b9ff; font-weight: bold; }
         
         .stats-close-btn { 
             background: #e74c3c; border: none; color: white; width: 45px; height: 45px; 
-            border-radius: 50%; font-weight: bold; font-size: 1.2rem; cursor: pointer; 
-            display: flex; align-items: center; justify-content: center;
-            z-index: 21000; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            border-radius: 50%; font-weight: bold; font-size: 1.2rem; 
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            /* FIX: Z-Index sicherstellen */
+            position: relative; z-index: 20001; pointer-events: auto;
         }
         .stats-close-btn:active { transform: scale(0.9); }
 
@@ -604,7 +608,7 @@
         <div class="hint-text">💡 Tipp: 5x oben rechts tippen für Admin-Menü.</div>
         
         <div style="display:flex; justify-content:space-between; align-items:center;">
-             <h1>🔧 Jukebox V65</h1>
+             <h1>🔧 Jukebox V66</h1>
              <button onclick="openStats()" style="background:none; border:2px solid #3498db; color:#3498db; padding:5px 10px; border-radius:15px; cursor:pointer; font-weight:bold;">📊 Statistik</button>
         </div>
 
@@ -693,13 +697,11 @@
             <span id="audio-info" class="file-info"></span>
             
             <div style="display:flex; gap:10px;">
-                <div style="flex:1; min-width: 0;"> 
-                    <label style="font-size:0.8em;">Cue (Optional)</label>
+                <div style="flex:1; min-width: 0;"> <label style="font-size:0.8em;">Cue (Optional)</label>
                     <input type="file" id="cue-input" accept=".cue">
                     <span id="cue-info" class="file-info"></span>
                 </div>
-                <div style="flex:1; min-width: 0;"> 
-                    <label style="font-size:0.8em;">Cover Bild</label>
+                <div style="flex:1; min-width: 0;"> <label style="font-size:0.8em;">Cover Bild</label>
                     <input type="file" id="img-input" accept="image/*">
                     <span id="img-info" class="file-info"></span>
                 </div>
@@ -788,7 +790,7 @@
         </div>
 
         <div class="footer-info">
-            <p>Jukebox NFC V65 Final</p>
+            <p>Jukebox NFC V66 Stable</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
             <p style="margin-top:10px;">
@@ -798,19 +800,19 @@
         </div>
     </div>
     
-    <div id="stats-modal" onclick="if(event.target.id === 'stats-modal') closeStats(event)">
-        <div class="stats-header" onclick="event.stopPropagation()">
+    <div id="stats-modal">
+        <div class="stats-header">
             <div class="stats-title">📊 Nutzung & Statistik</div>
-            <button class="stats-close-btn" onclick="closeStats(event)">✕</button>
+            <button class="stats-close-btn" onclick="closeStats()">✕</button>
         </div>
         
-        <div style="display:flex; gap:10px; margin-bottom:15px;" onclick="event.stopPropagation()">
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
              <button id="btn-stat-day" class="stats-toggle-btn active" onclick="loadStats('day')">Heute</button>
              <button id="btn-stat-week" class="stats-toggle-btn" onclick="loadStats('week')">7 Tage</button>
              <button id="btn-stat-all" class="stats-toggle-btn" onclick="loadStats('all')">Gesamt</button>
         </div>
 
-        <div class="stat-card" style="display:flex; justify-content:space-around; text-align:center;" onclick="event.stopPropagation()">
+        <div class="stat-card" style="display:flex; justify-content:space-around; text-align:center;">
             <div>
                 <div class="stat-val-big" id="stat-total-time">0h</div>
                 <div class="stat-label">Hördauer</div>
@@ -821,24 +823,24 @@
             </div>
         </div>
 
-        <div class="stat-card" onclick="event.stopPropagation()">
+        <div class="stat-card">
              <div class="chart-row">
                  <div class="chart-label">Vollständig gehört ✅</div>
                  <div class="chart-val" id="stat-completed-count" style="width:auto; color:#2ecc71; font-weight:bold; font-size:1.2em;">0</div>
             </div>
         </div>
 
-        <div class="stat-card" onclick="event.stopPropagation()">
+        <div class="stat-card">
              <div class="stat-label" style="margin-bottom:10px;">Lieblings-Hörspiele</div>
              <div id="stats-top-tracks"></div>
         </div>
         
-        <div class="stat-card" onclick="event.stopPropagation()">
+        <div class="stat-card">
              <div class="stat-label" style="margin-bottom:10px;">Tageszeit (Hörverhalten)</div>
              <div id="stats-time-heatmap"></div>
         </div>
         
-        <div class="stat-card" onclick="event.stopPropagation()">
+        <div class="stat-card">
             <div class="chart-row">
                  <div class="chart-label">NFC Scans</div>
                  <div class="chart-val" id="stat-count-scan" style="width:auto; color:white; font-weight:bold;">0</div>
@@ -937,42 +939,61 @@
     <audio id="audio-player"></audio>
 
     <script>
-        // --- SAFE INITIALIZATION (V65) ---
-        try { document.getElementById('library-mode').style.display = 'none'; } catch(e){}
+        // --- SAFE INITIALIZATION (V66) ---
+        // Library Mode sicher ausblenden
+        try {
+            document.getElementById('library-mode').style.display = 'none';
+        } catch(e){}
 
         let db; let isParentMode = true; let ndef; let clickCount = 0; 
         const audioPlayer = document.getElementById('audio-player');
-        let wakeLock = null;
-        let currentSessionStart = null; 
-
-        function safeDisplay(id, val) { const el = document.getElementById(id); if(el) el.style.display = val; }
         
+        let wakeLock = null;
+        let currentSessionStart = null; // STATS LOGGING
+        
+        // --- HELFER: Safe Element Access ---
+        function safeDisplay(id, val) {
+            const el = document.getElementById(id);
+            if(el) el.style.display = val;
+        }
+
         const stubbornVideo = document.getElementById('stubborn-video');
         stubbornVideo.src = "data:video/mp4;base64,AAAAHGZ0eXBNNEVAAAAAAAEAAQAAAAAAAAAAAAAA1W1vb3YAAABsbXZoAAAAAQAAAAAA5G0AAORtAAABAAABAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAGGlvZHMAAAAAEICAgAcAT////3//AAACQXRyYWsAAABcdGtoZAAAAAEAAAAAAAAAAAAAAQAAAAEAAAAAAORtAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAADkbQAAAAABAAAAAAABM21kaWEAAAAgbWRoZAAAAAEAAAAAAORtAADkbQAAQBAAABExAAAAAAAAAAA5aGRscgAAAAAAAAAAdmlkZQAAAAAAAAAAAAAAAFZpZGVvSGFuZGxlcgAAAAABAAAADG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAKFzdGJsAAAAp3N0ZHNkAAAAAAAAAAEAAABnYXZjMQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAEAAABIAAAASAAAAAAADqAAAAAAAP//AAAALWF2Y0MBAAAALgEASAAAAAb/gAQACAAAAAAhAAACigAAlzYBAAAAAwEBAAAAAwEBAAAAAGhzdHRzAAAAAAAAAAEAAAABAAABAAAAABxzdHNjAAAAAAAAAAEAAAABAAAAAQAAAAEAAAAwc3RzegAAAAAAAAAAAAAAAQAAABRzdGNvAAAAAAAAAAEAAACwAAAAYXVkdGEAAAAUY29wcmQAAAAAQmFzZWNvcmU=";
-        stubbornVideo.addEventListener('pause', () => { if (settings.enableWakeLock && !isParentMode && !audioPlayer.paused) { stubbornVideo.play().catch(() => {}); } });
+        
+        stubbornVideo.addEventListener('pause', () => {
+            if (settings.enableWakeLock && !isParentMode && !audioPlayer.paused) {
+                stubbornVideo.play().catch(() => {});
+            }
+        });
 
         let currentKidsVolumePct = 1.0; 
         let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: false, startMode: 'parent', bgMode: 'default', bgColor: '#ffffff', enableWakeLock: false, enableEcoMode: false, enableLibrary: true };
         let sleepTimerId = null; let showRemainingTime = true; 
         let currentPlayingTagId = null; let currentTrackIndex = 0; let currentPlaylist = []; 
         let isNfcScanning = false; let isLinkModeActive = false;
-        let currentCueTracks = null; let editingOriginalTagId = null;
 
-        const SYSTEM_BG_ID = "system_bg"; const SYSTEM_SETTINGS_ID = "system_settings"; 
+        let currentCueTracks = null; 
+        let editingOriginalTagId = null;
+
+        const SYSTEM_BG_ID = "system_bg";
+        const SYSTEM_SETTINGS_ID = "system_settings"; 
+
         if (!("NDEFReader" in window)) safeDisplay('nfc-warning', 'block');
 
         loadSettings(); 
 
         const DB_NAME = "MusicBoxDB_v15";
-        const DB_VERSION = 2; 
+        const DB_VERSION = 2; // UPGRADE TO V2 FOR STATS
 
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
         request.onupgradeneeded = function(event) {
             db = event.target.result;
+            // Original Store
             if (!db.objectStoreNames.contains("tracks")) {
                 db.createObjectStore("tracks", { keyPath: "tagId" });
             }
+            // NEW V62 STATS STORE
             if (!db.objectStoreNames.contains("stats_log")) {
                 const statsStore = db.createObjectStore("stats_log", { keyPath: "id", autoIncrement: true });
                 statsStore.createIndex("timestamp", "timestamp", { unique: false });
@@ -985,19 +1006,27 @@
              loadTagList();
              syncSettingsFromDB(); 
         };
-
-        // --- STATS LOGGING ---
+        
+        // --- STATS LOGGING ENGINE ---
         function logStatEvent(type, tagId = null, duration = 0) {
             if(!db) return;
             const tx = db.transaction(["stats_log"], "readwrite");
             const store = tx.objectStore("stats_log");
-            store.add({ timestamp: Date.now(), type: type, tagId: tagId, durationSec: duration });
+            store.add({
+                timestamp: Date.now(),
+                type: type, // 'play', 'stop', 'scan', 'eco_flip'
+                tagId: tagId,
+                durationSec: duration
+            });
         }
 
+        // Helper um laufende Session zu beenden und zu loggen
         function endSessionLog() {
             if(currentSessionStart) {
                 const duration = (Date.now() - currentSessionStart) / 1000;
-                if(duration > 5) { logStatEvent('stop', currentPlayingTagId, duration); }
+                if(duration > 5) { // Nur Sessions > 5s loggen
+                    logStatEvent('stop', currentPlayingTagId, duration);
+                }
                 currentSessionStart = null;
             }
         }
@@ -1047,7 +1076,7 @@
                 
                 if (mode === 'default') { 
                     kidsDiv.style.backgroundImage = "url('assets/img/hintergrund.jpg')"; 
-                    kidsDiv.style.backgroundColor = "#2c3e50"; 
+                    kidsDiv.style.backgroundColor = "#2c3e50"; // Fallback Dark Blue
                 } 
                 else if (mode === 'color') { kidsDiv.style.backgroundColor = settings.bgColor || '#ffffff'; }
                 else if (mode === 'image') { 
@@ -1083,7 +1112,7 @@
             document.getElementById('bg-color-input').value = settings.bgColor || '#ffffff';
             document.getElementById('check-wakelock').checked = settings.enableWakeLock || false;
             document.getElementById('check-ecomode').checked = settings.enableEcoMode || false;
-            document.getElementById('check-enable-lib').checked = settings.enableLibrary !== false; 
+            document.getElementById('check-enable-lib').checked = settings.enableLibrary !== false; // Default true
             updateBgUIState(); 
         }
 
@@ -1123,6 +1152,7 @@
             testAudio.play().catch(e => { console.log("Fehler:", e); showStatus("Fehler: limit.mp3 fehlt?"); });
         }
 
+        // --- WAKE LOCK & ECO (SAFE) ---
         async function requestWakeLock() {
             if (!settings.enableWakeLock) return;
             if ('wakeLock' in navigator) { 
@@ -1167,7 +1197,7 @@
             if (isFaceDown) { 
                 if (curtain.style.display !== 'block') {
                     curtain.style.display = 'block';
-                    logStatEvent('eco_flip');
+                    logStatEvent('eco_flip'); // STATS LOG
                 } 
             } 
             else { if (curtain.style.display === 'block') curtain.style.display = 'none'; }
@@ -1191,7 +1221,7 @@
                         if (isParentMode) {
                             if (isLinkModeActive) { saveTrackLink(event.serialNumber); isLinkModeActive = false; } else { showStatus("Tag erkannt: " + event.serialNumber); }
                         } else { 
-                            logStatEvent('scan', event.serialNumber);
+                            logStatEvent('scan', event.serialNumber); // STATS LOG
                             playTrackByTag(event.serialNumber); 
                         }
                     };
@@ -1208,7 +1238,7 @@
                     startSleepTimer();
                     requestWakeLock();
                     showStatus("Fortgesetzt ▶️");
-                    currentSessionStart = Date.now();
+                    currentSessionStart = Date.now(); // LOG: Resume
                 } else {
                     showStatus("Spielt bereits 🔊");
                 }
@@ -1262,7 +1292,7 @@
                 applyActualVolume(); updateVolumeUI();
                 audioPlayer.play().then(() => { 
                     setPlayButtonState(true); startSleepTimer(); requestWakeLock(); 
-                    currentSessionStart = Date.now(); 
+                    currentSessionStart = Date.now(); // LOG: Start Tracking
                 }).catch(e => showStatus("Bereit"));
                 audioPlayer.onloadedmetadata = null;
             };
@@ -1276,14 +1306,14 @@
             window.loadStats('day');
         }
         
-        window.closeStats = function(e) {
-            if(e && e.stopPropagation) e.stopPropagation();
+        window.closeStats = function() {
             document.getElementById('stats-modal').style.display = 'none';
         }
 
         window.loadStats = function(scope) {
             currentStatsScope = scope;
             
+            // UI Toggle Logic
             document.querySelectorAll('.stats-toggle-btn').forEach(b => b.classList.remove('active'));
             if(scope === 'day') document.getElementById('btn-stat-day').classList.add('active');
             if(scope === 'week') document.getElementById('btn-stat-week').classList.add('active');
@@ -1909,6 +1939,191 @@
                     currentTrack.time = (min * 60) + sec + (frames / 75); tracks.push(currentTrack); currentTrack = null;
                 }
             }); return tracks;
+        }
+
+        function createLibCard(track, isSmall = false) {
+            const div = document.createElement('div');
+            div.className = isSmall ? 'recent-card' : 'lib-card';
+            div.onclick = () => {
+                closeLibrary();
+                playTrackByTag(track.tagId);
+            };
+
+            let imgHtml = `<div class="lib-placeholder">🎵</div>`;
+            if (track.imageBlob) {
+                const url = URL.createObjectURL(track.imageBlob);
+                imgHtml = `<img src="${url}" class="lib-cover-img" loading="lazy">`;
+            }
+
+            let infoBtnHtml = "";
+            if(!isSmall) { 
+                 infoBtnHtml = `<button class="lib-card-info-btn" onclick="showAlbumInfo(event, '${track.tagId}')">i</button>`;
+            }
+
+            let metaInfo = "";
+            if(!isSmall && track.meta) {
+                 if(track.meta.runtime) metaInfo += `⏱️ ${track.meta.runtime} min`;
+            }
+            
+            // NEW: Completed Badge
+            let completedBadge = "";
+            if(track.completed) {
+                completedBadge = `<div class="completed-badge">✅</div>`;
+            }
+
+            div.innerHTML = `
+                <div class="lib-cover-wrap" style="${isSmall ? 'border-radius:10px;' : ''}">
+                    ${imgHtml}
+                    ${infoBtnHtml}
+                    ${completedBadge}
+                </div>
+                ${!isSmall ? `
+                <div class="lib-card-body">
+                    <div class="lib-card-title">${track.name}</div>
+                    <span class="lib-meta-tag">${metaInfo}</span>
+                </div>` : ''}
+            `;
+            return div;
+        }
+
+        // --- ALBUM INFO MODAL LOGIC ---
+        function showAlbumInfo(event, tagId) {
+            event.stopPropagation(); 
+            const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
+            store.get(tagId).onsuccess = (e) => {
+                const track = e.target.result;
+                if(!track) return;
+
+                const modal = document.getElementById('lib-info-modal');
+                const imgEl = document.getElementById('info-modal-img');
+                const titleEl = document.getElementById('info-modal-title');
+                const metaEl = document.getElementById('info-modal-meta');
+                const descEl = document.getElementById('info-modal-desc');
+
+                if(track.imageBlob) imgEl.src = URL.createObjectURL(track.imageBlob);
+                else imgEl.src = "";
+
+                titleEl.innerText = track.name;
+                
+                let metaText = [];
+                if(track.meta) {
+                    if(track.meta.age_recommendation) metaText.push(`Ab ${track.meta.age_recommendation} J.`);
+                    if(track.meta.genre) metaText.push(track.meta.genre);
+                    if(track.meta.runtime) metaText.push(`${track.meta.runtime} min`);
+                }
+                metaEl.innerText = metaText.join(" • ");
+
+                if(track.meta && track.meta.description) {
+                    descEl.innerText = track.meta.description;
+                    descEl.style.display = 'block';
+                } else {
+                    descEl.style.display = 'none';
+                }
+                modal.style.display = 'flex';
+            };
+        }
+
+        function closeAlbumInfo() {
+            document.getElementById('lib-info-modal').style.display = 'none';
+        }
+
+        // --- LIBRARY MODE LOGIC ---
+        let currentLibFilter = 'all';
+
+        function openLibrary() {
+            if(!db) { showStatus("Datenbank lädt..."); return; }
+            document.getElementById('library-mode').style.setProperty('display', 'block', 'important');
+            renderLibrary();
+        }
+
+        function closeLibrary() {
+            document.getElementById('library-mode').style.display = 'none';
+        }
+
+        function renderLibrary() {
+            const contentArea = document.getElementById('lib-content-area');
+            const filterContainer = document.getElementById('lib-filters');
+            contentArea.innerHTML = "";
+            
+            if(!db) return; 
+
+            const tx = db.transaction(["tracks"], "readonly");
+            const store = tx.objectStore("tracks");
+            const request = store.getAll();
+
+            request.onsuccess = (e) => {
+                let tracks = e.target.result;
+                tracks = tracks.filter(t => t.tagId !== "system_bg" && t.tagId !== "system_settings");
+
+                if(filterContainer.children.length <= 2) { 
+                    const genres = new Set();
+                    const ages = new Set();
+                    tracks.forEach(t => {
+                        if(t.meta && t.meta.genre) genres.add(t.meta.genre);
+                        if(t.meta && t.meta.age_recommendation) ages.add(t.meta.age_recommendation);
+                    });
+                    Array.from(ages).sort((a,b) => a-b).forEach(age => {
+                        addFilterChip(`Ab ${age} Jahren`, `age_${age}`);
+                    });
+                    Array.from(genres).sort().forEach(genre => {
+                         addFilterChip(genre, `genre_${genre}`);
+                    });
+                }
+
+                if (currentLibFilter === 'all' || currentLibFilter === 'recent') {
+                    const recentTracks = [...tracks].filter(t => t.lastPlayedTimestamp).sort((a, b) => b.lastPlayedTimestamp - a.lastPlayedTimestamp).slice(0, 3);
+                    if (recentTracks.length > 0) {
+                        const recentDiv = document.createElement('div');
+                        recentDiv.innerHTML = `<div class="section-title">Zuletzt gehört 🕒</div><div class="recent-grid" id="recent-grid-target"></div>`;
+                        contentArea.appendChild(recentDiv);
+                        const target = recentDiv.querySelector('#recent-grid-target');
+                        recentTracks.forEach(t => {
+                            target.appendChild(createLibCard(t, true));
+                        });
+                    }
+                }
+
+                if (currentLibFilter === 'recent') return; 
+
+                const gridDiv = document.createElement('div');
+                gridDiv.className = 'library-grid';
+                if(currentLibFilter === 'all') gridDiv.style.marginTop = "10px";
+                
+                let filteredTracks = tracks;
+                if (currentLibFilter.startsWith('age_')) {
+                    const age = parseInt(currentLibFilter.split('_')[1]);
+                    filteredTracks = tracks.filter(t => t.meta && t.meta.age_recommendation == age);
+                } else if (currentLibFilter.startsWith('genre_')) {
+                    const g = currentLibFilter.replace('genre_', '');
+                    filteredTracks = tracks.filter(t => t.meta && t.meta.genre === g);
+                }
+
+                filteredTracks.sort((a, b) => a.name.localeCompare(b.name));
+
+                filteredTracks.forEach(t => {
+                    gridDiv.appendChild(createLibCard(t));
+                });
+                
+                contentArea.appendChild(gridDiv);
+            };
+        }
+
+        function addFilterChip(label, value) {
+            const container = document.getElementById('lib-filters');
+            if(container.querySelector(`[data-val="${value}"]`)) return;
+            const chip = document.createElement('div');
+            chip.className = 'filter-chip';
+            chip.innerText = label;
+            chip.dataset.val = value;
+            chip.onclick = function() { applyLibFilter(value, this); };
+            container.appendChild(chip);
+        }
+
+        function applyLibFilter(filterVal, el) {
+            currentLibFilter = filterVal;
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            if(el) el.classList.add('active');
+            renderLibrary();
         }
 
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
