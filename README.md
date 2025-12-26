@@ -1,152 +1,96 @@
-# 🎵 Jukebox PWA (v61 Stable) - Die DIY "Toniebox" fürs Handy
+# 🎵 Jukebox PWA (v62 Stats)
 
-Eine kinderfreundliche Musik-Player-App, die als Progressive Web App (PWA) direkt im Browser läuft. Sie verwandelt alte Smartphones in sichere Abspielgeräte für Kinder.
+**Die smarte DIY "Toniebox" fürs Handy – 100% AI-Generated Code.**
 
-**Aktuell in v61:** Diese Version beinhaltet wichtige Optimierungen für die **Bibliotheks-Ansicht**, damit diese auf allen Geräten zuverlässig öffnet. Zudem sind der neue **Rewind-Button** (30s zurück) und die **Smart-Start-Logik** (Resume bei erneutem Scan) enthalten.
+Dieses Projekt ist eine kinderfreundliche Musik-Player-App, die alte Smartphones in sichere, werbefreie Abspielgeräte verwandelt. Sie läuft als **Progressive Web App (PWA)** komplett offline im Browser.
 
-Entwickelt als lokale Lösung: **Kein Cloud-Zwang, kein Tracking, komplett kostenlos.**
+> 🤖 **Made with Gemini:** Dieses gesamte Projekt (HTML, CSS, JavaScript Logik, Datenbank-Struktur) wurde vollständig durch **Google Gemini 3 Pro** erstellt und analysiert. Es ist ein Experiment, wie weit KI-gestützte Entwicklung ohne manuelles Coden gehen kann.
 
 ---
 
-## 📸 Vorschau
+## ✨ Neue Funktionen in v62
 
-Die App ist in zwei Bereiche unterteilt: Den geschützten **Eltern-Modus** (Verwaltung) und den kindersicheren **Player-Modus**.
+* 📊 **Detaillierte Eltern-Statistik:** Ein neues Dashboard zeigt genau an:
+    * Hördauer (Heute / Woche / Gesamt).
+    * Die Top 5 Lieblings-Hörspiele.
+    * Tageszeit-Heatmap (Wann wird gehört?).
+    * Anzahl der Interaktionen (NFC-Scans, Umdrehen).
+* 🛠️ **Bugfixes:**
+    * Das seitliche "Wackeln" des Bildschirms im Kinder-Modus wurde behoben.
+    * Lange Dateinamen im Editor werden nun korrekt umgebrochen.
+* 💾 **Datenbank Upgrade:** Automatische Migration auf DB-Version 2 für das Event-Logging.
 
-### 👶 Kinder-Modus & Bibliothek
-Hier spielen die Kinder. Große Bilder, keine Text-Menüs, einfache Bedienung.
+---
 
-| **Der Player (Neu: Rewind)** | **Die Bibliothek** |
+## 📸 Screenshots
+
+### 👶 Der Kinder-Modus
+Große Bilder, keine komplizierten Menüs. Die Steuerung ist kindersicher.
+
+| **Der Player** | **Die Bibliothek** |
 |:---:|:---:|
 | <img src="docs/screenshots/kid-mode1.png" width="180"> | <img src="docs/screenshots/library_grid.png" width="180"> |
-| *Große Steuerung & Cover* | *Visuelles Stöbern & Filtern* |
+| *Große Tasten & Cover* | *Visuelles Stöbern* |
 
-| **Info-Overlay** | **Details & Dauer** |
+### 🔧 Der Eltern-Modus
+Nur durch einen Trick ("Secret Knock") erreichbar. Hier verwaltest du Inhalte und prüfst die Nutzung.
+
+| **Verwaltung** | **Statistik (Neu)** |
 |:---:|:---:|
-| <img src="docs/screenshots/library_info.png" width="180"> | <img src="docs/screenshots/kid-mode2.png" width="180"> |
-| *Beschreibung & Alter* | *Einfacher Player* |
-
-### 🔧 Eltern-Modus (Admin)
-Hier verwaltest du die Datenbank, importierst Musik und stellst Limits ein.
-
-| **Admin Grid-Ansicht** | **Metadaten-Editor** |
-|:---:|:---:|
-| <img src="docs/screenshots/parent-mode3.png" width="180"> | <img src="docs/screenshots/parent-edit.png" width="180"> |
-| *Tags visuell verwalten* | *Infos direkt ändern* |
-
-| **Einstellungen** | **Massen-Import** |
-|:---:|:---:|
-| <img src="docs/screenshots/parent-mode1.png" width="180"> | <img src="docs/screenshots/parent-mode4.png" width="180"> |
-| *Lautstärkelimit & Timer* | *Ordner einfach hochladen* |
+| <img src="docs/screenshots/parent-mode.png" width="180"> | <img src="docs/screenshots/stats_view.png" width="180"> |
+| *Tags anlernen & Import* | *Hörverhalten analysieren* |
 
 ---
 
-## 📲 Installation (Android)
+## 🚀 Installation
 
-Die App muss nicht über den Play Store geladen werden, sondern wird direkt über den Browser installiert.
+Da es eine PWA ist, gibt es keinen App-Store-Download. Die App läuft lokal auf deinem Gerät.
 
-1.  Öffne **Chrome** auf deinem Android-Smartphone.
-2.  Rufe die Webseite auf: **[https://basecore.github.io/jukebox/](https://basecore.github.io/jukebox/)**
-3.  **Warte kurz (bis zu 30 Sekunden):** Oft erscheint am unteren Bildschirmrand automatisch ein Hinweis *"Jukebox zum Startbildschirm hinzufügen"*.
-4.  Falls nicht, folge diesen Schritten:
-
-| **1. Menü öffnen** | **2. Installieren** |
-|:---:|:---:|
-| <img src="docs/screenshots/install-app1.png" width="180"> | <img src="docs/screenshots/install-app2.png" width="180"> |
-| *Tippe oben rechts auf die 3 Punkte* | *Wähle "App installieren"* |
-
-| **3. Bestätigen** | **4. Widget platzieren** |
-|:---:|:---:|
-| <img src="docs/screenshots/install-app3.png" width="180"> | <img src="docs/screenshots/install-app4.png" width="180"> |
-| *Klicke auf "Installieren"* | *Automatisch oder ziehen* |
+1.  **Hosting:** Lade die Dateien (`index.html`, `sw.js`, `manifest.json`, `assets/`) auf einen Webspace (https erforderlich) oder starte einen lokalen Server.
+2.  **Öffnen:** Rufe die URL im **Chrome (Android)** oder **Safari (iOS)** auf.
+3.  **Installieren:**
+    * **Android:** Tippe auf das Menü (3 Punkte) -> "Zum Startbildschirm hinzufügen" (oder "App installieren").
+    * **iOS:** Tippe auf "Teilen" -> "Zum Home-Bildschirm".
+4.  **Starten:** Öffne die neue App auf dem Homescreen. Sie läuft nun im Vollbild ohne Browser-Leiste.
 
 ---
 
-## ✨ Neue Features (v61)
+## 📖 Bedienung
 
-### 👶 Player-Upgrades
-* **⏪ Rewind-Button:** Ein neuer Button erlaubt es, **30 Sekunden zurückzuspringen**. Perfekt, wenn das Kind kurz abgelenkt war.
-* **🧠 Smart Start:** Wird derselbe NFC-Tag während der Wiedergabe erneut aufgelegt, fängt das Hörspiel nicht mehr von vorne an, sondern läuft einfach weiter (oder pausiert/startet an aktueller Stelle).
+### 1. Musik importieren
+* **Massen-Import (Empfohlen):** Klicke auf "📂 Massen-Import" und wähle einen Ordner mit Unterordnern (MP3s + Bilder) aus. Die App erkennt Zusammenhänge automatisch.
+* **Einzeln:** Nutze "🎵 Tag bearbeiten", lade eine Audio-Datei und ein Bild hoch.
 
-### 🛠️ Admin Power-Up
-* **Smart Scroll:** Ein Klick auf "Bearbeiten" springt nun direkt zum Eingabeformular, ohne dass du scrollen musst.
-* **Admin Grid-Ansicht:** Verwalte Tags als Kacheln mit Covern. Umschaltbar auf Listenansicht (☰).
-* **In-App Editor:** Bearbeite **Beschreibung, Alter, Genre und Laufzeit** direkt in der App. Du siehst nun auch die echten Dateinamen der verknüpften MP3s.
+### 2. NFC Tags nutzen (Optional)
+Wenn dein Android-Gerät NFC hat:
+1.  Gehe auf "Tag scannen & speichern".
+2.  Halte eine NFC-Karte oder Figur an das Handy.
+3.  Die Musik ist nun mit diesem Tag verknüpft. Im Kinder-Modus startet sie sofort beim Auflegen.
 
-### 📚 Die Bibliothek (Tigerbox-Style)
-* **Visuelle Übersicht:** Große Cover-Kacheln in einem übersichtlichen Raster.
-* **Filter & Verlauf:** Filtere nach Alter ("Ab 3 Jahren") oder Genre und sieh dir die zuletzt gehörten Titel an.
-* **Info-Overlay:** Ein Klick auf das "i" zeigt Details zum Hörspiel.
+### 3. Statistik ansehen
+Klicke im Eltern-Modus oben rechts auf den Button **"📊 Statistik"**. Hier siehst du, was dein Kind wann und wie lange hört.
 
----
-
-## 🪄 Das Python-Tool: TAF zu Jukebox
-
-Wenn du **eigene Tonie-Dateien (.taf)** besitzt, kannst du diese mit dem Skript `taf_jukebox_final.py` (im Ordner `tools/`) vollautomatisch für die App aufbereiten.
-
-**Das Script erledigt alles:**
-1.  Wandelt `.taf` in `.mp3` um (inkl. Kapitelmarken in einer `.cue` Datei).
-2.  Lädt das **Original-Cover** herunter.
-3.  Holt **Metadaten** (Beschreibungstext, Altersempfehlung, Genre) von der Tonie-Website.
-4.  Erstellt die perfekte `jukebox.json` für den Import.
-
-### Anleitung für PC/Mac:
-
-1.  **Vorbereitung:**
-    * Installiere [Python](https://www.python.org/).
-    * Installiere [FFmpeg](https://ffmpeg.org/) (muss im System-Pfad sein).
-2.  **Dateien ablegen:**
-    * Kopiere das Script `taf_jukebox_final.py` und deine `.taf`-Dateien in einen gemeinsamen Ordner.
-3.  **Abhängigkeiten installieren:**
-    Öffne ein Terminal in dem Ordner und führe aus:
-    ```bash
-    pip install requests beautifulsoup4 playwright
-    playwright install
-    ```
-4.  **Script starten:**
-    ```bash
-    python taf_jukebox_final.py
-    ```
-5.  **Ergebnis:**
-    Es entsteht ein Ordner `jukebox_output`. Diesen Ordner kannst du nun direkt über **"📂 Massen-Import"** in die App laden!
-
----
-
-## 📖 Bedienungsanleitung
-
-### 1. Musik hinzufügen
-Die App unterstützt zwei Wege:
-
-* **A) Massen-Import (Empfohlen):**
-    Erstelle Ordner mit MP3s und Covern am PC und lade sie über "Massen-Import" hoch. Wenn du eine `jukebox.json` hast (vom Python-Tool), werden alle Infos automatisch gesetzt.
-* **B) Manuell anlernen:**
-    Gehe auf "Neuen Tag anlernen", wähle Audio & Bild und fülle im neuen Menü **"📝 Erweiterte Infos"** die Beschreibung und das Alter aus.
-
-### 2. Einstellungen
-* **Lautstärke:** Stelle sicher, dass die physische Handy-Lautstärke auf 100% steht und regle das Limit in der App.
-* **Kindersicherung:** Du kannst den Bibliotheks-Button im Kinder-Modus ausblenden, falls gewünscht.
-
-### 3. Kinder-Modus verlassen
-Es gibt keinen sichtbaren "Zurück"-Button, damit Kinder nicht aus Versehen rausgehen.
-➡️ **Tippe 5x schnell hintereinander in die obere rechte Ecke des Bildschirms.**
+### 4. Kinder-Modus verlassen
+Es gibt keinen sichtbaren "Zurück"-Button, damit Kinder die App nicht versehentlich schließen.
+➡️ **Tippe 5x schnell hintereinander in die obere rechte Ecke des Bildschirms, um das Passwort-Feld zu umgehen und zum Eltern-Modus zurückzukehren.**
 
 ---
 
 ## 📂 Dateistruktur
 
-* `index.html` - Der komplette Code (V61).
-* `sw.js` - Offline-Logik (Cache V61).
-* `manifest.json` - App-Icon Konfiguration.
-* `assets/` - Bilder und Icons.
-* `jukebox.json` - Deine Datenbank (Optional).
-* `tools/` - Python-Script für den Import.
+* `index.html` - Der gesamte Quellcode der Anwendung (Logik & Design).
+* `sw.js` - Der Service Worker für die Offline-Funktionalität.
+* `manifest.json` - Konfiguration für das App-Icon und den Vollbild-Modus.
+* `assets/` - Ordner für Icons und Test-Sounds.
 
 ---
 
-## 🔗 Projekt & Support
+## 🔒 Datenschutz & Sicherheit
 
-* 🏠 **Projekt:** [github.com/basecore/jukebox](https://github.com/basecore/jukebox/)
-* 🐛 **Fehler melden:** [Issues & Bugs](https://github.com/basecore/jukebox/issues)
+* **Lokal:** Alle Daten (Datenbank, Bilder, Statistiken) werden in der `IndexedDB` deines Browsers gespeichert. Nichts wird in eine Cloud hochgeladen.
+* **Offline:** Nach dem ersten Laden funktioniert die App komplett ohne Internet.
+* **WakeLock:** Die App verhindert, dass das Display ausgeht, während ein Hörspiel läuft.
 
-## 👨‍💻 Credits
-Entwickelt von Sebastian Rößer.
-Version 61 "Stable".
+---
+
+**Projekt erstellt mit Google Gemini 3 Pro.**
