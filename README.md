@@ -77,11 +77,13 @@ Die App muss nicht über den Play Store geladen werden, sondern wird direkt übe
 
 ### 1. Musik hinzufügen
 
-Die App unterstützt zwei Wege:
+Die App unterstützt mehrere Wege:
 
-* **A) Massen-Import (Empfohlen):**
+* **A) Online-Beispiele (Neu):**
+    Lade mit einem Klick vorbereitete Hörspiele direkt vom Server (siehe unten).
+* **B) Massen-Import (Empfohlen):**
     Erstelle Ordner mit MP3s und Covern am PC und lade sie über „Massen-Import" hoch. **Tipp:** Wenn du unser Python-Tool (siehe unten) mit den TAF-Dateien nutzt, wird eine `klangkiste.json` erstellt. Wähle diese Datei und den Ordner aus – dann sind alle Titel, Cover und Texte sofort perfekt gesetzt!
-* **B) Manuell anlernen:**
+* **C) Manuell anlernen:**
     Gehe auf „Neuen Tag anlernen", wähle Audio & Bild und fülle im Menü **„📝 Erweiterte Infos"** Details wie Beschreibung und Alter aus.
 
 ### 2. NFC Tags nutzen (Optional)
@@ -104,37 +106,27 @@ Es gibt keinen sichtbaren „Zurück"-Button, damit Kinder die App nicht versehe
 
 ## 🚀 Schnellstart mit Beispielen
 
-Im Repository-Ordner `example/` findest du vorbereitete Beispieldateien, mit denen du die App sofort testen kannst – komplett mit Cover-Bildern, Metadaten und Beschreibungen.
+Du möchtest die App sofort testen? Wir haben Beispiel-Hörspiele vorbereitet (inkl. Cover & Metadaten).
 
-### Download der Beispieldateien
+### ⚡ Methode 1: Direkt in der App laden (Empfohlen)
 
-**Option 1: Einzelne Dateien herunterladen**
+Du musst nichts manuell herunterladen! Die App holt sich die Dateien direkt vom Server.
 
-Öffne im Browser: https://github.com/basecore/klangkiste/tree/main/example
+1. Öffne den Bereich **„📂 Datenbank“** im Eltern-Modus.
+2. Klicke auf den blauen Button **„☁️ Beispiele direkt laden (Online)“**.
+3. Bestätige den Download. Fertig! 🎉
 
-Lade folgende Dateien herunter:
-- `klangkiste.json` – Metadaten-Datei mit allen Informationen
-- `Die drei Schneeflocken der Freundschaft.mp3`
-- `Die drei Schneeflocken der Freundschaft.png`
-- `Schneeflocken.mp3`
-- `Schneeflocken.png`
-- `Wusel in der Werkstatt.mp3`
-- `Wusel in der Werkstatt.png`
+<img src="docs/screenshots/import-online.png" width="400" alt="Screenshot des Online Import Buttons">
 
-**Option 2: Komplettes Repository als ZIP (empfohlen)**
+### 📥 Methode 2: Manuell herunterladen (für Offline-Installationen)
+
+Falls du die Dateien lieber selbst auf dem Handy haben möchtest:
 
 1. Gehe auf https://github.com/basecore/klangkiste
-2. Klicke auf den grünen **„Code"**-Button
-3. Wähle **„Download ZIP"**
-4. Entpacke die Datei und navigiere zum Ordner `klangkiste/example/`
-
-### Beispiele in die App importieren
-
-1. Starte die KlangKiste im Eltern-Modus
-2. Klicke auf **„📂 Massen-Import"**
-3. Wähle zunächst die `klangkiste.json` aus
-4. Wähle dann den Ordner mit den MP3- und PNG-Dateien
-5. ✅ Fertig! Die Beispiel-Hörspiele erscheinen jetzt mit Cover, Altersempfehlung und Beschreibung in der Bibliothek
+2. Klicke auf den grünen **„Code"**-Button -> **„Download ZIP"**
+3. Entpacke die Datei.
+4. Gehe in der App auf **„📂 Massen-Import"**.
+5. Wähle im Ordner `example/` die Datei `klangkiste.json` und die MP3/PNG Dateien aus.
 
 ### Was ist in den Beispielen enthalten?
 
