@@ -23,7 +23,7 @@ except ImportError:
 
 # --- KONFIGURATION ---
 SOURCE_DIR = "."         
-OUTPUT_DIR = "jukebox_output"
+OUTPUT_DIR = "klangkiste_output"
 JSON_FILE = "tonies.json" # Fallback Datei
 HEADER_SIZE = 4096       
 OPUS_SAMPLE_RATE = 48000.0
@@ -286,7 +286,7 @@ def convert_audio_with_progress(audio_data, mp3_path, meta, cover_path=None):
 
 def main():
     print("=" * 60)
-    print("   ULTIMATE TAF TO JUKEBOX (Scrape & Convert)")
+    print("   ULTIMATE TAF TO KLANGKISTE (Scrape & Convert)")
     print("=" * 60)
     
     # 1. Dateien suchen
@@ -320,7 +320,7 @@ def main():
             PLAYWRIGHT_AVAILABLE = False
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    jukebox_entries = []
+    klangkiste_entries = []
 
     # 4. Loop
     for i, taf_path in enumerate(taf_files, 1):
@@ -400,7 +400,7 @@ def main():
                         f.write(f'  TRACK {idx+1:02d} AUDIO\n    TITLE "{t_name}"\n    INDEX 01 {ts}\n')
             except: pass
 
-        # JUKEBOX ENTRY
+        # KLANGKISTE ENTRY
         tags = detect_tags(title, final_desc, final_genre)
         entry = {
             "tagId": f"auto_{file_hash[:10] if file_hash else 'unknown'}",
@@ -417,17 +417,17 @@ def main():
             "filter_age": final_age,
             "tags": tags
         }
-        jukebox_entries.append(entry)
+        klangkiste_entries.append(entry)
 
     # Abschluss
     if browser: browser.close()
     
-    json_out = os.path.join(OUTPUT_DIR, "jukebox.json")
+    json_out = os.path.join(OUTPUT_DIR, "klangkiste.json")
     with open(json_out, 'w', encoding='utf-8') as f:
-        json.dump(jukebox_entries, f, indent=4, ensure_ascii=False)
+        json.dump(klangkiste_entries, f, indent=4, ensure_ascii=False)
         
     print("-" * 60)
-    print(f"✅ Fertig! jukebox.json erstellt in: {OUTPUT_DIR}")
+    print(f"✅ Fertig! klangkiste.json erstellt in: {OUTPUT_DIR}")
     input("Enter zum Beenden...")
 
 if __name__ == "__main__":
