@@ -1,6 +1,6 @@
 {
-  "name": "Jukebox",
-  "short_name": "Jukebox",
+  "name": "KlangKiste",
+  "short_name": "KlangKiste",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f4f7f6",
