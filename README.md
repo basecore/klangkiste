@@ -1,4 +1,4 @@
-# 🎵 Jukebox PWA (v66 Stable)
+# 🎵 KlangKiste PWA (v66 Stable)
 
 **Die smarte DIY "Toniebox" fürs Handy – 100% AI-Generated Code.**
 
@@ -54,10 +54,7 @@ Verwaltung der Inhalte und Einsicht in das Nutzungsverhalten.
 
 Die App muss nicht über den Play Store geladen werden, sondern wird direkt über den Browser installiert.
 
-1. Öffne **Chrome** auf deinem Android-Smartphone.
-2. Rufe die Webseite auf: **https://basecore.github.io/jukebox/**
-3. **Warte kurz (bis zu 30 Sekunden):** Oft erscheint am unteren Bildschirmrand automatisch ein Hinweis „Jukebox zum Startbildschirm hinzufügen".
-4. Falls nicht, folge diesen Schritten:
+1. Öffne **Chrome** auf deinem 1. Öffne **Chrome** auf deinem Android-Smartph**htt2. Rufe die Webseite auf: **https://ba**Warte kurz (bisklangkisteSeku3. **Warte kurz (bis zu 30 Sekunden):** Oft erscheint am unteren Bildschirmrand automatisch ein Hinweis „Klangkiste zum Startbildschirm hinzufügen".chritten:
 
 | **1. Menü öffnen** | **2. Installieren** |
 |:---:|:---:|
@@ -80,15 +77,12 @@ Die App muss nicht über den Play Store geladen werden, sondern wird direkt übe
 Die App unterstützt zwei Wege:
 
 * **A) Massen-Import (Empfohlen):**
-    Erstelle Ordner mit MP3s und Covern am PC und lade sie über „Massen-Import" hoch. **Tipp:** Wenn du unser Python-Tool (siehe unten) mit den TAF-Dateien nutzt, wird eine `jukebox.json` erstellt. Wähle diese Datei und den Ordner aus – dann sind alle Titel, Cover und Texte sofort perfekt gesetzt!
+    Erstelle Ordner mit MP3s und Covern am PC und lade sie über „Massen-Import" hoch. **Tipp:** Wenn du unser Python-Tool (siehe unten) mit den TAF-Dateien nutzt, wird eine `klangkiste.json` erstellt. Wähle diese Datei und den Ordner aus – dann sind alle Titel, Cover und Texte sofort perfekt gesetzt!
 * **B) Manuell anlernen:**
     Gehe auf „Neuen Tag anlernen", wähle Audio & Bild und fülle im Menü **„📝 Erweiterte Infos"** Details wie Beschreibung und Alter aus.
 
 ### 2. NFC Tags nutzen (Optional)
-
-Wenn dein Android-Gerät NFC hat:
-1. Gehe auf „Tag scannen & speichern".
-2. Halte eine NFC-Karte oder Figur an das Handy.
+Klangkisteim Menü **„📝 Erweiterte Infos"** Details wie Beschreibung und Alter aus.2. Halte eine NFC-Karte oder Figur an das Handy.
 3. Die Musik ist nun mit diesem Tag verknüpft. Im Kinder-Modus startet sie sofort beim Auflegen.
 
 ### 3. Statistik ansehen (Neu in v66)
@@ -110,7 +104,7 @@ Im Repository-Ordner `example/` findest du vorbereitete Beispieldateien, mit den
 
 **Option 1: Einzelne Dateien herunterladen**
 
-Öffne im Browser: https://github.com/basecore/jukebox/tree/main/example
+Öffne im Browser: https://github.com/basecore/klangkiste/tree/main/example
 
 Lade folgende Dateien herunter:
 - `jukebox.json` – Metadaten-Datei mit allen Informationen
@@ -123,16 +117,16 @@ Lade folgende Dateien herunter:
 
 **Option 2: Komplettes Repository als ZIP (empfohlen)**
 
-1. Gehe auf https://github.com/basecore/jukebox
+1. Gehe auf https://github.com/basecore/klangkiste
 2. Klicke auf den grünen **„Code"**-Button
 3. Wähle **„Download ZIP"**
-4. Entpacke die Datei und navigiere zum Ordner `jukebox/example/`
+4. Entpacke die Datei und navigiere zum Ordner `klangkiste/example/`
 
 ### Beispiele in die App importieren
 
 1. Starte die Jukebox im Eltern-Modus
 2. Klicke auf **„📂 Massen-Import"**
-3. Wähle zunächst die `jukebox.json` aus
+3. Wähle zunächst die `klangkiste.json` aus
 4. Wähle dann den Ordner mit den MP3- und PNG-Dateien
 5. ✅ Fertig! Die Beispiel-Hörspiele erscheinen jetzt mit Cover, Altersempfehlung und Beschreibung in der Bibliothek
 
@@ -144,7 +138,7 @@ Lade folgende Dateien herunter:
 | Schneeflocken – Das Lied | Musik | 3+ | 4 Min |
 | Wusel in der Werkstatt | Hörspiel | 4+ | 1 Min |
 
-Die `jukebox.json` definiert alle Metadaten: Seriennamen, Episodentitel, ausführliche Beschreibungen, Genre, Altersempfehlung, Sprache und passende Tags (Freundschaft, Winter, Abenteuer, Humor).
+Die `klangkiste.json` definiert alle Metadaten: Seriennamen, Episodentitel, ausführliche Beschreibungen, Genre, Altersempfehlung, Sprache und passende Tags (Freundschaft, Winter, Abenteuer, Humor).
 
 ---
 
@@ -156,7 +150,7 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 1. Wandelt `.taf` (Tonie-Format) in `.mp3` um (inkl. Kapitelmarken in einer `.cue` Datei).
 2. Lädt das **Original-Cover** herunter.
 3. Holt **Metadaten** (Beschreibungstext, Altersempfehlung, Genre) von der Tonie-Website.
-4. Erstellt eine perfekte `jukebox.json` für den Import.
+4. Erstellt eine perfekte `klangkiste.json` für den Import.
 
 ### Anleitung für PC/Mac
 
@@ -190,7 +184,7 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 * `sw.js` – Der Service Worker für die Offline-Funktionalität (Cache v66)
 * `manifest.json` – Konfiguration für das App-Icon und den Vollbild-Modus
 * `assets/` – Ordner für Icons und Test-Sounds
-* `example/` – Beispieldateien (MP3s, PNGs, `jukebox.json`) für schnellen Start
+* `example/` – Beispieldateien (MP3s, PNGs, `klangkiste.json`) für schnellen Start
 * `tools/` – Enthält das Python-Script für den Import von Tonie-Dateien
 * `docs/screenshots/` – Screenshots für diese Anleitung
 
@@ -198,8 +192,8 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 
 ## 🔗 Projekt & Support
 
-* 🏠 **Projekt:** https://github.com/basecore/jukebox
-* 🐛 **Fehler melden:** https://github.com/basecore/jukebox/issues
+* 🏠 **Projekt:** https://github.com/basecore/klangkiste
+* 🐛 **Fehler melden:** https://github.com/basecore/klangkiste/issues
 
 ## 👨‍💻 Credits
 
