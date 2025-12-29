@@ -769,7 +769,7 @@
                 3. Browser "Upload" bestätigen (Daten bleiben lokal!).
             </div>
 
-            <button class="btn-admin" style="background-color: #0984e3; margin-top:10px;" onclick="loadExamplesFromGitHub()">
+            <button class="btn-admin" style="background-color: #0984e3; margin-top:10px;" onclick="loadExamplesFromGitHub(event)">
                 ☁️ Beispiele direkt laden (Online)
             </button>
 
@@ -1478,6 +1478,109 @@
                 }
             }
         };
+
+        async function loadExamplesFromGitHub(event) {
+            // 1. STOPPT das "Scanner gestartet" Problem
+            if(event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+
+            // 2. KORREKTE URL für Rohdaten (nicht die HTML Webseite!)
+            const BASE_URL = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/";
+            
+            if(!confirm("Möchtest du die Beispiel-Hörspiele (ca. 10 MB) jetzt herunterladen?")) return;
+
+            showStatus("⏳ Verbindung zu GitHub...");
+
+            try {
+                // Lade die Liste
+                const jsonResp = await fetch(BASE_URL + "klangkiste.json");
+                if (!jsonResp.ok) throw new Error("JSON-Liste nicht gefunden (Status " + jsonResp.status + ")");
+                
+                const data = await jsonResp.json();
+                
+                if(!db) { alert("Datenbank noch nicht bereit. Warte kurz..."); return; }
+
+                const tx = db.transaction(["tracks"], "readwrite");
+                const store = tx.objectStore("tracks");
+                let count = 0;
+
+                showStatus(`📥 Lade ${data.length} Einträge...`);
+
+                // Loop durch alle Einträge in der JSON
+                for (const entry of data) {
+                    // Audio Dateien laden
+                    const audioBlobs = [];
+                    if (entry.playlistFileNames && Array.isArray(entry.playlistFileNames)) {
+                        for (const fileName of entry.playlistFileNames) {
+                            showStatus(`Lade Audio: ${fileName.substring(0, 15)}...`);
+                            
+                            // WICHTIG: encodeURIComponent macht aus " " ein "%20"
+                            const fileUrl = BASE_URL + encodeURIComponent(fileName);
+                            
+                            const resp = await fetch(fileUrl);
+                            if (resp.ok) {
+                                const blob = await resp.blob();
+                                // Erstelle Datei-Objekt mit korrektem Namen für die DB
+                                const file = new File([blob], fileName, { type: "audio/mp3" });
+                                audioBlobs.push(file);
+                            } else {
+                                console.error("Audio fehlt auf Server:", fileUrl);
+                            }
+                        }
+                    }
+
+                    if (audioBlobs.length === 0) continue; // Überspringen wenn Audio fehlte
+
+                    // Bild laden (falls vorhanden)
+                    let imageBlob = null;
+                    if (entry.imageFileName) {
+                        const imgUrl = BASE_URL + encodeURIComponent(entry.imageFileName);
+                        const resp = await fetch(imgUrl);
+                        if (resp.ok) {
+                            const blob = await resp.blob();
+                            imageBlob = new File([blob], entry.imageFileName, { type: "image/png" });
+                        }
+                    }
+
+                    // Datenbank-Eintrag bauen
+                    const newEntry = {
+                        tagId: entry.tagId, // Nutzt die ID aus der JSON (z.B. manual_...)
+                        name: entry.name,
+                        playlist: audioBlobs, // Die echten MP3-Daten
+                        playlistFileNames: entry.playlistFileNames,
+                        imageBlob: imageBlob, // Die echten Bild-Daten
+                        imageFileName: entry.imageFileName,
+                        meta: entry.meta || {},
+                        tags: entry.tags || [],
+                        filter_age: entry.filter_age || 0,
+                        lastTrackIndex: 0, 
+                        lastTime: 0,
+                        completed: false
+                    };
+
+                    store.put(newEntry);
+                    count++;
+                }
+
+                // Abschluss warten
+                tx.oncomplete = () => {
+                    showStatus(`✅ ${count} Beispiele installiert!`);
+                    loadTagList(); // Admin-Ansicht aktualisieren
+                    alert(`Erfolg! ${count} Hörspiele wurden installiert.\nDu findest sie jetzt in der Liste.`);
+                };
+                
+                tx.onerror = (e) => {
+                    alert("Fehler beim Speichern in DB: " + e.target.error);
+                };
+
+            } catch (e) {
+                console.error(e);
+                alert("Fehler beim Laden: " + e.message + "\n\nBitte prüfe deine Internetverbindung.");
+                showStatus("Abbruch ❌");
+            }
+        }
 
         async function smartRelinkFiles(input) {
             const files = Array.from(input.files); if(files.length === 0) return;
