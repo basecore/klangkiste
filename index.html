@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jukebox V66 Stable</title>
+    <title>KlangKiste V66 Stable</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -608,7 +608,7 @@
         <div class="hint-text">💡 Tipp: 5x oben rechts tippen für Admin-Menü.</div>
         
         <div style="display:flex; justify-content:space-between; align-items:center;">
-             <h1>🔧 Jukebox</h1>
+             <h1>🔧 KlangKiste</h1>
              <button onclick="openStats()" style="background:none; border:2px solid #3498db; color:#3498db; padding:5px 10px; border-radius:15px; cursor:pointer; font-weight:bold;">📊 Statistik</button>
         </div>
 
@@ -764,7 +764,7 @@
             
             <div class="info-box-blue">
                 <strong>ℹ️ Hybrid-Import:</strong><br>
-                1. Sucht nach <code>jukebox.json</code> für perfekte Daten.<br>
+                1. Sucht nach <code>klangkiste.json</code> für perfekte Daten.<br>
                 2. Fragt nach "restlichen" MP3s im Ordner (Achtung: Cover & Cue müssen <u>exakt</u> wie MP3 heißen).<br>
                 3. Browser "Upload" bestätigen (Daten bleiben lokal!).
             </div>
@@ -775,10 +775,10 @@
             </button>
             
             <div class="btn-io-group">
-                <button class="btn-admin btn-export" onclick="exportJukeboxJson()">📤 Datenbank exportieren</button>
+                <button class="btn-admin btn-export" onclick="exportKlangkisteJson()">📤 Datenbank exportieren</button>
                 <button class="btn-admin btn-import">
                     📥 Datenbank laden
-                    <input type="file" id="import-file-hidden" accept=".json" onchange="importJukeboxJson(this)">
+                    <input type="file" id="import-file-hidden" accept=".json" onchange="importKlangkisteJson(this)">
                 </button>
             </div>
             <button class="btn-admin btn-relink" id="btn-auto-repair" style="position:relative;">
@@ -790,12 +790,12 @@
         </div>
 
         <div class="footer-info">
-            <p>Jukebox NFC V66 Stable</p>
+            <p>KlangKiste NFC V66 Stable</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
             <p style="margin-top:10px;">
-                <a href="https://github.com/basecore/jukebox/" target="_blank">💻 GitHub Projekt</a> &bull; 
-                <a href="https://github.com/basecore/jukebox/issues" target="_blank">🐛 Fehler melden</a>
+                <a href="https://github.com/basecore/klangkiste/" target="_blank">💻 GitHub Projekt</a> &bull; 
+                <a href="https://github.com/basecore/klangkiste/issues" target="_blank">🐛 Fehler melden</a>
             </p>
         </div>
     </div>
@@ -911,7 +911,7 @@
 
     <div id="library-mode">
         <div class="lib-header">
-            <div class="lib-title">Meine Sammlung 📚</div>
+            <div class="lib-title">Meine KlangKiste 📚</div>
         </div>
 
         <div class="filter-scroll-container" id="lib-filters">
@@ -1127,12 +1127,12 @@
             settings.enableWakeLock = document.getElementById('check-wakelock').checked;
             settings.enableEcoMode = document.getElementById('check-ecomode').checked;
             settings.enableLibrary = document.getElementById('check-enable-lib').checked;
-            localStorage.setItem('jukeboxSettings_v15', JSON.stringify(settings));
+            localStorage.setItem('klangkisteSettings_v15', JSON.stringify(settings));
             if(db) { const tx = db.transaction(["tracks"], "readwrite"); tx.objectStore("tracks").put({ tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: settings }); }
         }
 
         function loadSettings() {
-            const saved = localStorage.getItem('jukeboxSettings_v15');
+            const saved = localStorage.getItem('klangkisteSettings_v15');
             if (saved) { settings = JSON.parse(saved); updateUIFromSettings(); if (settings.startMode === 'kids') { setTimeout(() => { goToKidsMode(); }, 100); } }
         }
 
@@ -1836,7 +1836,7 @@
         function deleteTrack(id) { if(confirm("Wirklich löschen?")) { const tx = db.transaction(["tracks"], "readwrite"); tx.objectStore("tracks").delete(id); tx.oncomplete = () => loadTagList(); } }
 
         // --- BULK IMPORT & EXPORT ---
-        async function exportJukeboxJson() {
+        async function exportKlangkisteJson() {
             showStatus("Exportiere...");
             const tx = db.transaction(["tracks"], "readonly"); const store = tx.objectStore("tracks"); const exportData = [];
             store.openCursor().onsuccess = (event) => {
@@ -1849,11 +1849,11 @@
                     cursor.continue();
                 } else {
                     const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: "application/json"});
-                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "jukebox.json"; document.body.appendChild(a); a.click(); document.body.removeChild(a); showStatus("Export fertig! ✅");
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "klangkiste.json"; document.body.appendChild(a); a.click(); document.body.removeChild(a); showStatus("Export fertig! ✅");
                 }
             };
         }
-        async function importJukeboxJson(input) {
+        async function importKlangkisteJson(input) {
             const file = input.files[0]; if(!file) return; showStatus("Lade Datenbank...");
             const reader = new FileReader();
             reader.onload = async (e) => {
@@ -1880,9 +1880,9 @@
         }
         async function handleBulkImport(input) {
             const files = Array.from(input.files); if(files.length === 0) return;
-            const jukeboxJsonFile = files.find(f => f.name.toLowerCase().startsWith('jukebox') && f.name.toLowerCase().endsWith('.json'));
-            if (jukeboxJsonFile) {
-                const usedAudioFiles = await handleJukeboxJsonImport(jukeboxJsonFile, files);
+            const klangkisteJsonFile = files.find(f => f.name.toLowerCase().startsWith('klangkiste') && f.name.toLowerCase().endsWith('.json'));
+            if (klangkisteJsonFile) {
+                const usedAudioFiles = await handleKlangkisteJsonImport(klangkisteJsonFile, files);
                 const audioExtensions = ['.mp3', '.m4a', '.ogg', '.wav', '.flac'];
                 const leftoverAudio = files.filter(f => {
                     const ext = f.name.substring(f.name.lastIndexOf('.')).toLowerCase();
@@ -1892,7 +1892,7 @@
             } else { await handleClassicBulkImport(files); }
             input.value = ""; 
         }
-        async function handleJukeboxJsonImport(jsonFile, allFiles) {
+        async function handleKlangkisteJsonImport(jsonFile, allFiles) {
             const readFileAsText = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsText(file); });
             const usedAudioSet = new Set();
             try {
