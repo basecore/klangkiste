@@ -54,7 +54,10 @@ Verwaltung der Inhalte und Einsicht in das Nutzungsverhalten.
 
 Die App muss nicht über den Play Store geladen werden, sondern wird direkt über den Browser installiert.
 
-1. Öffne **Chrome** auf deinem 1. Öffne **Chrome** auf deinem Android-Smartph**htt2. Rufe die Webseite auf: **https://ba**Warte kurz (bisklangkisteSeku3. **Warte kurz (bis zu 30 Sekunden):** Oft erscheint am unteren Bildschirmrand automatisch ein Hinweis „Klangkiste zum Startbildschirm hinzufügen".chritten:
+1. Öffne **Chrome** auf deinem Android-Smartphone.
+2. Rufe die Webseite auf: **https://basecore.github.io/klangkiste/**
+3. **Warte kurz (bis zu 30 Sekunden):** Oft erscheint am unteren Bildschirmrand automatisch ein Hinweis „KlangKiste zum Startbildschirm hinzufügen".
+4. Falls nicht, folge diesen Schritten:
 
 | **1. Menü öffnen** | **2. Installieren** |
 |:---:|:---:|
@@ -82,7 +85,10 @@ Die App unterstützt zwei Wege:
     Gehe auf „Neuen Tag anlernen", wähle Audio & Bild und fülle im Menü **„📝 Erweiterte Infos"** Details wie Beschreibung und Alter aus.
 
 ### 2. NFC Tags nutzen (Optional)
-Klangkisteim Menü **„📝 Erweiterte Infos"** Details wie Beschreibung und Alter aus.2. Halte eine NFC-Karte oder Figur an das Handy.
+
+Wenn dein Android-Gerät NFC hat:
+1. Gehe auf „Tag scannen & speichern".
+2. Halte eine NFC-Karte oder Figur an das Handy.
 3. Die Musik ist nun mit diesem Tag verknüpft. Im Kinder-Modus startet sie sofort beim Auflegen.
 
 ### 3. Statistik ansehen (Neu in v66)
@@ -107,7 +113,7 @@ Im Repository-Ordner `example/` findest du vorbereitete Beispieldateien, mit den
 Öffne im Browser: https://github.com/basecore/klangkiste/tree/main/example
 
 Lade folgende Dateien herunter:
-- `jukebox.json` – Metadaten-Datei mit allen Informationen
+- `klangkiste.json` – Metadaten-Datei mit allen Informationen
 - `Die drei Schneeflocken der Freundschaft.mp3`
 - `Die drei Schneeflocken der Freundschaft.png`
 - `Schneeflocken.mp3`
@@ -124,7 +130,7 @@ Lade folgende Dateien herunter:
 
 ### Beispiele in die App importieren
 
-1. Starte die Jukebox im Eltern-Modus
+1. Starte die KlangKiste im Eltern-Modus
 2. Klicke auf **„📂 Massen-Import"**
 3. Wähle zunächst die `klangkiste.json` aus
 4. Wähle dann den Ordner mit den MP3- und PNG-Dateien
@@ -142,9 +148,9 @@ Die `klangkiste.json` definiert alle Metadaten: Seriennamen, Episodentitel, ausf
 
 ---
 
-## 🪄 Das Python-Tool: TAF zu Jukebox
+## 🪄 Das Python-Tool: TAF zu KlangKiste
 
-Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Skript `taf_jukebox_final.py` (im Ordner `tools/`) vollautomatisch für die App konvertieren.
+Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Skript `taf_klangkiste_final.py` (im Ordner `tools/`) vollautomatisch für die App konvertieren.
 
 **Das Script erledigt alles:**
 1. Wandelt `.taf` (Tonie-Format) in `.mp3` um (inkl. Kapitelmarken in einer `.cue` Datei).
@@ -159,7 +165,7 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
     * Installiere [FFmpeg](https://ffmpeg.org/) (muss im System-Pfad sein)
 
 2. **Dateien ablegen:**
-    * Kopiere das Script `taf_jukebox_final.py` und deine `.taf`-Dateien in einen gemeinsamen Ordner
+    * Kopiere das Script `taf_klangkiste_final.py` und deine `.taf`-Dateien in einen gemeinsamen Ordner
 
 3. **Abhängigkeiten installieren:**
     Öffne ein Terminal in dem Ordner und führe aus:
@@ -170,11 +176,11 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 
 4. **Script starten:**
     ```
-    python taf_jukebox_final.py
+    python taf_klangkiste_final.py
     ```
 
 5. **Ergebnis:**
-    Es entsteht ein Ordner `jukebox_output`. Diesen Ordner kannst du nun direkt über **„📂 Massen-Import"** in die App laden!
+    Es entsteht ein Ordner `klangkiste_output`. Diesen Ordner kannst du nun direkt über **„📂 Massen-Import"** in die App laden!
 
 ---
 
