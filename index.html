@@ -1491,66 +1491,53 @@
             
             if(!confirm("Möchtest du die Beispiel-Hörspiele (ca. 10 MB) jetzt herunterladen?")) return;
 
-            showStatus("⏳ Verbindung zu GitHub...");
+            showStatus("⏳ Lade Daten von GitHub...");
 
             try {
-                // Lade die Liste
+                // 1. JSON laden
                 const jsonResp = await fetch(BASE_URL + "klangkiste.json");
-                if (!jsonResp.ok) throw new Error("JSON-Liste nicht gefunden (Status " + jsonResp.status + ")");
-                
+                if (!jsonResp.ok) throw new Error("JSON nicht gefunden");
                 const data = await jsonResp.json();
                 
                 if(!db) { alert("Datenbank noch nicht bereit. Warte kurz..."); return; }
 
-                const tx = db.transaction(["tracks"], "readwrite");
-                const store = tx.objectStore("tracks");
-                let count = 0;
+                // 2. ALLE Dateien erst herunterladen (PRE-FETCHING)
+                // Wichtig: Transaktion darf erst starten, wenn wir alle Daten haben!
+                const preparedEntries = [];
 
-                showStatus(`📥 Lade ${data.length} Einträge...`);
-
-                // Loop durch alle Einträge in der JSON
                 for (const entry of data) {
-                    // Audio Dateien laden
+                    showStatus(`📥 Lade Dateien für: ${entry.name.substring(0, 15)}...`);
+                    
+                    // Audio laden
                     const audioBlobs = [];
-                    if (entry.playlistFileNames && Array.isArray(entry.playlistFileNames)) {
+                    if (entry.playlistFileNames) {
                         for (const fileName of entry.playlistFileNames) {
-                            showStatus(`Lade Audio: ${fileName.substring(0, 15)}...`);
-                            
-                            // WICHTIG: encodeURIComponent macht aus " " ein "%20"
-                            const fileUrl = BASE_URL + encodeURIComponent(fileName);
-                            
-                            const resp = await fetch(fileUrl);
+                            const resp = await fetch(BASE_URL + encodeURIComponent(fileName));
                             if (resp.ok) {
                                 const blob = await resp.blob();
-                                // Erstelle Datei-Objekt mit korrektem Namen für die DB
-                                const file = new File([blob], fileName, { type: "audio/mp3" });
-                                audioBlobs.push(file);
-                            } else {
-                                console.error("Audio fehlt auf Server:", fileUrl);
+                                audioBlobs.push(new File([blob], fileName, { type: "audio/mp3" }));
                             }
                         }
                     }
+                    if (audioBlobs.length === 0) continue;
 
-                    if (audioBlobs.length === 0) continue; // Überspringen wenn Audio fehlte
-
-                    // Bild laden (falls vorhanden)
+                    // Bild laden
                     let imageBlob = null;
                     if (entry.imageFileName) {
-                        const imgUrl = BASE_URL + encodeURIComponent(entry.imageFileName);
-                        const resp = await fetch(imgUrl);
+                        const resp = await fetch(BASE_URL + encodeURIComponent(entry.imageFileName));
                         if (resp.ok) {
                             const blob = await resp.blob();
                             imageBlob = new File([blob], entry.imageFileName, { type: "image/png" });
                         }
                     }
 
-                    // Datenbank-Eintrag bauen
-                    const newEntry = {
-                        tagId: entry.tagId, // Nutzt die ID aus der JSON (z.B. manual_...)
+                    // Eintrag vorbereiten (noch NICHT speichern)
+                    preparedEntries.push({
+                        tagId: entry.tagId,
                         name: entry.name,
-                        playlist: audioBlobs, // Die echten MP3-Daten
+                        playlist: audioBlobs,
                         playlistFileNames: entry.playlistFileNames,
-                        imageBlob: imageBlob, // Die echten Bild-Daten
+                        imageBlob: imageBlob,
                         imageFileName: entry.imageFileName,
                         meta: entry.meta || {},
                         tags: entry.tags || [],
@@ -1558,27 +1545,32 @@
                         lastTrackIndex: 0, 
                         lastTime: 0,
                         completed: false
-                    };
-
-                    store.put(newEntry);
-                    count++;
+                    });
                 }
 
-                // Abschluss warten
+                // 3. JETZT Transaktion starten und speichern (Synchroner Block)
+                if(preparedEntries.length === 0) { alert("Keine Daten geladen."); return; }
+
+                showStatus("💾 Speichere in Datenbank...");
+                const tx = db.transaction(["tracks"], "readwrite");
+                const store = tx.objectStore("tracks");
+
+                preparedEntries.forEach(item => {
+                    store.put(item);
+                });
+
                 tx.oncomplete = () => {
-                    showStatus(`✅ ${count} Beispiele installiert!`);
-                    loadTagList(); // Admin-Ansicht aktualisieren
-                    alert(`Erfolg! ${count} Hörspiele wurden installiert.\nDu findest sie jetzt in der Liste.`);
+                    showStatus("✅ Fertig!");
+                    loadTagList(); 
+                    alert(`Erfolg! ${preparedEntries.length} Hörspiele installiert.`);
                 };
                 
-                tx.onerror = (e) => {
-                    alert("Fehler beim Speichern in DB: " + e.target.error);
-                };
+                tx.onerror = (e) => alert("DB Fehler: " + e.target.error);
 
             } catch (e) {
                 console.error(e);
-                alert("Fehler beim Laden: " + e.message + "\n\nBitte prüfe deine Internetverbindung.");
-                showStatus("Abbruch ❌");
+                alert("Download Fehler: " + e.message);
+                showStatus("Fehler ❌");
             }
         }
 
