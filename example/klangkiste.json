@@ -69,5 +69,29 @@
       "Humor"
     ],
     "filter_age": 4
+  },
+  {
+    "tagId": "manual_1767105600000_lina",
+    "name": "Lina und die Logik des Herzens",
+    "playlistFileNames": [
+      "Lina und die Logik des Herzens.mp3"
+    ],
+    "imageFileName": "Lina und die Logik des Herzens.png",
+    "meta": {
+      "series": "Lina und die Schneeflocken",
+      "episode": "Hörspiel",
+      "description": "Lina, der Schneemann Ole und die wilde Anina verirren sich im Nebel. Durch drei spannende Rätsel lernen sie, warum Zuhören, Teilen und Echt-Sein nicht nur nett, sondern auch logisch sind. Ein pädagogisches Hörspiel über die Ursache und Wirkung von Freundschaft.",
+      "age_recommendation": 5,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 6
+    },
+    "tags": [
+      "Freundschaft",
+      "Logik",
+      "Winter",
+      "Hörspiel"
+    ],
+    "filter_age": 5
   }
 ]
