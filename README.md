@@ -80,7 +80,7 @@ Die App muss nicht über den Play Store geladen werden, sondern wird direkt übe
 Die App unterstützt mehrere Wege:
 
 * **A) Online-Beispiele (Neu):**
-    Lade mit einem Klick vorbereitete Hörspiele direkt vom Server (siehe unten).
+    Lade mit einem Klick vorbereitete KI-generierte Hörspiele direkt vom Server (siehe unten).
 * **B) Massen-Import (Empfohlen):**
     Erstelle Ordner mit MP3s und Covern am PC und lade sie über „Massen-Import" hoch. **Tipp:** Wenn du unser Python-Tool (siehe unten) mit den TAF-Dateien nutzt, wird eine `klangkiste.json` erstellt. Wähle diese Datei und den Ordner aus – dann sind alle Titel, Cover und Texte sofort perfekt gesetzt!
 * **C) Manuell anlernen:**
