@@ -31,12 +31,12 @@ Hier spielen die Kinder. Große Bilder, keine Text-Menüs, einfache Bedienung.
 
 | **Der Player (Neu: Rewind)** | **Die Bibliothek** |
 |:---:|:---:|
-| <img src="docs/screenshots/kid-mode1.png" width="180"> | <img src="docs/screenshots/library_grid.png" width="180"> |
+| <img src="docs/screenshots/kid-mode1.png" width="200"> | <img src="docs/screenshots/library_grid.png" width="200"> |
 | *Große Steuerung & Cover* | *Visuelles Stöbern & Filtern* |
 
 | **Info-Overlay** | **Details & Dauer** |
 |:---:|:---:|
-| <img src="docs/screenshots/library_info.png" width="180"> | <img src="docs/screenshots/kid-mode2.png" width="180"> |
+| <img src="docs/screenshots/library_info.png" width="200"> | <img src="docs/screenshots/kid-mode2.png" width="200"> |
 | *Beschreibung & Alter* | *Einfacher Player* |
 
 ### 🔧 Eltern-Modus & Statistik
@@ -45,7 +45,7 @@ Verwaltung der Inhalte und Einsicht in das Nutzungsverhalten.
 
 | **Verwaltung** | **Statistik (Neu)** |
 |:---:|:---:|
-| <img src="docs/screenshots/parent-mode.png" width="180"> | <img src="docs/screenshots/stats_view.png" width="180"> |
+| <img src="docs/screenshots/parent-mode.png" width="200"> | <img src="docs/screenshots/stats_view.png" width="200"> |
 | *Tags anlernen & Import* | *Hörverhalten & Fortschritt (✅)* |
 
 ---
@@ -61,12 +61,12 @@ Die App muss nicht über den Play Store geladen werden, sondern wird direkt übe
 
 | **1. Menü öffnen** | **2. Installieren** |
 |:---:|:---:|
-| <img src="docs/screenshots/install-app1.png" width="180"> | <img src="docs/screenshots/install-app2.png" width="180"> |
+| <img src="docs/screenshots/install-app1.png" width="200"> | <img src="docs/screenshots/install-app2.png" width="200"> |
 | *Tippe oben rechts auf die 3 Punkte* | *Wähle „App installieren"* |
 
 | **3. Bestätigen** | **4. Widget platzieren** |
 |:---:|:---:|
-| <img src="docs/screenshots/install-app3.png" width="180"> | <img src="docs/screenshots/install-app4.png" width="180"> |
+| <img src="docs/screenshots/install-app3.png" width="200"> | <img src="docs/screenshots/install-app4.png" width="200"> |
 | *Klicke auf „Installieren"* | *Automatisch oder ziehen* |
 
 *(iOS Nutzer verwenden Safari → Teilen → Zum Home-Bildschirm)*
@@ -117,6 +117,9 @@ Du musst nichts manuell herunterladen! Die App holt sich die Dateien direkt vom 
 3. Bestätige den Download. Fertig! 🎉
 
 <img src="docs/screenshots/import-online.png" width="400" alt="Screenshot des Online Import Buttons">
+
+> **⚠️ Hinweis zu den Beispielen:** > Die enthaltenen Hörbücher wurden testweise mit der **KI Suno 4.5** generiert. Sie dienen rein zu Testzwecken der App-Funktionen.  
+> **Bitte beachten:** Die Geschichten, Betonung und Aussprache sind experimentell ("KI-generiert") und entsprechen qualitativ nicht echten, professionellen Hörbüchern.
 
 ### 📥 Methode 2: Manuell herunterladen (für Offline-Installationen)
 
