@@ -720,7 +720,7 @@
                 Viele Hörbücher? Verstecke erst alle und aktiviere unten in der Liste gezielt die Favoriten (mit dem 👁️ Button).
             </p>
             <div class="btn-io-group">
-                <button class="btn-admin" style="background-color: #e74c3c; color:white;" onclick="setAllLibraryVisibility(true)">
+                <button class="btn-admin" style="background-color: #2d3436; color:white; border: 1px solid #555;" onclick="setAllLibraryVisibility(true)">
                      🚫 Alle verstecken
                 </button>
                 <button class="btn-admin" style="background-color: #2ecc71; color:white;" onclick="setAllLibraryVisibility(false)">
@@ -1968,7 +1968,9 @@
                 } else {
                     // Ende
                     showStatus(`${count} Einträge aktualisiert.`);
-                    loadTagList(); // Refresh Admin List
+                    // Hier müssen wir neu laden, weil sich alles geändert hat.
+                    // Aber da loadTagList jetzt optimiert ist, flackert es kaum noch.
+                    loadTagList(); 
                 }
             };
         }
@@ -1980,10 +1982,26 @@
             store.get(id).onsuccess = (e) => {
                 const track = e.target.result;
                 if(track) {
+                    // Wert umkehren
                     track.hiddenInLib = !track.hiddenInLib;
-                    store.put(track);
-                    showStatus(track.hiddenInLib ? "Versteckt 🚫" : "Sichtbar 👁️");
-                    loadTagList();
+                    store.put(track); // Speichern
+
+                    // UI DIREKT UPDATEN (Kein Neuladen der ganzen Liste!)
+                    const btn = document.getElementById(`btn-vis-${id}`);
+                    const badge = document.getElementById(`badge-${id}`);
+
+                    if(track.hiddenInLib) {
+                        // Versteckt Zustand
+                        if(btn) { btn.innerText = "🚫"; btn.style.backgroundColor = "#555"; btn.title = "Ist versteckt (Klick zum Anzeigen)"; }
+                        if(badge) { badge.style.display = "flex"; }
+                        showStatus("Versteckt 🚫");
+                    } else {
+                        // Sichtbar Zustand
+                        if(btn) { btn.innerText = "👁️"; btn.style.backgroundColor = "#f39c12"; btn.title = "Ist sichtbar (Klick zum Verstecken)"; }
+                        if(badge) { badge.style.display = "none"; }
+                        showStatus("Sichtbar 👁️");
+                    }
+                    // loadTagList() NICHT aufrufen!
                 }
             };
         }
@@ -1991,67 +2009,85 @@
         function loadTagList() {
             const container = document.getElementById('tag-list-container'); 
             if(!container) return; 
-            container.innerHTML = "";
+            
+            // HINWEIS: Wir löschen container.innerHTML NICHT sofort, um Flackern zu vermeiden.
+            
             const tx = db.transaction(["tracks"], "readonly"); 
             const store = tx.objectStore("tracks");
-            store.openCursor().onsuccess = (event) => {
-                const cursor = event.target.result; 
-                if (cursor) {
-                    const track = cursor.value;
+            
+            // Wir nutzen getAll() statt Cursor für schnelleres Rendering und Sortierung
+            store.getAll().onsuccess = (event) => {
+                const tracks = event.target.result;
+                
+                // HTML String Builder (schneller als einzelne DOM Manipulationen)
+                let htmlBuffer = "";
+
+                // Sortieren (optional, nach Name)
+                tracks.sort((a,b) => a.name.localeCompare(b.name));
+
+                tracks.forEach(track => {
                     if(track.tagId !== SYSTEM_BG_ID && track.tagId !== SYSTEM_SETTINGS_ID) {
-                        const card = document.createElement('div');
-                        card.className = 'admin-card';
+                        
                         let imgHtml = `<div style="font-size:30px;">🎵</div>`;
                         if (track.imageBlob) {
                             const url = URL.createObjectURL(track.imageBlob);
                             imgHtml = `<img src="${url}" class="admin-cover-img" loading="lazy">`;
                         }
+                        
                         let metaInfo = "";
                         if(track.meta) {
                             if(track.meta.age_recommendation) metaInfo += `Ab ${track.meta.age_recommendation}J `;
                             if(track.meta.genre) metaInfo += `• ${track.meta.genre}`;
                         }
                         
-                        // NEW: Completed Badge in Admin
                         let completedBadge = "";
                         if(track.completed) {
                             completedBadge = `<div class="completed-badge">✅</div>`;
                         }
 
-                        // NEU: Hidden Badge für Admin
+                        // DESIGN FIX: Badge Hintergrund Weiß statt Rot für besseren Kontrast
                         let hiddenBadge = "";
                         if(track.hiddenInLib) {
-                            hiddenBadge = `<div style="position:absolute; top:5px; left:5px; background:rgba(231,76,60,0.9); color:white; border-radius:50%; width:25px; height:25px; display:flex; justify-content:center; align-items:center; z-index:10; font-size:14px; border:2px solid white;">🚫</div>`;
+                            hiddenBadge = `<div id="badge-${track.tagId}" style="position:absolute; top:5px; left:5px; background:rgba(255,255,255,0.95); color:black; border-radius:50%; width:28px; height:28px; display:flex; justify-content:center; align-items:center; z-index:10; font-size:16px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚫</div>`;
+                        } else {
+                            // Leeres div als Platzhalter für DOM Updates, falls wir es später einblenden
+                            hiddenBadge = `<div id="badge-${track.tagId}" style="display:none; position:absolute; top:5px; left:5px; background:rgba(255,255,255,0.95); color:black; border-radius:50%; width:28px; height:28px; justify-content:center; align-items:center; z-index:10; font-size:16px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚫</div>`;
                         }
                         
-                        // Icon für Toggle Button
                         const visIcon = track.hiddenInLib ? "🚫" : "👁️";
                         const visTitle = track.hiddenInLib ? "Ist versteckt (Klick zum Anzeigen)" : "Ist sichtbar (Klick zum Verstecken)";
+                        // Hintergrundfarbe Button je nach Status leicht ändern
+                        const visBtnColor = track.hiddenInLib ? "#555" : "#f39c12";
 
-                        card.innerHTML = `
-                            <div class="admin-cover-wrap">
-                                ${imgHtml}
-                                ${completedBadge}
-                                ${hiddenBadge}
-                            </div>
-                            <div class="admin-card-body">
-                                <div>
-                                    <div class="admin-card-title">${track.name}</div>
-                                    <div class="admin-card-id">ID: ${track.tagId}</div>
-                                    <div style="font-size:0.75em; color:#ccc;">${metaInfo}</div>
+                        htmlBuffer += `
+                            <div class="admin-card">
+                                <div class="admin-cover-wrap">
+                                    ${imgHtml}
+                                    ${completedBadge}
+                                    ${hiddenBadge}
                                 </div>
-                                <div class="admin-actions">
-                                    <button class="btn-mini edit" onclick="loadTagForEdit('${track.tagId}')">✏️</button>
-                                    <button class="btn-mini vis" onclick="toggleTrackVisibility('${track.tagId}')" title="${visTitle}">${visIcon}</button>
-                                    <button class="btn-mini play" onclick="playTrackByTag('${track.tagId}')">▶</button>
-                                    <button class="btn-mini del" onclick="deleteTrack('${track.tagId}')">🗑</button>
+                                <div class="admin-card-body">
+                                    <div>
+                                        <div class="admin-card-title">${track.name}</div>
+                                        <div class="admin-card-id">ID: ${track.tagId}</div>
+                                        <div style="font-size:0.75em; color:#ccc;">${metaInfo}</div>
+                                    </div>
+                                    <div class="admin-actions">
+                                        <button class="btn-mini edit" onclick="loadTagForEdit('${track.tagId}')">✏️</button>
+                                        
+                                        <button id="btn-vis-${track.tagId}" class="btn-mini vis" style="background-color:${visBtnColor};" onclick="toggleTrackVisibility('${track.tagId}')" title="${visTitle}">${visIcon}</button>
+                                        
+                                        <button class="btn-mini play" onclick="playTrackByTag('${track.tagId}')">▶</button>
+                                        <button class="btn-mini del" onclick="deleteTrack('${track.tagId}')">🗑</button>
+                                    </div>
                                 </div>
                             </div>
                         `;
-                        container.appendChild(card);
                     } 
-                    cursor.continue();
-                }
+                });
+                
+                // JETZT erst austauschen -> Kein Flackern
+                container.innerHTML = htmlBuffer;
             };
         }
         function deleteTrack(id) { if(confirm("Wirklich löschen?")) { const tx = db.transaction(["tracks"], "readwrite"); tx.objectStore("tracks").delete(id); tx.oncomplete = () => loadTagList(); } }
