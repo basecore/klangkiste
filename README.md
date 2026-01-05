@@ -1,4 +1,4 @@
-# 🎵 KlangKiste PWA (v66 Stable)
+# 🎵 KlangKiste PWA (v67 Stable)
 
 **Die smarte DIY "Toniebox" fürs Handy – 100% AI-Generated Code.**
 
@@ -8,16 +8,16 @@ Dieses Projekt ist eine kinderfreundliche Musik-Player-App, die alte Smartphones
 
 ---
 
-## ✨ Neue Funktionen in v66
+## ✨ Neue Funktionen in v67
 
-* ✅ **Fortschritts-Anzeige:** Hörspiele, die komplett zu Ende gehört wurden, erhalten nun einen **grünen Haken** auf dem Cover.
-* 📊 **Detaillierte Eltern-Statistik:**
-    * Dashboard zeigt Hördauer, Top 5 Hörspiele, Tageszeit-Nutzung & „Vollständig gehört".
-    * **Fix:** Das Schließen-Problem (X-Button) wurde behoben.
-* 🛠️ **System-Updates:**
-    * **Fix:** Der Bibliotheks-Button im Kinder-Modus ist nun immer erreichbar (fixierte Position).
-    * Verbesserter „Wackelschutz" im Kinder-Modus.
-    * Lange Dateinamen werden im Editor nun korrekt umgebrochen.
+* 💾 **Auto-Save & Smart Resume:** Die App speichert nun **alle 5 Sekunden** automatisch den Fortschritt. Wird die App versehentlich geschlossen oder stürzt ab, öffnet sie beim nächsten Start sofort das letzte Hörspiel an der exakten Stelle.
+* ⚡ **Performance-Boost (Admin):**
+    * **Kein Flackern mehr:** Die Liste der gespeicherten Tags lädt nun butterweich.
+    * **Sofort-Aktion:** Das Verstecken/Anzeigen von Hörbüchern (Auge-Icon) passiert nun verzögerungsfrei.
+    * **Auto-Scroll:** Ein Klick auf den Stift (Bearbeiten) scrollt nun zuverlässig und weich zum Eingabeformular hoch.
+* 🖥️ **Vollbild-Logik:** Der Kinder-Modus aktiviert den Vollbildmodus nun zuverlässiger (auch auf iOS), sobald der Bildschirm das erste Mal berührt wird.
+* ⚙️ **Optimierte Standards:** Für neue Nutzer sind "Bunte Knöpfe", "Display anlassen" und "Eco-Modus" nun standardmäßig aktiviert.
+* 🎨 **Design:** Verbesserte Lesbarkeit der "Versteckt"-Badges (weißer Hintergrund) und Hinweistexte bei Massen-Aktionen.
 
 ---
 
@@ -93,7 +93,7 @@ Wenn dein Android-Gerät NFC hat:
 2. Halte eine NFC-Karte oder Figur an das Handy.
 3. Die Musik ist nun mit diesem Tag verknüpft. Im Kinder-Modus startet sie sofort beim Auflegen.
 
-### 3. Statistik ansehen (Neu in v66)
+### 3. Statistik ansehen
 
 Klicke im Eltern-Modus oben rechts auf den Button **„📊 Statistik"**. Hier siehst du, was dein Kind wann und wie lange hört und welche Hörspiele bereits **vollständig (✅)** gehört wurden.
 
@@ -181,7 +181,7 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 
 ## 📂 Dateistruktur
 
-* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v66)
+* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v67)
 * `sw.js` – Der Service Worker für die Offline-Funktionalität (Cache v66)
 * `manifest.json` – Konfiguration für das App-Icon und den Vollbild-Modus
 * `assets/` – Ordner für Icons und Test-Sounds
@@ -199,4 +199,4 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 ## 👨‍💻 Credits
 
 Entwickelt von Sebastian Rößer mit Unterstützung von **Google Gemini 3 Pro**.  
-Version 66 „Stable Stats Edition".
+Version 67 „Auto-Save Edition".
