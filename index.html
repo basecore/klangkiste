@@ -7,6 +7,10 @@
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
     <link rel="icon" type="image/png" href="assets/icons/icon.png">
     <link rel="apple-touch-icon" href="assets/icons/icon.png">
 
@@ -1317,6 +1321,9 @@
                 if(track) {
                     logStatEvent('play', tagId); 
 
+                    // NEU: SOFORT SPEICHERN für Neustart
+                    localStorage.setItem('lastActiveTagId', tagId);
+
                     track.lastPlayedTimestamp = Date.now();
                     store.put(track);
 
@@ -1815,7 +1822,9 @@
                      document.getElementById('btn-open-lib').style.display = 'none';
                 }
 
-                if (document.documentElement.requestFullscreen) { document.documentElement.requestFullscreen().catch((e) => {}); }
+                // FULLSCREEN VERSUCHEN (NEU & ROBUST)
+                enterFullscreenSafe();
+
                 if(settings.enableEcoMode) updateEcoModeState(false);
                 
                 requestWakeLock();
@@ -1825,6 +1834,26 @@
                 alert("Fehler beim Starten: " + e);
                 safeDisplay('kids-mode', 'none');
                 safeDisplay('parent-mode', 'flex');
+            }
+        }
+
+        // Neue Funktion für robusten Vollbildmodus
+        function enterFullscreenSafe() {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().then(() => {
+                    console.log("Vollbild erfolgreich gestartet.");
+                }).catch((err) => {
+                    console.log("Vollbild blockiert (Browser-Sicherheit). Warte auf Interaktion...");
+                    // Fallback: Beim nächsten Klick irgendwohin Vollbild erzwingen
+                    const fsHandler = () => {
+                        elem.requestFullscreen().catch(() => {});
+                        document.body.removeEventListener('click', fsHandler);
+                        document.body.removeEventListener('touchstart', fsHandler);
+                    };
+                    document.body.addEventListener('click', fsHandler, { once: true });
+                    document.body.addEventListener('touchstart', fsHandler, { once: true });
+                });
             }
         }
         
