@@ -1055,6 +1055,8 @@
              db = event.target.result; 
              loadTagList();
              syncSettingsFromDB(); 
+             // NEU: Wiederherstellung der letzten Session
+             restoreLastSession();
         };
         
         // --- STATS LOGGING ENGINE ---
@@ -1354,6 +1356,53 @@
                 }).catch(e => showStatus("Bereit"));
                 audioPlayer.onloadedmetadata = null;
             };
+        }
+
+        // --- RESTORE SESSION (NEU) ---
+        function restoreLastSession() {
+            const lastId = localStorage.getItem('lastActiveTagId');
+            if(lastId) {
+                const tx = db.transaction(["tracks"], "readonly");
+                const store = tx.objectStore("tracks");
+                store.get(lastId).onsuccess = (e) => {
+                    const track = e.target.result;
+                    if(track) {
+                        // Daten wiederherstellen OHNE Autoplay
+                        document.getElementById('track-title-display').innerText = track.name;
+                        const imgEl = document.getElementById('album-img'); 
+                        const placeEl = document.getElementById('album-placeholder');
+                        if(track.imageBlob) { 
+                            imgEl.src = URL.createObjectURL(track.imageBlob); 
+                            imgEl.style.display="block"; 
+                            placeEl.style.display="none"; 
+                        } else { 
+                            imgEl.style.display="none"; 
+                            placeEl.style.display="block"; 
+                        }
+                        
+                        currentPlayingTagId = track.tagId;
+                        currentPlaylist = track.playlist;
+                        currentCueTracks = track.cueTracks || null;
+                        
+                        const nextBtn = document.getElementById('btn-next-track');
+                        if(currentCueTracks && currentCueTracks.length > 0) { nextBtn.style.display = "flex"; } else { nextBtn.style.display = "none"; }
+
+                        // Audio vorbereiten
+                        let startIndex = track.lastTrackIndex || 0; 
+                        let startTime = track.lastTime || 0;
+                        if(startIndex >= currentPlaylist.length) startIndex = 0;
+                        
+                        currentTrackIndex = startIndex;
+                        const file = currentPlaylist[startIndex];
+                        const audioUrl = URL.createObjectURL(file);
+                        updateInfoText();
+                        audioPlayer.src = audioUrl;
+                        audioPlayer.currentTime = startTime;
+                        // KEIN audioPlayer.play() hier!
+                        showStatus("Wiederhergestellt ↩️");
+                    }
+                };
+            }
         }
 
         // --- STATS VISUALIZATION LOGIC (FIXED) ---
@@ -1670,8 +1719,21 @@
 
         function forceSaveCurrentPosition() {
             if(!currentPlayingTagId) return;
-            const pos = audioPlayer.currentTime; const tx = db.transaction(["tracks"], "readwrite"); const store = tx.objectStore("tracks"); const getReq = store.get(currentPlayingTagId);
-            getReq.onsuccess = function() { const record = getReq.result; if(record) { record.lastTrackIndex = currentTrackIndex; record.lastTime = pos; store.put(record); } };
+            // NEU: Speichern der ID im lokalen Speicher für Restore
+            localStorage.setItem('lastActiveTagId', currentPlayingTagId);
+            
+            const pos = audioPlayer.currentTime; 
+            const tx = db.transaction(["tracks"], "readwrite"); 
+            const store = tx.objectStore("tracks"); 
+            const getReq = store.get(currentPlayingTagId);
+            getReq.onsuccess = function() { 
+                const record = getReq.result; 
+                if(record) { 
+                    record.lastTrackIndex = currentTrackIndex; 
+                    record.lastTime = pos; 
+                    store.put(record); 
+                } 
+            };
         }
 
         function startSleepTimer() {
@@ -1692,7 +1754,14 @@
                 } 
             }, 200); 
         }
-        function clearDatabase() { if(confirm("Löschen?")) { db.close(); indexedDB.deleteDatabase(DB_NAME); location.reload(); } }
+        function clearDatabase() { 
+            if(confirm("Löschen?")) { 
+                db.close(); 
+                indexedDB.deleteDatabase(DB_NAME); 
+                localStorage.removeItem('lastActiveTagId'); // Auch Restore-ID löschen
+                location.reload(); 
+            } 
+        }
         function showStatus(msg) { const el = document.getElementById('status-msg'); el.innerText = msg; el.style.display = 'block'; setTimeout(() => { el.style.display = 'none'; }, 3000); }
         function formatTime(s) { const minutes = Math.floor(s / 60); const seconds = Math.floor(s % 60); return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`; }
         function applyButtonColors() {
