@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V67 Final</title>
+    <title>KlangKiste V68 Ultimate</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -65,7 +65,7 @@
             transition: background 0.3s ease;
             z-index: 50; 
             overflow-y: auto; 
-            overflow-x: hidden; /* FIX: Verhindert seitliches Wackeln */
+            overflow-x: hidden;
         }
         
         .kids-text-shadow {
@@ -86,7 +86,7 @@
             display: -webkit-box; -webkit-line-clamp: 3; 
             -webkit-box-orient: vertical; overflow: hidden; 
             white-space: normal; min-height: 6.5rem; 
-            margin-top: 15px; /* Abstand zum Library Button */
+            margin-top: 15px;
         }
         
         #playlist-info {
@@ -176,14 +176,13 @@
             font-variant-numeric: tabular-nums;
         }
         
-        /* --- LIBRARY MODE (TIGERBOX STYLE) --- */
+        /* --- LIBRARY MODE --- */
         #library-mode {
             display: none; 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: #2c3e50;
-            z-index: 60; /* Über Kids Mode */
+            z-index: 60;
             overflow-y: auto;
-            /* display: block;  wird via JS gesetzt */
             padding: 20px; box-sizing: border-box;
             padding-top: 50px; 
             padding-bottom: 90px;
@@ -278,7 +277,6 @@
             font-size: 0.7rem; color: #636e72; margin-top: 5px; display: block;
         }
 
-        /* INFO BUTTON AUF KARTE */
         .lib-card-info-btn {
             position: absolute; top: 8px; right: 8px;
             width: 30px; height: 30px; border-radius: 50%;
@@ -290,7 +288,6 @@
             z-index: 5;
         }
 
-        /* Floating Close Button */
         #btn-close-lib {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
             background: var(--red-danger); color: white;
@@ -299,15 +296,13 @@
             z-index: 70;
         }
 
-        /* Button im Kids Mode um Library zu öffnen (FIXED POSITION V66) */
         #btn-open-lib {
-            position: fixed; /* FIXED statt absolute verhindert Verschieben */
-            top: 20px; left: 20px;
+            position: fixed; top: 20px; left: 20px;
             background: rgba(255,255,255,0.25); color: white;
             border: none; width: 55px; height: 55px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             backdrop-filter: blur(5px); 
-            z-index: 100; /* Höher als Content */
+            z-index: 100;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
 
@@ -337,11 +332,11 @@
             border-radius: 20px; margin-top: 20px; font-weight: bold; width: 100%;
         }
 
-        /* STATS MODAL (FIXED Z-INDEX) */
+        /* STATS MODAL & TIMELINE */
         #stats-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #2d3436; 
-            z-index: 20000; /* FIX: Sehr hoch, über Secret Switch */
+            z-index: 20000;
             padding: 20px; box-sizing: border-box; flex-direction: column; overflow-y: auto;
         }
         .stats-header {
@@ -356,7 +351,6 @@
             border-radius: 50%; font-weight: bold; font-size: 1.2rem; 
             cursor: pointer; display: flex; align-items: center; justify-content: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            /* FIX: Z-Index sicherstellen */
             position: relative; z-index: 20001; pointer-events: auto;
         }
         .stats-close-btn:active { transform: scale(0.9); }
@@ -368,7 +362,6 @@
         .stat-val-big { font-size: 2rem; font-weight: bold; color: #2ecc71; margin-bottom: 5px; }
         .stat-label { font-size: 0.9rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
         
-        /* Stats Toggle Buttons */
         .stats-toggle-btn {
             background: #555; color: #ddd; border: none; padding: 10px 15px;
             border-radius: 20px; font-weight: bold; font-size: 0.9rem;
@@ -385,6 +378,37 @@
         .chart-bar-fill { height: 100%; background: #3498db; width: 0%; border-radius: 6px; transition: width 0.5s; }
         .chart-val { width: 40px; text-align: right; color: #aaa; font-size: 0.8rem; margin-left: 5px; }
 
+        /* --- TIMELINE STATS DESIGN --- */
+        .timeline-container {
+            margin-top: 20px;
+            border-left: 2px solid #555;
+            padding-left: 20px;
+            margin-left: 10px;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .timeline-dot {
+            position: absolute;
+            left: -26px; top: 0;
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #3498db;
+            border: 2px solid #2d3436;
+        }
+        .timeline-time {
+            font-size: 0.75rem; color: #aaa; margin-bottom: 2px; font-family: monospace;
+        }
+        .timeline-content {
+            background: rgba(255,255,255,0.05);
+            padding: 10px; border-radius: 6px;
+            font-size: 0.9rem; color: #dfe6e9;
+        }
+        .timeline-detail {
+            font-size: 0.8rem; color: #7f8c8d; margin-top: 5px; font-style: italic;
+        }
+        .tl-icon { margin-right: 5px; }
 
         /* PARENT MODE UI */
         #parent-mode {
@@ -422,11 +446,10 @@
 
         label { display: block; margin-bottom: 5px; font-size: 0.9em; color: #aaa; }
         
-        /* FIX: Dateinamen Umbruch */
         .file-info { 
             font-size: 0.8em; color: #00cec9; margin-top:-5px; margin-bottom: 10px; display: block; font-style: italic; 
-            white-space: normal; /* Erlaubt Umbruch */
-            word-wrap: break-word; /* Erzwingt Umbruch bei langen Wörtern */
+            white-space: normal; 
+            word-wrap: break-word; 
             word-break: break-all;
             line-height: 1.3;
         }
@@ -494,7 +517,6 @@
             background: #3498db; border-color: #3498db; color: white;
         }
 
-        /* Grid Container (Admin) */
         .admin-grid {
             display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
         }
@@ -503,7 +525,6 @@
             display: flex; flex-direction: column; gap: 10px;
         }
 
-        /* Admin Card (Grid Style) */
         .admin-card {
             background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden;
             position: relative; border: 1px solid rgba(255,255,255,0.1);
@@ -532,7 +553,6 @@
         .btn-mini.vis { background-color: #f39c12; }
         .btn-mini.del { background-color: #e74c3c; flex: 0 0 30px; }
 
-        /* List Style Overrides */
         .admin-list .admin-card {
             flex-direction: row; height: 100px;
         }
@@ -540,7 +560,7 @@
             width: 100px; height: 100%; aspect-ratio: auto; flex-shrink: 0;
         }
         .admin-list .admin-card-body {
-            width: 100%; min-width: 0; /* Important for flex truncate */
+            width: 100%; min-width: 0;
             display: flex; flex-direction: column; justify-content: space-between;
         }
         .admin-list .admin-card-title {
@@ -550,7 +570,6 @@
             margin-top: 5px;
         }
 
-        /* Erweiterte Metadaten Felder */
         .meta-details-container {
             background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; margin-top: 10px;
             border-left: 3px solid #f1c40f;
@@ -590,7 +609,6 @@
             border-radius: 10px; margin-bottom: 20px; display: none;
         }
 
-        /* Hilfsklasse zum Verstecken von Design-Optionen */
         .hidden-container { display: none; }
         
         #stubborn-video {
@@ -720,9 +738,6 @@
             <hr style="border-top:1px solid rgba(255,255,255,0.1); margin:15px 0;">
             
             <label>Massen-Steuerung:</label>
-            <p style="font-size:0.8em; color:#ccc; margin-bottom:10px;">
-                Viele Hörbücher? Verstecke erst alle und aktiviere unten in der Liste gezielt die Favoriten (mit dem 👁️ Button).
-            </p>
             <div class="btn-io-group">
                 <button class="btn-admin" style="background-color: #2d3436; color:white; border: 1px solid #555;" onclick="setAllLibraryVisibility(true)">
                      🚫 Alle verstecken
@@ -844,13 +859,8 @@
         </div>
 
         <div class="footer-info">
-            <p>KlangKiste NFC V67 Stable</p>
+            <p>KlangKiste NFC V68 Ultimate Stats</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
-            <p>📧 <a href="mailto:basecore@gmx.de">basecore@gmx.de</a></p>
-            <p style="margin-top:10px;">
-                <a href="https://github.com/basecore/klangkiste/" target="_blank">💻 GitHub Projekt</a> &bull; 
-                <a href="https://github.com/basecore/klangkiste/issues" target="_blank">🐛 Fehler melden</a>
-            </p>
         </div>
     </div>
     
@@ -895,18 +905,11 @@
         </div>
         
         <div class="stat-card">
-            <div class="chart-row">
-                 <div class="chart-label">NFC Scans</div>
-                 <div class="chart-val" id="stat-count-scan" style="width:auto; color:white; font-weight:bold;">0</div>
-            </div>
-             <div class="chart-row">
-                 <div class="chart-label">Umdrehen (Eco)</div>
-                 <div class="chart-val" id="stat-count-flip" style="width:auto; color:white; font-weight:bold;">0</div>
-            </div>
-            <div class="chart-row">
-                 <div class="chart-label">Pausen/Stopps</div>
-                 <div class="chart-val" id="stat-count-stop" style="width:auto; color:white; font-weight:bold;">0</div>
-            </div>
+             <div class="stats-title" style="font-size:1.1rem; margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:5px;">
+                🕒 Exakte Timeline
+             </div>
+             <div id="stats-timeline-list" class="timeline-container">
+             </div>
         </div>
     </div>
 
@@ -993,8 +996,7 @@
     <audio id="audio-player"></audio>
 
     <script>
-        // --- SAFE INITIALIZATION (V66) ---
-        // Library Mode sicher ausblenden
+        // --- SAFE INITIALIZATION ---
         try {
             document.getElementById('library-mode').style.display = 'none';
         } catch(e){}
@@ -1003,9 +1005,8 @@
         const audioPlayer = document.getElementById('audio-player');
         
         let wakeLock = null;
-        let currentSessionStart = null; // STATS LOGGING
+        let currentSessionStart = null; 
         
-        // NEW: AUTO SAVE TIMER
         let saveInterval = null;
         
         // --- HELFER: Safe Element Access ---
@@ -1040,17 +1041,15 @@
         loadSettings(); 
 
         const DB_NAME = "MusicBoxDB_v15";
-        const DB_VERSION = 2; // UPGRADE TO V2 FOR STATS
+        const DB_VERSION = 2;
 
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
         request.onupgradeneeded = function(event) {
             db = event.target.result;
-            // Original Store
             if (!db.objectStoreNames.contains("tracks")) {
                 db.createObjectStore("tracks", { keyPath: "tagId" });
             }
-            // NEW V62 STATS STORE
             if (!db.objectStoreNames.contains("stats_log")) {
                 const statsStore = db.createObjectStore("stats_log", { keyPath: "id", autoIncrement: true });
                 statsStore.createIndex("timestamp", "timestamp", { unique: false });
@@ -1062,33 +1061,43 @@
              db = event.target.result; 
              loadTagList();
              syncSettingsFromDB(); 
-             // NEU: Wiederherstellung der letzten Session
              restoreLastSession();
         };
         
-        // --- STATS LOGGING ENGINE ---
-        function logStatEvent(type, tagId = null, duration = 0) {
+        // --- PROFI STATS LOGGING ENGINE ---
+        function logStatEvent(type, tagId = null, duration = 0, detailText = "") {
             if(!db) return;
             const tx = db.transaction(["stats_log"], "readwrite");
             const store = tx.objectStore("stats_log");
+            
             store.add({
                 timestamp: Date.now(),
-                type: type, // 'play', 'stop', 'scan', 'eco_flip'
+                type: type, 
                 tagId: tagId,
-                durationSec: duration
+                durationSec: duration,
+                details: detailText 
             });
         }
 
-        // Helper um laufende Session zu beenden und zu loggen
         function endSessionLog() {
             if(currentSessionStart) {
                 const duration = (Date.now() - currentSessionStart) / 1000;
-                if(duration > 5) { // Nur Sessions > 5s loggen
-                    logStatEvent('stop', currentPlayingTagId, duration);
+                if(duration > 2) { 
+                    logStatEvent('stop', currentPlayingTagId, duration, `Gespielt für ${Math.round(duration)}s`);
                 }
                 currentSessionStart = null;
             }
         }
+
+        // --- VOLUME LISTENER MIT DEBOUNCE ---
+        let volLogTimeout = null;
+        audioPlayer.addEventListener('volumechange', () => {
+            if(volLogTimeout) clearTimeout(volLogTimeout);
+            volLogTimeout = setTimeout(() => {
+                const p = Math.round(audioPlayer.volume * 100);
+                if(p > 0) logStatEvent('volume', currentPlayingTagId, 0, `Auf ${p}% geändert`);
+            }, 2000); 
+        });
         
         function markTrackAsCompleted(tagId) {
             if(!tagId) return;
@@ -1100,6 +1109,7 @@
                     track.completed = true;
                     store.put(track);
                     showStatus("🎉 Alles angehört!");
+                    logStatEvent('completed', tagId, 0, "✅ Fertig gehört");
                 }
             };
         }
@@ -1135,7 +1145,7 @@
                 
                 if (mode === 'default') { 
                     kidsDiv.style.backgroundImage = "url('assets/img/hintergrund.jpg')"; 
-                    kidsDiv.style.backgroundColor = "#2c3e50"; // Fallback Dark Blue
+                    kidsDiv.style.backgroundColor = "#2c3e50"; 
                 } 
                 else if (mode === 'color') { kidsDiv.style.backgroundColor = settings.bgColor || '#ffffff'; }
                 else if (mode === 'image') { 
@@ -1172,10 +1182,7 @@
             document.getElementById('check-wakelock').checked = settings.enableWakeLock || false;
             document.getElementById('check-ecomode').checked = settings.enableEcoMode || false;
             document.getElementById('check-enable-lib').checked = settings.enableLibrary !== false; 
-            
-            // NEU: Altersfilter laden
             document.getElementById('lib-max-age-select').value = settings.libMaxAge !== undefined ? settings.libMaxAge : "99";
-
             updateBgUIState(); 
         }
 
@@ -1190,8 +1197,6 @@
             settings.enableWakeLock = document.getElementById('check-wakelock').checked;
             settings.enableEcoMode = document.getElementById('check-ecomode').checked;
             settings.enableLibrary = document.getElementById('check-enable-lib').checked;
-
-            // NEU: Altersfilter speichern
             settings.libMaxAge = parseInt(document.getElementById('lib-max-age-select').value);
 
             localStorage.setItem('klangkisteSettings_v16', JSON.stringify(settings));
@@ -1264,7 +1269,7 @@
             if (isFaceDown) { 
                 if (curtain.style.display !== 'block') {
                     curtain.style.display = 'block';
-                    logStatEvent('eco_flip'); // STATS LOG
+                    logStatEvent('eco_flip'); 
                 } 
             } 
             else { if (curtain.style.display === 'block') curtain.style.display = 'none'; }
@@ -1288,7 +1293,7 @@
                         if (isParentMode) {
                             if (isLinkModeActive) { saveTrackLink(event.serialNumber); isLinkModeActive = false; } else { showStatus("Tag erkannt: " + event.serialNumber); }
                         } else { 
-                            logStatEvent('scan', event.serialNumber); // STATS LOG
+                            logStatEvent('scan', null, 0, event.serialNumber); 
                             playTrackByTag(event.serialNumber); 
                         }
                     };
@@ -1305,7 +1310,8 @@
                     startSleepTimer();
                     requestWakeLock();
                     showStatus("Fortgesetzt ▶️");
-                    currentSessionStart = Date.now(); // LOG: Resume
+                    currentSessionStart = Date.now(); 
+                    logStatEvent('play', tagId, 0, "Resume");
                 } else {
                     showStatus("Spielt bereits 🔊");
                 }
@@ -1322,9 +1328,8 @@
             store.get(tagId).onsuccess = (e) => {
                 const track = e.target.result;
                 if(track) {
-                    logStatEvent('play', tagId); 
+                    logStatEvent('play', tagId, 0, "Start"); 
 
-                    // NEU: SOFORT SPEICHERN für Neustart
                     localStorage.setItem('lastActiveTagId', tagId);
 
                     track.lastPlayedTimestamp = Date.now();
@@ -1362,9 +1367,8 @@
                 applyActualVolume(); updateVolumeUI();
                 audioPlayer.play().then(() => { 
                     setPlayButtonState(true); startSleepTimer(); requestWakeLock(); 
-                    currentSessionStart = Date.now(); // LOG: Start Tracking
+                    currentSessionStart = Date.now(); 
                     
-                    // NEU: 5 SEKUNDEN AUTO-SAVE STARTEN
                     if(saveInterval) clearInterval(saveInterval);
                     saveInterval = setInterval(forceSaveCurrentPosition, 5000);
 
@@ -1373,7 +1377,6 @@
             };
         }
 
-        // --- RESTORE SESSION (NEU) ---
         function restoreLastSession() {
             const lastId = localStorage.getItem('lastActiveTagId');
             if(lastId) {
@@ -1382,7 +1385,6 @@
                 store.get(lastId).onsuccess = (e) => {
                     const track = e.target.result;
                     if(track) {
-                        // Daten wiederherstellen OHNE Autoplay
                         document.getElementById('track-title-display').innerText = track.name;
                         const imgEl = document.getElementById('album-img'); 
                         const placeEl = document.getElementById('album-placeholder');
@@ -1402,7 +1404,6 @@
                         const nextBtn = document.getElementById('btn-next-track');
                         if(currentCueTracks && currentCueTracks.length > 0) { nextBtn.style.display = "flex"; } else { nextBtn.style.display = "none"; }
 
-                        // Audio vorbereiten
                         let startIndex = track.lastTrackIndex || 0; 
                         let startTime = track.lastTime || 0;
                         if(startIndex >= currentPlaylist.length) startIndex = 0;
@@ -1413,14 +1414,13 @@
                         updateInfoText();
                         audioPlayer.src = audioUrl;
                         audioPlayer.currentTime = startTime;
-                        // KEIN audioPlayer.play() hier!
                         showStatus("Wiederhergestellt ↩️");
                     }
                 };
             }
         }
 
-        // --- STATS VISUALIZATION LOGIC (FIXED) ---
+        // --- STATS VISUALIZATION LOGIC ---
         let currentStatsScope = 'day';
 
         window.openStats = function() {
@@ -1435,7 +1435,6 @@
         window.loadStats = function(scope) {
             currentStatsScope = scope;
             
-            // UI Toggle Logic
             document.querySelectorAll('.stats-toggle-btn').forEach(b => b.classList.remove('active'));
             if(scope === 'day') document.getElementById('btn-stat-day').classList.add('active');
             if(scope === 'week') document.getElementById('btn-stat-week').classList.add('active');
@@ -1445,7 +1444,6 @@
             const logStore = tx.objectStore("stats_log");
             const trackStore = tx.objectStore("tracks");
             
-            // Get all logs
             const request = logStore.getAll();
             
             request.onsuccess = (e) => {
@@ -1463,20 +1461,15 @@
                 
                 const filteredLogs = logs.filter(l => l.timestamp >= cutoff);
                 
-                // Aggregate
                 let totalSeconds = 0;
                 let sessions = 0;
                 const trackCounts = {};
                 const timeOfDay = { 'Morgens (6-12)':0, 'Mittags (12-18)':0, 'Abends (18-24)':0, 'Nachts (0-6)':0 };
-                let scans = 0;
-                let flips = 0;
-                let stops = 0;
 
                 filteredLogs.forEach(l => {
                     if(l.type === 'stop') {
                         totalSeconds += (l.durationSec || 0);
                         sessions++;
-                        stops++;
                         
                         if(l.tagId) {
                             trackCounts[l.tagId] = (trackCounts[l.tagId] || 0) + (l.durationSec || 0);
@@ -1488,11 +1481,8 @@
                         else if(hour >= 18 && hour <= 23) timeOfDay['Abends (18-24)'] += l.durationSec;
                         else timeOfDay['Nachts (0-6)'] += l.durationSec;
                     }
-                    if(l.type === 'scan') scans++;
-                    if(l.type === 'eco_flip') flips++;
                 });
 
-                // Update UI
                 const hours = Math.floor(totalSeconds / 3600);
                 const mins = Math.floor((totalSeconds % 3600) / 60);
                 document.getElementById('stat-total-time').innerText = `${hours}h ${mins}m`;
@@ -1500,11 +1490,6 @@
                 const avg = sessions > 0 ? Math.round((totalSeconds / sessions) / 60) : 0;
                 document.getElementById('stat-avg-session').innerText = `${avg}m`;
 
-                document.getElementById('stat-count-scan').innerText = scans;
-                document.getElementById('stat-count-flip').innerText = flips;
-                document.getElementById('stat-count-stop').innerText = stops;
-
-                // Load Completed Count (NEW)
                 const allTracksReq = trackStore.getAll();
                 allTracksReq.onsuccess = (ev) => {
                     const allTracks = ev.target.result || [];
@@ -1512,7 +1497,6 @@
                     document.getElementById('stat-completed-count').innerText = completedCount;
                 };
 
-                // Render Top Tracks
                 const topListEl = document.getElementById('stats-top-tracks');
                 topListEl.innerHTML = "";
                 const sortedTracks = Object.keys(trackCounts).sort((a,b) => trackCounts[b] - trackCounts[a]).slice(0, 5);
@@ -1540,7 +1524,6 @@
                      }
                 });
 
-                // Render Heatmap
                 const heatEl = document.getElementById('stats-time-heatmap');
                 heatEl.innerHTML = "";
                 let maxTime = 0;
@@ -1559,6 +1542,99 @@
                     heatEl.appendChild(row);
                 }
                 if(maxTime === 0) heatEl.innerHTML = "<div style='color:#777; font-style:italic;'>Keine Daten</div>";
+
+                // --- TIMELINE GENERIERUNG ---
+                const tlContainer = document.getElementById('stats-timeline-list');
+                tlContainer.innerHTML = "";
+
+                const allTracksRequest = trackStore.getAll();
+                
+                allTracksRequest.onsuccess = (evT) => {
+                    const allTracks = evT.target.result;
+                    const trackMap = {};
+                    allTracks.forEach(t => trackMap[t.tagId] = t.name);
+
+                    // Sortieren: Neueste zuerst
+                    const sortedLogs = filteredLogs.sort((a,b) => b.timestamp - a.timestamp).slice(0, 50); 
+
+                    if(sortedLogs.length === 0) {
+                        tlContainer.innerHTML = "<div style='color:#777; padding:10px;'>Keine Aktivitäten im Zeitraum.</div>";
+                        return;
+                    }
+
+                    sortedLogs.forEach(log => {
+                        const date = new Date(log.timestamp);
+                        const timeStr = date.toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                        const dateStr = date.toLocaleDateString('de-DE'); 
+
+                        let icon = "•";
+                        let color = "#aaa";
+                        let title = "Event";
+                        let text = "";
+
+                        const tName = trackMap[log.tagId] ? `<strong>${trackMap[log.tagId]}</strong>` : (log.tagId || "System");
+
+                        switch(log.type) {
+                            case 'play':
+                                icon = "▶️"; color = "#2ecc71";
+                                title = "Wiedergabe gestartet";
+                                text = tName;
+                                break;
+                            case 'stop':
+                                icon = "🛑"; color = "#e74c3c";
+                                title = "Stopp / Pause";
+                                const min = Math.floor((log.durationSec||0)/60);
+                                const sec = Math.round((log.durationSec||0)%60);
+                                text = `${tName} <br><span style="color:#fab1a0">Laufzeit: ${min}m ${sec}s</span>`;
+                                break;
+                            case 'scan':
+                                icon = "📡"; color = "#3498db";
+                                title = "NFC Scan";
+                                text = `Tag ID: ${log.details || log.tagId}`;
+                                break;
+                            case 'volume':
+                                icon = "🔊"; color = "#f1c40f";
+                                title = "Lautstärke";
+                                text = log.details || "Angepasst";
+                                break;
+                            case 'seek':
+                                icon = "⏩"; color = "#9b59b6";
+                                title = "Spulen / Skip";
+                                text = `${tName} (${log.details})`;
+                                break;
+                            case 'eco_flip':
+                                icon = "🙃"; color = "#95a5a6";
+                                title = "Umdrehen (Eco)";
+                                text = "Display gedimmt";
+                                break;
+                            case 'completed':
+                                icon = "🏆"; color = "#fdcb6e";
+                                title = "Abgeschlossen";
+                                text = `${tName} komplett gehört!`;
+                                break;
+                            case 'control':
+                                icon = "🕹️"; color = "#dfe6e9";
+                                title = "Steuerung";
+                                text = `${tName} (${log.details})`;
+                                break;
+                            default:
+                                title = log.type;
+                                text = log.details || "";
+                        }
+
+                        const item = document.createElement('div');
+                        item.className = "timeline-item";
+                        item.innerHTML = `
+                            <div class="timeline-dot" style="background:${color}; border-color:${color}"></div>
+                            <div class="timeline-time">${timeStr} <span style="opacity:0.5">(${dateStr})</span></div>
+                            <div class="timeline-content">
+                                <div style="font-weight:bold; color:${color}; margin-bottom:4px;">${icon} ${title}</div>
+                                <div>${text}</div>
+                            </div>
+                        `;
+                        tlContainer.appendChild(item);
+                    });
+                };
             };
         }
 
@@ -1578,18 +1654,20 @@
             if(!currentCueTracks || !audioPlayer.src) return;
             const now = audioPlayer.currentTime;
             const nextTrack = currentCueTracks.find(t => t.time > (now + 2)); 
-            if(nextTrack) { audioPlayer.currentTime = nextTrack.time; showStatus("⏩ " + nextTrack.title); } else { showStatus("Ende erreicht"); }
+            if(nextTrack) { 
+                audioPlayer.currentTime = nextTrack.time; 
+                showStatus("⏩ " + nextTrack.title); 
+                logStatEvent('seek', currentPlayingTagId, 0, "Kapitel: " + nextTrack.title);
+            } else { showStatus("Ende erreicht"); }
         }
 
         audioPlayer.onended = () => {
-            // STOPPT DEN 5 SEK TIMER
             if(saveInterval) clearInterval(saveInterval);
 
             if(currentPlayingTagId && currentPlaylist.length > 0) {
                 if(currentTrackIndex + 1 < currentPlaylist.length) {
                     playPlaylistIndex(currentTrackIndex + 1, 0);
                 } else { 
-                    // End of Playlist -> Mark Completed
                     markTrackAsCompleted(currentPlayingTagId);
                     setPlayButtonState(false); 
                     currentTrackIndex = 0; 
@@ -1601,13 +1679,11 @@
         };
 
         async function loadExamplesFromGitHub(event) {
-            // 1. STOPPT das "Scanner gestartet" Problem
             if(event) {
                 event.stopPropagation();
                 event.preventDefault();
             }
 
-            // 2. KORREKTE URL für Rohdaten (nicht die HTML Webseite!)
             const BASE_URL = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/";
             
             if(!confirm("Möchtest du die Beispiel-Hörspiele (ca. 10 MB) jetzt herunterladen?")) return;
@@ -1615,21 +1691,17 @@
             showStatus("⏳ Lade Daten von GitHub...");
 
             try {
-                // 1. JSON laden
                 const jsonResp = await fetch(BASE_URL + "klangkiste.json");
                 if (!jsonResp.ok) throw new Error("JSON nicht gefunden");
                 const data = await jsonResp.json();
                 
                 if(!db) { alert("Datenbank noch nicht bereit. Warte kurz..."); return; }
 
-                // 2. ALLE Dateien erst herunterladen (PRE-FETCHING)
-                // Wichtig: Transaktion darf erst starten, wenn wir alle Daten haben!
                 const preparedEntries = [];
 
                 for (const entry of data) {
                     showStatus(`📥 Lade Dateien für: ${entry.name.substring(0, 15)}...`);
                     
-                    // Audio laden
                     const audioBlobs = [];
                     if (entry.playlistFileNames) {
                         for (const fileName of entry.playlistFileNames) {
@@ -1642,7 +1714,6 @@
                     }
                     if (audioBlobs.length === 0) continue;
 
-                    // Bild laden
                     let imageBlob = null;
                     if (entry.imageFileName) {
                         const resp = await fetch(BASE_URL + encodeURIComponent(entry.imageFileName));
@@ -1652,7 +1723,6 @@
                         }
                     }
 
-                    // Eintrag vorbereiten (noch NICHT speichern)
                     preparedEntries.push({
                         tagId: entry.tagId,
                         name: entry.name,
@@ -1669,7 +1739,6 @@
                     });
                 }
 
-                // 3. JETZT Transaktion starten und speichern (Synchroner Block)
                 if(preparedEntries.length === 0) { alert("Keine Daten geladen."); return; }
 
                 showStatus("💾 Speichere in Datenbank...");
@@ -1718,10 +1787,10 @@
                 if(audioPlayer.src) { 
                     audioPlayer.play(); setPlayButtonState(true); startSleepTimer(); requestWakeLock(); 
                     currentSessionStart = Date.now(); 
+                    logStatEvent('play', currentPlayingTagId, 0, "Button");
                 } 
                 else { showStatus("Tag?"); } 
             } else { 
-                // PAUSE -> Timer stoppen & Speichern
                 if(saveInterval) clearInterval(saveInterval);
                 audioPlayer.pause(); 
                 setPlayButtonState(false); 
@@ -1731,9 +1800,25 @@
                 endSessionLog(); 
             } 
         }
-        function restartPlaylist() { if(currentPlayingTagId) { showStatus("Start..."); playPlaylistIndex(0, 0); } }
-        function skipForward() { if(audioPlayer.src) { audioPlayer.currentTime += 30; showStatus("+30 Sek"); } }
-        function skipBack() { if(audioPlayer.src) { audioPlayer.currentTime -= 30; showStatus("-30 Sek"); } }
+        function restartPlaylist() { 
+            if(currentPlayingTagId) { 
+                showStatus("Start..."); 
+                playPlaylistIndex(0, 0); 
+                logStatEvent('control', currentPlayingTagId, 0, "Reset");
+            } 
+        }
+        function skipForward() { 
+            if(audioPlayer.src) { 
+                audioPlayer.currentTime += 30; showStatus("+30 Sek"); 
+                logStatEvent('seek', currentPlayingTagId, 0, "⏩ +30 Sek");
+            } 
+        }
+        function skipBack() { 
+            if(audioPlayer.src) { 
+                audioPlayer.currentTime -= 30; showStatus("-30 Sek"); 
+                logStatEvent('seek', currentPlayingTagId, 0, "⏪ -30 Sek");
+            } 
+        }
 
         function setPlayButtonState(isPlaying) {
             const btn = document.getElementById('btn-play-main');
@@ -1743,7 +1828,6 @@
 
         function forceSaveCurrentPosition() {
             if(!currentPlayingTagId) return;
-            // NEU: Speichern der ID im lokalen Speicher für Restore (Synchron)
             localStorage.setItem('lastActiveTagId', currentPlayingTagId);
             
             const pos = audioPlayer.currentTime; 
@@ -1774,7 +1858,6 @@
                 if(vol > 0.05) { vol -= 0.05; audioPlayer.volume = vol; } 
                 else { 
                     clearInterval(fade); 
-                    // TIMER STOPPEN
                     if(saveInterval) clearInterval(saveInterval);
                     audioPlayer.pause(); 
                     setPlayButtonState(false); 
@@ -1789,7 +1872,7 @@
             if(confirm("Löschen?")) { 
                 db.close(); 
                 indexedDB.deleteDatabase(DB_NAME); 
-                localStorage.removeItem('lastActiveTagId'); // Auch Restore-ID löschen
+                localStorage.removeItem('lastActiveTagId');
                 location.reload(); 
             } 
         }
@@ -1826,16 +1909,13 @@
         });
 
         function toggleTimeDisplayMode() { showRemainingTime = !showRemainingTime; updateTimeDisplay(); }
-        // Fallback: Global click listener startet NFC
         document.body.addEventListener('click', async () => { if(!ndef && "NDEFReader" in window) { try { await startNFC(); } catch(e) {} } }, { once: true });
 
         function goToKidsMode() {
             try {
-                // UI Switch First
                 safeDisplay('parent-mode', 'none');
                 safeDisplay('kids-mode', 'flex'); 
 
-                // Setup
                 isParentMode = false;
                 applyKidsDesign(); 
                 applyButtonColors();
@@ -1846,7 +1926,6 @@
                      document.getElementById('btn-open-lib').style.display = 'none';
                 }
 
-                // FULLSCREEN VERSUCHEN (NEU & ROBUST)
                 enterFullscreenSafe();
 
                 if(settings.enableEcoMode) updateEcoModeState(false);
@@ -1861,35 +1940,21 @@
             }
         }
 
-        // Neue Funktion für robusten Vollbildmodus
         function enterFullscreenSafe() {
             const elem = document.documentElement;
-
-            // Helper Funktion für den eigentlichen Request
             const requestFS = () => {
                 if (elem.requestFullscreen) {
                     elem.requestFullscreen().catch((e) => console.log("FS blocked", e));
-                } else if (elem.webkitRequestFullscreen) { /* Safari / Old Chrome */
+                } else if (elem.webkitRequestFullscreen) { 
                     elem.webkitRequestFullscreen();
-                } else if (elem.msRequestFullscreen) { /* IE/Edge */
+                } else if (elem.msRequestFullscreen) { 
                     elem.msRequestFullscreen();
                 }
             };
-
-            // 1. Sofort versuchen (Klappt, wenn man aus Parent Mode kommt)
             requestFS();
-
-            // 2. Event Listener für den "Ersten Klick" im Kinder-Modus
-            // Wir definieren einen Handler, der sich selbst entfernt nach Erfolg
             const userInteractionHandler = () => {
-                if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                    requestFS();
-                }
-                // Listener entfernen, damit er nicht bei jedem Klick feuert (optional, aber sauberer)
-                // Aber der User will "automatisch wieder", falls es nicht geklappt hat.
-                // Also lassen wir {once: true} und rufen enterFullscreenSafe einfach in goToKidsMode auf.
+                if (!document.fullscreenElement && !document.webkitFullscreenElement) { requestFS(); }
             };
-
             document.addEventListener('click', userInteractionHandler, { once: true });
             document.addEventListener('touchstart', userInteractionHandler, { once: true, passive: true });
         }
@@ -1924,8 +1989,6 @@
             const metaAge = document.getElementById('meta-age').value;
             const metaGenre = document.getElementById('meta-genre').value;
             const metaRuntime = document.getElementById('meta-runtime').value;
-            
-            // NEU: Hidden Status holen
             const isHidden = document.getElementById('track-hidden-lib').checked;
 
             const finalize = (oldRecord = null, newCueTracks = null) => {
@@ -1953,7 +2016,6 @@
                     imageFileName: finalImgName, 
                     cueTracks: finalCue, 
                     meta: metaObj, 
-                    // NEU: Feld zum Datensatz hinzufügen
                     hiddenInLib: isHidden, 
                     lastTrackIndex: oldRecord ? oldRecord.lastTrackIndex : 0, 
                     lastTime: oldRecord ? oldRecord.lastTime : 0 
@@ -2041,26 +2103,11 @@
                     document.getElementById('cue-info').innerText = r.cueTracks ? "Kapiteldaten vorhanden" : "Keine";
                     document.getElementById('img-info').innerText = r.imageFileName ? r.imageFileName : "Standard";
                     
-                    // --- SCROLL LOGIC V3 (THE AGGRESSIVE ONE) ---
                     const card = document.getElementById('scan-card');
                     const container = document.getElementById('parent-mode');
-                    
                     card.classList.add("editing-highlight");
-                    
-                    // 1. Standard-Befehl
                     card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    
-                    // 2. Direkter Befehl an den Container (ohne Fokus)
-                    setTimeout(() => {
-                        if(container) {
-                            container.scrollTo({
-                                top: card.offsetTop - 20,
-                                behavior: 'smooth'
-                            });
-                        }
-                    }, 100);
-
-                    // 3. FOKUS ENTFERNT
+                    setTimeout(() => { if(container) { container.scrollTo({ top: card.offsetTop - 20, behavior: 'smooth' }); } }, 100);
                 }
             };
         }
@@ -2076,8 +2123,6 @@
             document.getElementById('audio-info').innerText = "";
             document.getElementById('cue-info').innerText = "";
             document.getElementById('img-info').innerText = "";
-            
-            // NEU: Checkbox reset
             document.getElementById('track-hidden-lib').checked = false;
 
             document.getElementById('form-title').innerText = "🎵 Tag bearbeiten / anlernen";
@@ -2099,15 +2144,11 @@
             }
         }
         
-        // --- MASS ACTIONS ---
         function setAllLibraryVisibility(isHidden) {
-            // Die neuen Nachrichten mit Hinweis auf Wartezeit
-            const msgHide = "Alle Hörbücher in der Bibliothek verstecken?\n\nHinweis: Das kann bei vielen Hörbüchern einen Moment dauern (z.B. ca. 5 Sek. bei 30 Stück).";
-            const msgShow = "Alle Hörbücher in der Bibliothek anzeigen?\n\nHinweis: Das kann bei vielen Hörbüchern einen Moment dauern (z.B. ca. 5 Sek. bei 30 Stück).";
+            const msgHide = "Alle Hörbücher in der Bibliothek verstecken?\n\nHinweis: Das kann bei vielen Hörbüchern einen Moment dauern.";
+            const msgShow = "Alle Hörbücher in der Bibliothek anzeigen?\n\nHinweis: Das kann bei vielen Hörbüchern einen Moment dauern.";
 
             if(!confirm(isHidden ? msgHide : msgShow)) return;
-            
-            // Status sofort anzeigen, damit man sieht, dass etwas passiert
             showStatus("Verarbeite... Bitte warten ⏳");
             
             const tx = db.transaction(["tracks"], "readwrite");
@@ -2125,40 +2166,33 @@
                     }
                     cursor.continue();
                 } else {
-                    // Ende
                     showStatus(`${count} Einträge aktualisiert.`);
                     loadTagList(); 
                 }
             };
         }
 
-        // --- SINGLE TOGGLE ---
         function toggleTrackVisibility(id) {
             const tx = db.transaction(["tracks"], "readwrite");
             const store = tx.objectStore("tracks");
             store.get(id).onsuccess = (e) => {
                 const track = e.target.result;
                 if(track) {
-                    // Wert umkehren
                     track.hiddenInLib = !track.hiddenInLib;
-                    store.put(track); // Speichern
+                    store.put(track);
 
-                    // UI DIREKT UPDATEN (Kein Neuladen der ganzen Liste!)
                     const btn = document.getElementById(`btn-vis-${id}`);
                     const badge = document.getElementById(`badge-${id}`);
 
                     if(track.hiddenInLib) {
-                        // Versteckt Zustand
                         if(btn) { btn.innerText = "🚫"; btn.style.backgroundColor = "#555"; btn.title = "Ist versteckt (Klick zum Anzeigen)"; }
                         if(badge) { badge.style.display = "flex"; }
                         showStatus("Versteckt 🚫");
                     } else {
-                        // Sichtbar Zustand
                         if(btn) { btn.innerText = "👁️"; btn.style.backgroundColor = "#f39c12"; btn.title = "Ist sichtbar (Klick zum Verstecken)"; }
                         if(badge) { badge.style.display = "none"; }
                         showStatus("Sichtbar 👁️");
                     }
-                    // loadTagList() NICHT aufrufen!
                 }
             };
         }
@@ -2167,19 +2201,14 @@
             const container = document.getElementById('tag-list-container'); 
             if(!container) return; 
             
-            // HINWEIS: Wir löschen container.innerHTML NICHT sofort, um Flackern zu vermeiden.
-            
             const tx = db.transaction(["tracks"], "readonly"); 
             const store = tx.objectStore("tracks");
             
-            // Wir nutzen getAll() statt Cursor für schnelleres Rendering und Sortierung
             store.getAll().onsuccess = (event) => {
                 const tracks = event.target.result;
-                
-                // HTML String Builder (schneller als einzelne DOM Manipulationen)
                 let htmlBuffer = "";
 
-                // Sortieren (optional, nach Name)
+                // SORTING FIX
                 tracks.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
 
                 tracks.forEach(track => {
@@ -2202,18 +2231,15 @@
                             completedBadge = `<div class="completed-badge">✅</div>`;
                         }
 
-                        // DESIGN FIX: Badge Hintergrund Weiß statt Rot für besseren Kontrast
                         let hiddenBadge = "";
                         if(track.hiddenInLib) {
                             hiddenBadge = `<div id="badge-${track.tagId}" style="position:absolute; top:5px; left:5px; background:rgba(255,255,255,0.95); color:black; border-radius:50%; width:28px; height:28px; display:flex; justify-content:center; align-items:center; z-index:10; font-size:16px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚫</div>`;
                         } else {
-                            // Leeres div als Platzhalter für DOM Updates, falls wir es später einblenden
                             hiddenBadge = `<div id="badge-${track.tagId}" style="display:none; position:absolute; top:5px; left:5px; background:rgba(255,255,255,0.95); color:black; border-radius:50%; width:28px; height:28px; justify-content:center; align-items:center; z-index:10; font-size:16px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚫</div>`;
                         }
                         
                         const visIcon = track.hiddenInLib ? "🚫" : "👁️";
                         const visTitle = track.hiddenInLib ? "Ist versteckt (Klick zum Anzeigen)" : "Ist sichtbar (Klick zum Verstecken)";
-                        // Hintergrundfarbe Button je nach Status leicht ändern
                         const visBtnColor = track.hiddenInLib ? "#555" : "#f39c12";
 
                         htmlBuffer += `
@@ -2242,8 +2268,6 @@
                         `;
                     } 
                 });
-                
-                // JETZT erst austauschen -> Kein Flackern
                 container.innerHTML = htmlBuffer;
             };
         }
@@ -2379,7 +2403,6 @@
                  if(track.meta.runtime) metaInfo += `⏱️ ${track.meta.runtime} min`;
             }
             
-            // NEW: Completed Badge
             let completedBadge = "";
             if(track.completed) {
                 completedBadge = `<div class="completed-badge">✅</div>`;
@@ -2400,7 +2423,6 @@
             return div;
         }
 
-        // --- ALBUM INFO MODAL LOGIC ---
         function showAlbumInfo(event, tagId) {
             event.stopPropagation(); 
             const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
@@ -2468,23 +2490,17 @@
             request.onsuccess = (e) => {
                 let tracks = e.target.result;
                 
-                // 1. System-Dateien filtern
                 tracks = tracks.filter(t => t.tagId !== "system_bg" && t.tagId !== "system_settings");
 
-                // NEU: 2. KINDERSICHERUNGS-FILTER
-                // Hole das Limit aus den Settings (Standard 99 = alle)
+                // SORTING FIX: SOFORT SORTIEREN
+                tracks.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
+
                 const ageLimit = (settings.libMaxAge !== undefined) ? settings.libMaxAge : 99;
 
                 tracks = tracks.filter(t => {
-                    // A. Manuell versteckte Tracks rauswerfen
                     if (t.hiddenInLib === true) return false;
-
-                    // B. Altersfilter prüfen
-                    // Wenn kein Alter angegeben ist (0 oder undefined), zeigen wir es an.
                     const trackAge = (t.meta && t.meta.age_recommendation) ? parseInt(t.meta.age_recommendation) : 0;
-                    
-                    if (trackAge > ageLimit) return false; // Zu alt für das Kind
-
+                    if (trackAge > ageLimit) return false; 
                     return true;
                 });
 
@@ -2532,7 +2548,7 @@
                     filteredTracks = tracks.filter(t => t.meta && t.meta.genre === g);
                 }
 
-                filteredTracks.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
+                // HIER NICHT MEHR SORTIEREN (schon erledigt)
 
                 filteredTracks.forEach(t => {
                     gridDiv.appendChild(createLibCard(t));
