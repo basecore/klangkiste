@@ -1,4 +1,4 @@
-const CACHE_NAME = 'klangkiste-v66-stable'; // WICHTIG: Version hochgezählt für das finale Update
+const CACHE_NAME = 'klangkiste-v67-stable'; // WICHTIG: Version hochgezählt für das finale Update
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
