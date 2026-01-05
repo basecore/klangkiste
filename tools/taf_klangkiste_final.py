@@ -285,6 +285,8 @@ def convert_audio_with_progress(audio_data, mp3_path, meta, cover_path=None):
 # ==========================================
 
 def main():
+    global PLAYWRIGHT_AVAILABLE  # <--- HIER WAR DER FEHLER: Das musste hinzugefügt werden.
+    
     print("=" * 60)
     print("   ULTIMATE TAF TO KLANGKISTE (Scrape & Convert)")
     print("=" * 60)
