@@ -1,4 +1,4 @@
-# 🎵 KlangKiste PWA (v67 Stable)
+# 🎵 KlangKiste PWA (v68 Ultimate)
 
 **Die smarte DIY "Toniebox" fürs Handy – 100% AI-Generated Code.**
 
@@ -8,16 +8,13 @@ Dieses Projekt ist eine kinderfreundliche Musik-Player-App, die alte Smartphones
 
 ---
 
-## ✨ Neue Funktionen in v67
+## ✨ Neue Funktionen in v68
 
+* 📊 **Profi-Statistik & Timeline:** Ein detaillierter **Zeitstrahl** protokolliert nun exakt den Tagesablauf. Siehe genau, wann ein Hörspiel gestartet, pausiert oder übersprungen wurde. Auch Lautstärke-Änderungen und das "Umdrehen" (Eco-Mode) werden erfasst.
+* 🔤 **Perfekte Sortierung:** Die Bibliothek und Admin-Listen sind nun strikt alphabetisch (**A-Z**, deutsch) sortiert. Umlaute (Ä, Ö, Ü) und Groß-/Kleinschreibung werden dabei korrekt berücksichtigt.
 * 💾 **Auto-Save & Smart Resume:** Die App speichert nun **alle 5 Sekunden** automatisch den Fortschritt. Wird die App versehentlich geschlossen oder stürzt ab, öffnet sie beim nächsten Start sofort das letzte Hörspiel an der exakten Stelle.
-* ⚡ **Performance-Boost (Admin):**
-    * **Kein Flackern mehr:** Die Liste der gespeicherten Tags lädt nun butterweich.
-    * **Sofort-Aktion:** Das Verstecken/Anzeigen von Hörbüchern (Auge-Icon) passiert nun verzögerungsfrei.
-    * **Auto-Scroll:** Ein Klick auf den Stift (Bearbeiten) scrollt nun zuverlässig und weich zum Eingabeformular hoch.
+* ⚡ **Performance-Boost:** Kein Flackern mehr beim Laden der Listen, sofortige Reaktion bei Sichtbarkeits-Einstellungen und optimierte Datenbank-Zugriffe.
 * 🖥️ **Vollbild-Logik:** Der Kinder-Modus aktiviert den Vollbildmodus nun zuverlässiger (auch auf iOS), sobald der Bildschirm das erste Mal berührt wird.
-* ⚙️ **Optimierte Standards:** Für neue Nutzer sind "Bunte Knöpfe", "Display anlassen" und "Eco-Modus" nun standardmäßig aktiviert.
-* 🎨 **Design:** Verbesserte Lesbarkeit der "Versteckt"-Badges (weißer Hintergrund) und Hinweistexte bei Massen-Aktionen.
 
 ---
 
@@ -46,7 +43,7 @@ Verwaltung der Inhalte und Einsicht in das Nutzungsverhalten.
 | **Verwaltung** | **Statistik (Neu)** |
 |:---:|:---:|
 | <img src="docs/screenshots/parent-mode.png" width="200"> | <img src="docs/screenshots/stats_view.png" width="200"> |
-| *Tags anlernen & Import* | *Hörverhalten & Fortschritt (✅)* |
+| *Tags anlernen & Import* | *Timeline & Fortschritt (✅)* |
 
 ---
 
@@ -93,9 +90,14 @@ Wenn dein Android-Gerät NFC hat:
 2. Halte eine NFC-Karte oder Figur an das Handy.
 3. Die Musik ist nun mit diesem Tag verknüpft. Im Kinder-Modus startet sie sofort beim Auflegen.
 
-### 3. Statistik ansehen
+### 3. Statistik & Timeline ansehen
 
-Klicke im Eltern-Modus oben rechts auf den Button **„📊 Statistik"**. Hier siehst du, was dein Kind wann und wie lange hört und welche Hörspiele bereits **vollständig (✅)** gehört wurden.
+Klicke im Eltern-Modus oben rechts auf den Button **„📊 Statistik"**. Hier erhältst du nun tiefe Einblicke:
+
+* **Timeline:** Ein scrollbarer Zeitstrahl zeigt chronologisch jedes Ereignis an (z.B. "20:00: Start Benjamin Blümchen", "20:05: Lautstärke auf 40%").
+* **Hördauer:** Gesamte Laufzeit für Heute, 7 Tage oder Alles.
+* **Favoriten:** Welche Hörspiele laufen am öftesten?
+* **Erfolge:** Siehe, welche Hörspiele bereits **vollständig (✅)** gehört wurden.
 
 ### 4. Kinder-Modus verlassen
 
@@ -130,16 +132,6 @@ Falls du die Dateien lieber selbst auf dem Handy haben möchtest:
 3. Entpacke die Datei.
 4. Gehe in der App auf **„📂 Massen-Import"**.
 5. Wähle im Ordner `example/` die Datei `klangkiste.json` und die MP3/PNG Dateien aus.
-
-### Was ist in den Beispielen enthalten?
-
-| Titel | Genre | Alter | Laufzeit |
-|-------|-------|-------|----------|
-| Die drei Schneeflocken der Freundschaft – Das Hörspiel | Hörspiel | 4+ | 5 Min |
-| Schneeflocken – Das Lied | Musik | 3+ | 4 Min |
-| Wusel in der Werkstatt | Hörspiel | 4+ | 1 Min |
-
-Die `klangkiste.json` definiert alle Metadaten: Seriennamen, Episodentitel, ausführliche Beschreibungen, Genre, Altersempfehlung, Sprache und passende Tags (Freundschaft, Winter, Abenteuer, Humor).
 
 ---
 
@@ -181,7 +173,7 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 
 ## 📂 Dateistruktur
 
-* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v67)
+* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v68)
 * `sw.js` – Der Service Worker für die Offline-Funktionalität (Cache v66)
 * `manifest.json` – Konfiguration für das App-Icon und den Vollbild-Modus
 * `assets/` – Ordner für Icons und Test-Sounds
@@ -199,4 +191,4 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 ## 👨‍💻 Credits
 
 Entwickelt von Sebastian Rößer mit Unterstützung von **Google Gemini 3 Pro**.  
-Version 67 „Auto-Save Edition".
+Version 68 „Ultimate Stats Edition".
