@@ -2180,7 +2180,7 @@
                 let htmlBuffer = "";
 
                 // Sortieren (optional, nach Name)
-                tracks.sort((a,b) => a.name.localeCompare(b.name));
+                tracks.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
 
                 tracks.forEach(track => {
                     if(track.tagId !== SYSTEM_BG_ID && track.tagId !== SYSTEM_SETTINGS_ID) {
@@ -2532,7 +2532,7 @@
                     filteredTracks = tracks.filter(t => t.meta && t.meta.genre === g);
                 }
 
-                filteredTracks.sort((a, b) => a.name.localeCompare(b.name));
+                filteredTracks.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
 
                 filteredTracks.forEach(t => {
                     gridDiv.appendChild(createLibCard(t));
