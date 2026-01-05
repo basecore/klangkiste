@@ -1185,12 +1185,12 @@
             // NEU: Altersfilter speichern
             settings.libMaxAge = parseInt(document.getElementById('lib-max-age-select').value);
 
-            localStorage.setItem('klangkisteSettings_v15', JSON.stringify(settings));
+            localStorage.setItem('klangkisteSettings_v16', JSON.stringify(settings));
             if(db) { const tx = db.transaction(["tracks"], "readwrite"); tx.objectStore("tracks").put({ tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: settings }); }
         }
 
         function loadSettings() {
-            const saved = localStorage.getItem('klangkisteSettings_v15');
+            const saved = localStorage.getItem('klangkisteSettings_v16');
             if (saved) { settings = JSON.parse(saved); updateUIFromSettings(); if (settings.startMode === 'kids') { setTimeout(() => { goToKidsMode(); }, 100); } }
         }
 
