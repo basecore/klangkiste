@@ -1906,8 +1906,13 @@
                     } else { document.getElementById('audio-info').innerText = "Keine Audio-Datei"; }
                     document.getElementById('cue-info').innerText = r.cueTracks ? "Kapiteldaten vorhanden" : "Keine";
                     document.getElementById('img-info').innerText = r.imageFileName ? r.imageFileName : "Standard";
-                    document.getElementById('scan-card').classList.add("editing-highlight");
-                    document.getElementById('scan-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // AUTO SCROLL (Optimiert mit Timeout für sicheres Scrollen)
+                    const card = document.getElementById('scan-card');
+                    card.classList.add("editing-highlight");
+                    setTimeout(() => {
+                         card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 50);
                 }
             };
         }
