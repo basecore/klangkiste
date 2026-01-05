@@ -1912,26 +1912,20 @@
                     
                     card.classList.add("editing-highlight");
                     
-                    // 1. Standard-Befehl (für Desktop meist ausreichend)
+                    // 1. Standard-Befehl
                     card.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     
-                    // 2. Direkter Befehl an den Container (für Mobile/Chrome wichtig)
-                    // Wir geben dem Browser kurz Zeit (100ms) für das Layout
+                    // 2. Direkter Befehl an den Container (ohne Fokus)
                     setTimeout(() => {
                         if(container) {
-                            // Berechne die absolute Position innerhalb des scrollbaren Containers
-                            // OffsetTop gibt Abstand zum oberen Rand des 'offsetParent' (hier meist container)
                             container.scrollTo({
-                                top: card.offsetTop - 20, // 20px Abstand oben lassen
+                                top: card.offsetTop - 20,
                                 behavior: 'smooth'
                             });
                         }
                     }, 100);
 
-                    // 3. Fokus-Trick (Zwingt Mobile-Browser oft zum Sprung + Tastatur)
-                    setTimeout(() => {
-                        document.getElementById('track-name').focus();
-                    }, 300);
+                    // 3. FOKUS ENTFERNT
                 }
             };
         }
