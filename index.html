@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V67 Stable</title>
+    <title>KlangKiste V67 Final</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -1864,21 +1864,34 @@
         // Neue Funktion für robusten Vollbildmodus
         function enterFullscreenSafe() {
             const elem = document.documentElement;
-            if (elem.requestFullscreen) {
-                elem.requestFullscreen().then(() => {
-                    console.log("Vollbild erfolgreich gestartet.");
-                }).catch((err) => {
-                    console.log("Vollbild blockiert (Browser-Sicherheit). Warte auf Interaktion...");
-                    // Fallback: Beim nächsten Klick irgendwohin Vollbild erzwingen
-                    const fsHandler = () => {
-                        elem.requestFullscreen().catch(() => {});
-                        document.body.removeEventListener('click', fsHandler);
-                        document.body.removeEventListener('touchstart', fsHandler);
-                    };
-                    document.body.addEventListener('click', fsHandler, { once: true });
-                    document.body.addEventListener('touchstart', fsHandler, { once: true });
-                });
-            }
+
+            // Helper Funktion für den eigentlichen Request
+            const requestFS = () => {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch((e) => console.log("FS blocked", e));
+                } else if (elem.webkitRequestFullscreen) { /* Safari / Old Chrome */
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) { /* IE/Edge */
+                    elem.msRequestFullscreen();
+                }
+            };
+
+            // 1. Sofort versuchen (Klappt, wenn man aus Parent Mode kommt)
+            requestFS();
+
+            // 2. Event Listener für den "Ersten Klick" im Kinder-Modus
+            // Wir definieren einen Handler, der sich selbst entfernt nach Erfolg
+            const userInteractionHandler = () => {
+                if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                    requestFS();
+                }
+                // Listener entfernen, damit er nicht bei jedem Klick feuert (optional, aber sauberer)
+                // Aber der User will "automatisch wieder", falls es nicht geklappt hat.
+                // Also lassen wir {once: true} und rufen enterFullscreenSafe einfach in goToKidsMode auf.
+            };
+
+            document.addEventListener('click', userInteractionHandler, { once: true });
+            document.addEventListener('touchstart', userInteractionHandler, { once: true, passive: true });
         }
         
         document.getElementById('kids-mode').addEventListener('touchstart', () => {
@@ -2047,7 +2060,7 @@
                         }
                     }, 100);
 
-                    // 3. FOKUS ENTFERNT (Wunschgemäß)
+                    // 3. FOKUS ENTFERNT
                 }
             };
         }
