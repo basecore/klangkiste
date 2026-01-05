@@ -7,6 +7,10 @@
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
     <link rel="icon" type="image/png" href="assets/icons/icon.png">
     <link rel="apple-touch-icon" href="assets/icons/icon.png">
 
@@ -386,7 +390,8 @@
         #parent-mode {
             display: flex; flex-direction: column; padding: 20px;
             height: 100vh; background-color: #2d3436; color: white;
-            overflow-y: auto;
+            /* FIX: Position Relative ist wichtig für Offset-Berechnung beim Scrollen */
+            overflow-y: auto; position: relative;
             z-index: 10;
         }
 
@@ -720,7 +725,7 @@
                 Viele Hörbücher? Verstecke erst alle und aktiviere unten in der Liste gezielt die Favoriten (mit dem 👁️ Button).
             </p>
             <div class="btn-io-group">
-                <button class="btn-admin" style="background-color: #e74c3c; color:white;" onclick="setAllLibraryVisibility(true)">
+                <button class="btn-admin" style="background-color: #2d3436; color:white; border: 1px solid #555;" onclick="setAllLibraryVisibility(true)">
                      🚫 Alle verstecken
                 </button>
                 <button class="btn-admin" style="background-color: #2ecc71; color:white;" onclick="setAllLibraryVisibility(false)">
@@ -1017,7 +1022,7 @@
         });
 
         let currentKidsVolumePct = 1.0; 
-        let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: false, startMode: 'parent', bgMode: 'default', bgColor: '#ffffff', enableWakeLock: false, enableEcoMode: false, enableLibrary: true };
+        let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: true, startMode: 'parent', bgMode: 'default', bgColor: '#ffffff', enableWakeLock: true, enableEcoMode: true, enableLibrary: true };
         let sleepTimerId = null; let showRemainingTime = true; 
         let currentPlayingTagId = null; let currentTrackIndex = 0; let currentPlaylist = []; 
         let isNfcScanning = false; let isLinkModeActive = false;
@@ -1055,6 +1060,7 @@
              db = event.target.result; 
              loadTagList();
              syncSettingsFromDB(); 
+             restoreLastSession();
         };
         
         // --- STATS LOGGING ENGINE ---
@@ -1185,12 +1191,12 @@
             // NEU: Altersfilter speichern
             settings.libMaxAge = parseInt(document.getElementById('lib-max-age-select').value);
 
-            localStorage.setItem('klangkisteSettings_v15', JSON.stringify(settings));
+            localStorage.setItem('klangkisteSettings_v17', JSON.stringify(settings));
             if(db) { const tx = db.transaction(["tracks"], "readwrite"); tx.objectStore("tracks").put({ tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: settings }); }
         }
 
         function loadSettings() {
-            const saved = localStorage.getItem('klangkisteSettings_v15');
+            const saved = localStorage.getItem('klangkisteSettings_v17');
             if (saved) { settings = JSON.parse(saved); updateUIFromSettings(); if (settings.startMode === 'kids') { setTimeout(() => { goToKidsMode(); }, 100); } }
         }
 
@@ -1289,6 +1295,9 @@
 
         // --- PLAYBACK ---
         function playTrackByTag(tagId) {
+            // FIX: SOFORT SPEICHERN BEIM START
+            localStorage.setItem('lastActiveTagId', tagId);
+
             if (currentPlayingTagId === tagId) {
                 if(audioPlayer.paused) {
                     audioPlayer.play();
@@ -1356,7 +1365,55 @@
             };
         }
 
-        // --- STATS VISUALIZATION LOGIC (FIXED) ---
+        // --- RESTORE SESSION (NEU) ---
+        function restoreLastSession() {
+            const lastId = localStorage.getItem('lastActiveTagId');
+            if(lastId) {
+                const tx = db.transaction(["tracks"], "readonly");
+                const store = tx.objectStore("tracks");
+                store.get(lastId).onsuccess = (e) => {
+                    const track = e.target.result;
+                    if(track) {
+                        // Daten wiederherstellen OHNE Autoplay
+                        document.getElementById('track-title-display').innerText = track.name;
+                        const imgEl = document.getElementById('album-img'); 
+                        const placeEl = document.getElementById('album-placeholder');
+                        if(track.imageBlob) { 
+                            imgEl.src = URL.createObjectURL(track.imageBlob); 
+                            imgEl.style.display="block"; 
+                            placeEl.style.display="none"; 
+                        } else { 
+                            imgEl.style.display="none"; 
+                            placeEl.style.display="block"; 
+                        }
+                        
+                        currentPlayingTagId = track.tagId;
+                        currentPlaylist = track.playlist;
+                        currentCueTracks = track.cueTracks || null;
+                        
+                        const nextBtn = document.getElementById('btn-next-track');
+                        if(currentCueTracks && currentCueTracks.length > 0) { nextBtn.style.display = "flex"; } else { nextBtn.style.display = "none"; }
+
+                        // Audio vorbereiten
+                        let startIndex = track.lastTrackIndex || 0; 
+                        let startTime = track.lastTime || 0;
+                        if(startIndex >= currentPlaylist.length) startIndex = 0;
+                        
+                        currentTrackIndex = startIndex;
+                        const file = currentPlaylist[startIndex];
+                        const audioUrl = URL.createObjectURL(file);
+                        updateInfoText();
+                        audioPlayer.src = audioUrl;
+                        audioPlayer.currentTime = startTime;
+                        
+                        // KEIN audioPlayer.play() hier!
+                        showStatus("Letztes Hörbuch geladen ↩️");
+                    }
+                };
+            }
+        }
+
+        // --- STATS VISUALIZATION LOGIC ---
         let currentStatsScope = 'day';
 
         window.openStats = function() {
@@ -1370,8 +1427,6 @@
 
         window.loadStats = function(scope) {
             currentStatsScope = scope;
-            
-            // UI Toggle Logic
             document.querySelectorAll('.stats-toggle-btn').forEach(b => b.classList.remove('active'));
             if(scope === 'day') document.getElementById('btn-stat-day').classList.add('active');
             if(scope === 'week') document.getElementById('btn-stat-week').classList.add('active');
@@ -1380,8 +1435,6 @@
             const tx = db.transaction(["stats_log", "tracks"], "readonly");
             const logStore = tx.objectStore("stats_log");
             const trackStore = tx.objectStore("tracks");
-            
-            // Get all logs
             const request = logStore.getAll();
             
             request.onsuccess = (e) => {
@@ -1398,8 +1451,6 @@
                 }
                 
                 const filteredLogs = logs.filter(l => l.timestamp >= cutoff);
-                
-                // Aggregate
                 let totalSeconds = 0;
                 let sessions = 0;
                 const trackCounts = {};
@@ -1413,11 +1464,9 @@
                         totalSeconds += (l.durationSec || 0);
                         sessions++;
                         stops++;
-                        
                         if(l.tagId) {
                             trackCounts[l.tagId] = (trackCounts[l.tagId] || 0) + (l.durationSec || 0);
                         }
-
                         const hour = new Date(l.timestamp).getHours();
                         if(hour >= 6 && hour < 12) timeOfDay['Morgens (6-12)'] += l.durationSec;
                         else if(hour >= 12 && hour < 18) timeOfDay['Mittags (12-18)'] += l.durationSec;
@@ -1428,19 +1477,15 @@
                     if(l.type === 'eco_flip') flips++;
                 });
 
-                // Update UI
                 const hours = Math.floor(totalSeconds / 3600);
                 const mins = Math.floor((totalSeconds % 3600) / 60);
                 document.getElementById('stat-total-time').innerText = `${hours}h ${mins}m`;
-                
                 const avg = sessions > 0 ? Math.round((totalSeconds / sessions) / 60) : 0;
                 document.getElementById('stat-avg-session').innerText = `${avg}m`;
-
                 document.getElementById('stat-count-scan').innerText = scans;
                 document.getElementById('stat-count-flip').innerText = flips;
                 document.getElementById('stat-count-stop').innerText = stops;
 
-                // Load Completed Count (NEW)
                 const allTracksReq = trackStore.getAll();
                 allTracksReq.onsuccess = (ev) => {
                     const allTracks = ev.target.result || [];
@@ -1448,7 +1493,6 @@
                     document.getElementById('stat-completed-count').innerText = completedCount;
                 };
 
-                // Render Top Tracks
                 const topListEl = document.getElementById('stats-top-tracks');
                 topListEl.innerHTML = "";
                 const sortedTracks = Object.keys(trackCounts).sort((a,b) => trackCounts[b] - trackCounts[a]).slice(0, 5);
@@ -1461,43 +1505,31 @@
                          const track = tr.target.result;
                          const name = track ? track.name : "Unbekannt";
                          const duration = Math.round(trackCounts[tagId] / 60);
-                         
                          const maxVal = trackCounts[sortedTracks[0]];
                          const pct = (trackCounts[tagId] / maxVal) * 100;
-
                          const row = document.createElement('div');
                          row.className = 'chart-row';
-                         row.innerHTML = `
-                            <div class="chart-label">${name}</div>
-                            <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${pct}%"></div></div>
-                            <div class="chart-val">${duration}m</div>
-                         `;
+                         row.innerHTML = `<div class="chart-label">${name}</div><div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${pct}%"></div></div><div class="chart-val">${duration}m</div>`;
                          topListEl.appendChild(row);
                      }
                 });
 
-                // Render Heatmap
                 const heatEl = document.getElementById('stats-time-heatmap');
                 heatEl.innerHTML = "";
                 let maxTime = 0;
                 for(let k in timeOfDay) if(timeOfDay[k] > maxTime) maxTime = timeOfDay[k];
-                
                 for(let k in timeOfDay) {
                     if(maxTime === 0) break;
                     const val = timeOfDay[k];
                     const pct = (val / maxTime) * 100;
                     const row = document.createElement('div');
                     row.className = 'chart-row';
-                    row.innerHTML = `
-                       <div class="chart-label">${k}</div>
-                       <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${pct}%; background:#e67e22;"></div></div>
-                    `;
+                    row.innerHTML = `<div class="chart-label">${k}</div><div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${pct}%; background:#e67e22;"></div></div>`;
                     heatEl.appendChild(row);
                 }
                 if(maxTime === 0) heatEl.innerHTML = "<div style='color:#777; font-style:italic;'>Keine Daten</div>";
             };
         }
-
 
         // --- REST OF APP LOGIC ---
 
@@ -1522,7 +1554,6 @@
                 if(currentTrackIndex + 1 < currentPlaylist.length) {
                     playPlaylistIndex(currentTrackIndex + 1, 0);
                 } else { 
-                    // End of Playlist -> Mark Completed
                     markTrackAsCompleted(currentPlayingTagId);
                     setPlayButtonState(false); 
                     currentTrackIndex = 0; 
@@ -1534,35 +1565,18 @@
         };
 
         async function loadExamplesFromGitHub(event) {
-            // 1. STOPPT das "Scanner gestartet" Problem
-            if(event) {
-                event.stopPropagation();
-                event.preventDefault();
-            }
-
-            // 2. KORREKTE URL für Rohdaten (nicht die HTML Webseite!)
+            if(event) { event.stopPropagation(); event.preventDefault(); }
             const BASE_URL = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/";
-            
             if(!confirm("Möchtest du die Beispiel-Hörspiele (ca. 10 MB) jetzt herunterladen?")) return;
-
             showStatus("⏳ Lade Daten von GitHub...");
-
             try {
-                // 1. JSON laden
                 const jsonResp = await fetch(BASE_URL + "klangkiste.json");
                 if (!jsonResp.ok) throw new Error("JSON nicht gefunden");
                 const data = await jsonResp.json();
-                
                 if(!db) { alert("Datenbank noch nicht bereit. Warte kurz..."); return; }
-
-                // 2. ALLE Dateien erst herunterladen (PRE-FETCHING)
-                // Wichtig: Transaktion darf erst starten, wenn wir alle Daten haben!
                 const preparedEntries = [];
-
                 for (const entry of data) {
                     showStatus(`📥 Lade Dateien für: ${entry.name.substring(0, 15)}...`);
-                    
-                    // Audio laden
                     const audioBlobs = [];
                     if (entry.playlistFileNames) {
                         for (const fileName of entry.playlistFileNames) {
@@ -1574,8 +1588,6 @@
                         }
                     }
                     if (audioBlobs.length === 0) continue;
-
-                    // Bild laden
                     let imageBlob = null;
                     if (entry.imageFileName) {
                         const resp = await fetch(BASE_URL + encodeURIComponent(entry.imageFileName));
@@ -1584,8 +1596,6 @@
                             imageBlob = new File([blob], entry.imageFileName, { type: "image/png" });
                         }
                     }
-
-                    // Eintrag vorbereiten (noch NICHT speichern)
                     preparedEntries.push({
                         tagId: entry.tagId,
                         name: entry.name,
@@ -1601,26 +1611,17 @@
                         completed: false
                     });
                 }
-
-                // 3. JETZT Transaktion starten und speichern (Synchroner Block)
                 if(preparedEntries.length === 0) { alert("Keine Daten geladen."); return; }
-
                 showStatus("💾 Speichere in Datenbank...");
                 const tx = db.transaction(["tracks"], "readwrite");
                 const store = tx.objectStore("tracks");
-
-                preparedEntries.forEach(item => {
-                    store.put(item);
-                });
-
+                preparedEntries.forEach(item => { store.put(item); });
                 tx.oncomplete = () => {
                     showStatus("✅ Fertig!");
                     loadTagList(); 
                     alert(`Erfolg! ${preparedEntries.length} Hörspiele installiert.`);
                 };
-                
                 tx.onerror = (e) => alert("DB Fehler: " + e.target.error);
-
             } catch (e) {
                 console.error(e);
                 alert("Download Fehler: " + e.message);
@@ -1670,6 +1671,7 @@
 
         function forceSaveCurrentPosition() {
             if(!currentPlayingTagId) return;
+            localStorage.setItem('lastActiveTagId', currentPlayingTagId);
             const pos = audioPlayer.currentTime; const tx = db.transaction(["tracks"], "readwrite"); const store = tx.objectStore("tracks"); const getReq = store.get(currentPlayingTagId);
             getReq.onsuccess = function() { const record = getReq.result; if(record) { record.lastTrackIndex = currentTrackIndex; record.lastTime = pos; store.put(record); } };
         }
@@ -1692,7 +1694,14 @@
                 } 
             }, 200); 
         }
-        function clearDatabase() { if(confirm("Löschen?")) { db.close(); indexedDB.deleteDatabase(DB_NAME); location.reload(); } }
+        function clearDatabase() { 
+            if(confirm("Löschen?")) { 
+                db.close(); 
+                indexedDB.deleteDatabase(DB_NAME); 
+                localStorage.removeItem('lastActiveTagId');
+                location.reload(); 
+            } 
+        }
         function showStatus(msg) { const el = document.getElementById('status-msg'); el.innerText = msg; el.style.display = 'block'; setTimeout(() => { el.style.display = 'none'; }, 3000); }
         function formatTime(s) { const minutes = Math.floor(s / 60); const seconds = Math.floor(s % 60); return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`; }
         function applyButtonColors() {
@@ -1715,7 +1724,6 @@
             const current = audioPlayer.currentTime; const total = audioPlayer.duration; const pct = (current/total)*100;
             document.getElementById('time-progress').style.width = pct + "%";
             document.getElementById('time-text').innerText = showRemainingTime ? "-" + formatTime(total-current) : formatTime(current);
-            
             if(currentCueTracks) {
                 let currentChapterName = "";
                 for(let i=currentCueTracks.length-1; i>=0; i--) {
@@ -1726,36 +1734,51 @@
         });
 
         function toggleTimeDisplayMode() { showRemainingTime = !showRemainingTime; updateTimeDisplay(); }
-        // Fallback: Global click listener startet NFC
         document.body.addEventListener('click', async () => { if(!ndef && "NDEFReader" in window) { try { await startNFC(); } catch(e) {} } }, { once: true });
 
         function goToKidsMode() {
             try {
-                // UI Switch First
                 safeDisplay('parent-mode', 'none');
                 safeDisplay('kids-mode', 'flex'); 
-
-                // Setup
                 isParentMode = false;
                 applyKidsDesign(); 
                 applyButtonColors();
-
                 if(settings.enableLibrary !== false) {
                      document.getElementById('btn-open-lib').style.display = 'flex';
                 } else {
                      document.getElementById('btn-open-lib').style.display = 'none';
                 }
-
-                if (document.documentElement.requestFullscreen) { document.documentElement.requestFullscreen().catch((e) => {}); }
-                if(settings.enableEcoMode) updateEcoModeState(false);
                 
+                // VOLLBILD VERSUCHEN (NEU)
+                enterFullscreenSafe();
+
+                if(settings.enableEcoMode) updateEcoModeState(false);
                 requestWakeLock();
                 startNFC().catch(err => console.log("NFC Error", err));
-
             } catch(e) {
                 alert("Fehler beim Starten: " + e);
                 safeDisplay('kids-mode', 'none');
                 safeDisplay('parent-mode', 'flex');
+            }
+        }
+        
+        // NEU: Robuste Vollbild-Funktion
+        function enterFullscreenSafe() {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().then(() => {
+                    console.log("Vollbild aktiv.");
+                }).catch((err) => {
+                    console.log("Vollbild blockiert. Warte auf Klick...");
+                    // Fallback beim nächsten Klick
+                    const fsHandler = () => {
+                        elem.requestFullscreen().catch(() => {});
+                        document.body.removeEventListener('click', fsHandler);
+                        document.body.removeEventListener('touchstart', fsHandler);
+                    };
+                    document.body.addEventListener('click', fsHandler, { once: true });
+                    document.body.addEventListener('touchstart', fsHandler, { once: true });
+                });
             }
         }
         
@@ -1790,7 +1813,6 @@
             const metaGenre = document.getElementById('meta-genre').value;
             const metaRuntime = document.getElementById('meta-runtime').value;
             
-            // NEU: Hidden Status holen
             const isHidden = document.getElementById('track-hidden-lib').checked;
 
             const finalize = (oldRecord = null, newCueTracks = null) => {
@@ -1818,7 +1840,6 @@
                     imageFileName: finalImgName, 
                     cueTracks: finalCue, 
                     meta: metaObj, 
-                    // NEU: Feld zum Datensatz hinzufügen
                     hiddenInLib: isHidden, 
                     lastTrackIndex: oldRecord ? oldRecord.lastTrackIndex : 0, 
                     lastTime: oldRecord ? oldRecord.lastTime : 0 
@@ -1891,7 +1912,6 @@
                         document.getElementById('meta-runtime').value = "";
                     }
                     
-                    // NEU: Hidden Checkbox setzen
                     document.getElementById('track-hidden-lib').checked = r.hiddenInLib === true;
                     
                     document.getElementById('form-title').innerText = "✏️ Bearbeiten: " + r.name;
@@ -1906,8 +1926,22 @@
                     } else { document.getElementById('audio-info').innerText = "Keine Audio-Datei"; }
                     document.getElementById('cue-info').innerText = r.cueTracks ? "Kapiteldaten vorhanden" : "Keine";
                     document.getElementById('img-info').innerText = r.imageFileName ? r.imageFileName : "Standard";
-                    document.getElementById('scan-card').classList.add("editing-highlight");
-                    document.getElementById('scan-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // --- SCROLL FIX V4 (CSS + JS) ---
+                    const card = document.getElementById('scan-card');
+                    const container = document.getElementById('parent-mode');
+                    card.classList.add("editing-highlight");
+                    
+                    // 1. Standard
+                    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // 2. Fallback
+                    setTimeout(() => {
+                        if(container) {
+                            const topPos = card.offsetTop - 10;
+                            container.scrollTo({ top: topPos, behavior: 'smooth' });
+                        }
+                    }, 100);
                 }
             };
         }
@@ -1924,7 +1958,6 @@
             document.getElementById('cue-info').innerText = "";
             document.getElementById('img-info').innerText = "";
             
-            // NEU: Checkbox reset
             document.getElementById('track-hidden-lib').checked = false;
 
             document.getElementById('form-title').innerText = "🎵 Tag bearbeiten / anlernen";
@@ -1948,9 +1981,13 @@
         
         // --- MASS ACTIONS ---
         function setAllLibraryVisibility(isHidden) {
-            if(!confirm(isHidden ? "Alle Hörbücher in der Bibliothek verstecken?" : "Alle Hörbücher in der Bibliothek anzeigen?")) return;
+            const msgHide = "Alle Hörbücher in der Bibliothek verstecken?\n\nHinweis: Das kann bei vielen Hörbüchern einen Moment dauern (z.B. ca. 5 Sek. bei 30 Stück).";
+            const msgShow = "Alle Hörbücher in der Bibliothek anzeigen?\n\nHinweis: Das kann bei vielen Hörbüchern einen Moment dauern (z.B. ca. 5 Sek. bei 30 Stück).";
+
+            if(!confirm(isHidden ? msgHide : msgShow)) return;
             
-            showStatus("Verarbeite...");
+            showStatus("Verarbeite... Bitte warten ⏳");
+            
             const tx = db.transaction(["tracks"], "readwrite");
             const store = tx.objectStore("tracks");
             let count = 0;
@@ -1966,9 +2003,8 @@
                     }
                     cursor.continue();
                 } else {
-                    // Ende
                     showStatus(`${count} Einträge aktualisiert.`);
-                    loadTagList(); // Refresh Admin List
+                    loadTagList(); 
                 }
             };
         }
@@ -1982,8 +2018,19 @@
                 if(track) {
                     track.hiddenInLib = !track.hiddenInLib;
                     store.put(track);
-                    showStatus(track.hiddenInLib ? "Versteckt 🚫" : "Sichtbar 👁️");
-                    loadTagList();
+
+                    const btn = document.getElementById(`btn-vis-${id}`);
+                    const badge = document.getElementById(`badge-${id}`);
+
+                    if(track.hiddenInLib) {
+                        if(btn) { btn.innerText = "🚫"; btn.style.backgroundColor = "#555"; btn.title = "Ist versteckt (Klick zum Anzeigen)"; }
+                        if(badge) { badge.style.display = "flex"; }
+                        showStatus("Versteckt 🚫");
+                    } else {
+                        if(btn) { btn.innerText = "👁️"; btn.style.backgroundColor = "#f39c12"; btn.title = "Ist sichtbar (Klick zum Verstecken)"; }
+                        if(badge) { badge.style.display = "none"; }
+                        showStatus("Sichtbar 👁️");
+                    }
                 }
             };
         }
@@ -1991,72 +2038,75 @@
         function loadTagList() {
             const container = document.getElementById('tag-list-container'); 
             if(!container) return; 
-            container.innerHTML = "";
+            
             const tx = db.transaction(["tracks"], "readonly"); 
             const store = tx.objectStore("tracks");
-            store.openCursor().onsuccess = (event) => {
-                const cursor = event.target.result; 
-                if (cursor) {
-                    const track = cursor.value;
+            
+            store.getAll().onsuccess = (event) => {
+                const tracks = event.target.result;
+                let htmlBuffer = "";
+                tracks.sort((a,b) => a.name.localeCompare(b.name));
+
+                tracks.forEach(track => {
                     if(track.tagId !== SYSTEM_BG_ID && track.tagId !== SYSTEM_SETTINGS_ID) {
-                        const card = document.createElement('div');
-                        card.className = 'admin-card';
+                        
                         let imgHtml = `<div style="font-size:30px;">🎵</div>`;
                         if (track.imageBlob) {
                             const url = URL.createObjectURL(track.imageBlob);
                             imgHtml = `<img src="${url}" class="admin-cover-img" loading="lazy">`;
                         }
+                        
                         let metaInfo = "";
                         if(track.meta) {
                             if(track.meta.age_recommendation) metaInfo += `Ab ${track.meta.age_recommendation}J `;
                             if(track.meta.genre) metaInfo += `• ${track.meta.genre}`;
                         }
                         
-                        // NEW: Completed Badge in Admin
                         let completedBadge = "";
                         if(track.completed) {
                             completedBadge = `<div class="completed-badge">✅</div>`;
                         }
 
-                        // NEU: Hidden Badge für Admin
                         let hiddenBadge = "";
                         if(track.hiddenInLib) {
-                            hiddenBadge = `<div style="position:absolute; top:5px; left:5px; background:rgba(231,76,60,0.9); color:white; border-radius:50%; width:25px; height:25px; display:flex; justify-content:center; align-items:center; z-index:10; font-size:14px; border:2px solid white;">🚫</div>`;
+                            hiddenBadge = `<div id="badge-${track.tagId}" style="position:absolute; top:5px; left:5px; background:rgba(255,255,255,0.95); color:black; border-radius:50%; width:28px; height:28px; display:flex; justify-content:center; align-items:center; z-index:10; font-size:16px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚫</div>`;
+                        } else {
+                            hiddenBadge = `<div id="badge-${track.tagId}" style="display:none; position:absolute; top:5px; left:5px; background:rgba(255,255,255,0.95); color:black; border-radius:50%; width:28px; height:28px; justify-content:center; align-items:center; z-index:10; font-size:16px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚫</div>`;
                         }
                         
-                        // Icon für Toggle Button
                         const visIcon = track.hiddenInLib ? "🚫" : "👁️";
                         const visTitle = track.hiddenInLib ? "Ist versteckt (Klick zum Anzeigen)" : "Ist sichtbar (Klick zum Verstecken)";
+                        const visBtnColor = track.hiddenInLib ? "#555" : "#f39c12";
 
-                        card.innerHTML = `
-                            <div class="admin-cover-wrap">
-                                ${imgHtml}
-                                ${completedBadge}
-                                ${hiddenBadge}
-                            </div>
-                            <div class="admin-card-body">
-                                <div>
-                                    <div class="admin-card-title">${track.name}</div>
-                                    <div class="admin-card-id">ID: ${track.tagId}</div>
-                                    <div style="font-size:0.75em; color:#ccc;">${metaInfo}</div>
+                        htmlBuffer += `
+                            <div class="admin-card">
+                                <div class="admin-cover-wrap">
+                                    ${imgHtml}
+                                    ${completedBadge}
+                                    ${hiddenBadge}
                                 </div>
-                                <div class="admin-actions">
-                                    <button class="btn-mini edit" onclick="loadTagForEdit('${track.tagId}')">✏️</button>
-                                    <button class="btn-mini vis" onclick="toggleTrackVisibility('${track.tagId}')" title="${visTitle}">${visIcon}</button>
-                                    <button class="btn-mini play" onclick="playTrackByTag('${track.tagId}')">▶</button>
-                                    <button class="btn-mini del" onclick="deleteTrack('${track.tagId}')">🗑</button>
+                                <div class="admin-card-body">
+                                    <div>
+                                        <div class="admin-card-title">${track.name}</div>
+                                        <div class="admin-card-id">ID: ${track.tagId}</div>
+                                        <div style="font-size:0.75em; color:#ccc;">${metaInfo}</div>
+                                    </div>
+                                    <div class="admin-actions">
+                                        <button class="btn-mini edit" onclick="loadTagForEdit('${track.tagId}')">✏️</button>
+                                        <button id="btn-vis-${track.tagId}" class="btn-mini vis" style="background-color:${visBtnColor};" onclick="toggleTrackVisibility('${track.tagId}')" title="${visTitle}">${visIcon}</button>
+                                        <button class="btn-mini play" onclick="playTrackByTag('${track.tagId}')">▶</button>
+                                        <button class="btn-mini del" onclick="deleteTrack('${track.tagId}')">🗑</button>
+                                    </div>
                                 </div>
                             </div>
                         `;
-                        container.appendChild(card);
                     } 
-                    cursor.continue();
-                }
+                });
+                container.innerHTML = htmlBuffer;
             };
         }
         function deleteTrack(id) { if(confirm("Wirklich löschen?")) { const tx = db.transaction(["tracks"], "readwrite"); tx.objectStore("tracks").delete(id); tx.oncomplete = () => loadTagList(); } }
 
-        // --- BULK IMPORT & EXPORT ---
         async function exportKlangkisteJson() {
             showStatus("Exportiere...");
             const tx = db.transaction(["tracks"], "readonly"); const store = tx.objectStore("tracks"); const exportData = [];
