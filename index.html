@@ -1953,9 +1953,15 @@
         
         // --- MASS ACTIONS ---
         function setAllLibraryVisibility(isHidden) {
-            if(!confirm(isHidden ? "Alle Hörbücher in der Bibliothek verstecken?" : "Alle Hörbücher in der Bibliothek anzeigen?")) return;
+            // Hier sind die neuen Nachrichten mit dem Hinweis:
+            const message = isHidden 
+                ? "Alle Hörbücher in der Bibliothek verstecken?\n\nHinweis: Das kann bei vielen Hörbüchern einige Sekunden dauern." 
+                : "Alle Hörbücher in der Bibliothek anzeigen?\n\nHinweis: Das kann bei vielen Hörbüchern einige Sekunden dauern.";
+
+            if(!confirm(message)) return;
             
-            showStatus("Verarbeite...");
+            showStatus("Verarbeite... Bitte warten ⏳");
+            
             const tx = db.transaction(["tracks"], "readwrite");
             const store = tx.objectStore("tracks");
             let count = 0;
@@ -1973,8 +1979,6 @@
                 } else {
                     // Ende
                     showStatus(`${count} Einträge aktualisiert.`);
-                    // Hier müssen wir neu laden, weil sich alles geändert hat.
-                    // Aber da loadTagList jetzt optimiert ist, flackert es kaum noch.
                     loadTagList(); 
                 }
             };
