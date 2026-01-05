@@ -672,11 +672,11 @@
         <div class="card" style="border-left: 3px solid #0984e3;">
             <h2>🔋 Energie & Display</h2>
             <div class="checkbox-wrapper">
-                <input type="checkbox" id="check-wakelock" onchange="saveSettings()">
+                <input type="checkbox" id="check-wakelock" onchange="saveSettings()" checked>
                 <div><strong>Display anlassen</strong><br><span style="font-size:0.8em; color:#ccc;">Nutzt Video-Trick + WakeLock</span></div>
             </div>
             <div class="checkbox-wrapper">
-                <input type="checkbox" id="check-ecomode" onchange="updateEcoModeState(true)">
+                <input type="checkbox" id="check-ecomode" onchange="updateEcoModeState(true)" checked>
                 <div><strong>Stromsparen beim Umdrehen</strong><br><span style="font-size:0.8em; color:#ccc;">Display aus bei Face-down</span></div>
             </div>
             <button class="btn-admin" style="background-color: #74b9ff; font-size: 0.9em; margin-top:0;" onclick="requestIOSPermission()">
@@ -687,12 +687,12 @@
         <div class="card" style="border-left: 3px solid #e84393;">
             <h2>🎨 Design für Kinder-Modus</h2>
             <div class="checkbox-wrapper">
-                <input type="checkbox" id="check-enable-lib" onchange="saveSettings()">
+                <input type="checkbox" id="check-enable-lib" onchange="saveSettings()" checked>
                 <div><strong>📚 Bibliothek im Kinder-Modus erlauben</strong><br><span style="font-size:0.8em; color:#ccc;">Deaktivieren für reine Tag-Steuerung</span></div>
             </div>
             <div class="checkbox-wrapper">
-                <input type="checkbox" id="check-colorful" onchange="saveSettings()">
-                <span>🎨 Bunte Knöpfe für Kinder</span>
+                <input type="checkbox" id="check-colorful" onchange="saveSettings()" checked>
+                <span><strong>🎨 Bunte Knöpfe für Kinder</strong></span>
             </div>
             
             <label>Hintergrund-Modus:</label>
@@ -1205,7 +1205,12 @@
 
         function loadSettings() {
             const saved = localStorage.getItem('klangkisteSettings_v16');
-            if (saved) { settings = JSON.parse(saved); updateUIFromSettings(); if (settings.startMode === 'kids') { setTimeout(() => { goToKidsMode(); }, 100); } }
+            if (saved) { 
+                settings = JSON.parse(saved); 
+                if (settings.startMode === 'kids') { setTimeout(() => { goToKidsMode(); }, 100); } 
+            }
+            // WICHTIG: Immer UI updaten, auch wenn nichts gespeichert war (dann gelten die Defaults)
+            updateUIFromSettings(); 
         }
 
         function updateSettingsUI() { const vol = document.getElementById('max-vol-input').value; document.getElementById('vol-display').innerText = vol + "%"; saveSettings(); }
