@@ -1891,7 +1891,6 @@
                         document.getElementById('meta-runtime').value = "";
                     }
                     
-                    // NEU: Hidden Checkbox setzen
                     document.getElementById('track-hidden-lib').checked = r.hiddenInLib === true;
                     
                     document.getElementById('form-title').innerText = "✏️ Bearbeiten: " + r.name;
@@ -1907,12 +1906,32 @@
                     document.getElementById('cue-info').innerText = r.cueTracks ? "Kapiteldaten vorhanden" : "Keine";
                     document.getElementById('img-info').innerText = r.imageFileName ? r.imageFileName : "Standard";
                     
-                    // AUTO SCROLL (Optimiert mit Timeout für sicheres Scrollen)
+                    // --- SCROLL LOGIC V3 (THE AGGRESSIVE ONE) ---
                     const card = document.getElementById('scan-card');
+                    const container = document.getElementById('parent-mode');
+                    
                     card.classList.add("editing-highlight");
+                    
+                    // 1. Standard-Befehl (für Desktop meist ausreichend)
+                    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // 2. Direkter Befehl an den Container (für Mobile/Chrome wichtig)
+                    // Wir geben dem Browser kurz Zeit (100ms) für das Layout
                     setTimeout(() => {
-                         card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 50);
+                        if(container) {
+                            // Berechne die absolute Position innerhalb des scrollbaren Containers
+                            // OffsetTop gibt Abstand zum oberen Rand des 'offsetParent' (hier meist container)
+                            container.scrollTo({
+                                top: card.offsetTop - 20, // 20px Abstand oben lassen
+                                behavior: 'smooth'
+                            });
+                        }
+                    }, 100);
+
+                    // 3. Fokus-Trick (Zwingt Mobile-Browser oft zum Sprung + Tastatur)
+                    setTimeout(() => {
+                        document.getElementById('track-name').focus();
+                    }, 300);
                 }
             };
         }
@@ -1953,13 +1972,13 @@
         
         // --- MASS ACTIONS ---
         function setAllLibraryVisibility(isHidden) {
-            // Hier sind die neuen Nachrichten mit dem Hinweis:
-            const message = isHidden 
-                ? "Alle Hörbücher in der Bibliothek verstecken?\n\nHinweis: Das kann bei vielen Hörbüchern einige Sekunden dauern." 
-                : "Alle Hörbücher in der Bibliothek anzeigen?\n\nHinweis: Das kann bei vielen Hörbüchern einige Sekunden dauern.";
+            // Die neuen Nachrichten mit Hinweis auf Wartezeit
+            const msgHide = "Alle Hörbücher in der Bibliothek verstecken?\n\nHinweis: Das kann bei vielen Hörbüchern einen Moment dauern (z.B. ca. 5 Sek. bei 30 Stück).";
+            const msgShow = "Alle Hörbücher in der Bibliothek anzeigen?\n\nHinweis: Das kann bei vielen Hörbüchern einen Moment dauern (z.B. ca. 5 Sek. bei 30 Stück).";
 
-            if(!confirm(message)) return;
+            if(!confirm(isHidden ? msgHide : msgShow)) return;
             
+            // Status sofort anzeigen, damit man sieht, dass etwas passiert
             showStatus("Verarbeite... Bitte warten ⏳");
             
             const tx = db.transaction(["tracks"], "readwrite");
