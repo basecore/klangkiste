@@ -671,6 +671,26 @@
                 <input type="checkbox" id="check-colorful" onchange="saveSettings()">
                 <span>🎨 Bunte Knöpfe für Kinder</span>
             </div>
+            
+            <hr style="border-top:1px solid rgba(255,255,255,0.1); margin:15px 0;">
+            <label>📚 Bibliothek Alters-Filter:</label>
+            <div class="info-box-blue" style="margin-top:0; margin-bottom:10px;">
+                Zeigt nur Inhalte bis zu diesem Alter.
+            </div>
+            <select id="lib-max-age-select" onchange="saveSettings()" style="margin-bottom: 15px;">
+                <option value="99">Alle anzeigen (Kein Filter)</option>
+                <option value="0">Nur "0 Jahre" / Ohne Altersangabe</option>
+                <option value="1">Bis 1 Jahr</option>
+                <option value="2">Bis 2 Jahre</option>
+                <option value="3">Bis 3 Jahre</option>
+                <option value="4">Bis 4 Jahre</option>
+                <option value="5">Bis 5 Jahre</option>
+                <option value="6">Bis 6 Jahre</option>
+                <option value="8">Bis 8 Jahre</option>
+                <option value="10">Bis 10 Jahre</option>
+                <option value="12">Bis 12 Jahre</option>
+            </select>
+
             <label>Hintergrund-Modus:</label>
             <select id="bg-mode-select" onchange="updateBgUIState(); saveSettings();" style="margin-bottom: 15px;">
                 <option value="default">Standard</option>
@@ -737,6 +757,12 @@
                     </div>
                 </div>
             </details>
+            <br>
+            
+            <div class="checkbox-wrapper" style="background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c;">
+                <input type="checkbox" id="track-hidden-lib">
+                <div><strong>🚫 In Bibliothek verstecken</strong><br><span style="font-size:0.8em; color:#ccc;">Taucht nicht im Kindermodus auf, aber per NFC abspielbar.</span></div>
+            </div>
             <br>
 
             <div style="display:flex; gap:10px; flex-direction:column;">
@@ -1116,7 +1142,11 @@
             document.getElementById('bg-color-input').value = settings.bgColor || '#ffffff';
             document.getElementById('check-wakelock').checked = settings.enableWakeLock || false;
             document.getElementById('check-ecomode').checked = settings.enableEcoMode || false;
-            document.getElementById('check-enable-lib').checked = settings.enableLibrary !== false; // Default true
+            document.getElementById('check-enable-lib').checked = settings.enableLibrary !== false; 
+            
+            // NEU: Altersfilter laden
+            document.getElementById('lib-max-age-select').value = settings.libMaxAge !== undefined ? settings.libMaxAge : "99";
+
             updateBgUIState(); 
         }
 
@@ -1131,6 +1161,10 @@
             settings.enableWakeLock = document.getElementById('check-wakelock').checked;
             settings.enableEcoMode = document.getElementById('check-ecomode').checked;
             settings.enableLibrary = document.getElementById('check-enable-lib').checked;
+
+            // NEU: Altersfilter speichern
+            settings.libMaxAge = parseInt(document.getElementById('lib-max-age-select').value);
+
             localStorage.setItem('klangkisteSettings_v15', JSON.stringify(settings));
             if(db) { const tx = db.transaction(["tracks"], "readwrite"); tx.objectStore("tracks").put({ tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: settings }); }
         }
@@ -1735,6 +1769,9 @@
             const metaAge = document.getElementById('meta-age').value;
             const metaGenre = document.getElementById('meta-genre').value;
             const metaRuntime = document.getElementById('meta-runtime').value;
+            
+            // NEU: Hidden Status holen
+            const isHidden = document.getElementById('track-hidden-lib').checked;
 
             const finalize = (oldRecord = null, newCueTracks = null) => {
                 let finalAudio = audioInput.files.length > 0 ? Array.from(audioInput.files) : (oldRecord ? oldRecord.playlist : []);
@@ -1761,6 +1798,8 @@
                     imageFileName: finalImgName, 
                     cueTracks: finalCue, 
                     meta: metaObj, 
+                    // NEU: Feld zum Datensatz hinzufügen
+                    hiddenInLib: isHidden, 
                     lastTrackIndex: oldRecord ? oldRecord.lastTrackIndex : 0, 
                     lastTime: oldRecord ? oldRecord.lastTime : 0 
                 };
@@ -1831,6 +1870,10 @@
                         document.getElementById('meta-genre').value = "Hörspiel";
                         document.getElementById('meta-runtime').value = "";
                     }
+                    
+                    // NEU: Hidden Checkbox setzen
+                    document.getElementById('track-hidden-lib').checked = r.hiddenInLib === true;
+                    
                     document.getElementById('form-title').innerText = "✏️ Bearbeiten: " + r.name;
                     document.getElementById('form-title').style.color = "#3498db";
                     document.getElementById('btn-save-tag').innerText = "Speichern & Neuer Tag (Move)";
@@ -1860,6 +1903,10 @@
             document.getElementById('audio-info').innerText = "";
             document.getElementById('cue-info').innerText = "";
             document.getElementById('img-info').innerText = "";
+            
+            // NEU: Checkbox reset
+            document.getElementById('track-hidden-lib').checked = false;
+
             document.getElementById('form-title').innerText = "🎵 Tag bearbeiten / anlernen";
             document.getElementById('form-title').style.color = "#74b9ff";
             document.getElementById('btn-save-tag').innerText = "📡 Tag scannen & speichern";
@@ -1908,10 +1955,17 @@
                             completedBadge = `<div class="completed-badge">✅</div>`;
                         }
 
+                        // NEU: Hidden Badge für Admin
+                        let hiddenBadge = "";
+                        if(track.hiddenInLib) {
+                            hiddenBadge = `<div style="position:absolute; top:5px; left:5px; background:rgba(231,76,60,0.9); color:white; border-radius:50%; width:25px; height:25px; display:flex; justify-content:center; align-items:center; z-index:10; font-size:14px; border:2px solid white;">🚫</div>`;
+                        }
+
                         card.innerHTML = `
                             <div class="admin-cover-wrap">
                                 ${imgHtml}
                                 ${completedBadge}
+                                ${hiddenBadge}
                             </div>
                             <div class="admin-card-body">
                                 <div>
@@ -2152,7 +2206,27 @@
 
             request.onsuccess = (e) => {
                 let tracks = e.target.result;
+                
+                // 1. System-Dateien filtern
                 tracks = tracks.filter(t => t.tagId !== "system_bg" && t.tagId !== "system_settings");
+
+                // NEU: 2. KINDERSICHERUNGS-FILTER
+                // Hole das Limit aus den Settings (Standard 99 = alle)
+                const ageLimit = (settings.libMaxAge !== undefined) ? settings.libMaxAge : 99;
+
+                tracks = tracks.filter(t => {
+                    // A. Manuell versteckte Tracks rauswerfen
+                    if (t.hiddenInLib === true) return false;
+
+                    // B. Altersfilter prüfen
+                    // Wenn kein Alter angegeben ist (0 oder undefined), zeigen wir es an.
+                    const trackAge = (t.meta && t.meta.age_recommendation) ? parseInt(t.meta.age_recommendation) : 0;
+                    
+                    if (trackAge > ageLimit) return false; // Zu alt für das Kind
+
+                    return true;
+                });
+
 
                 if(filterContainer.children.length <= 2) { 
                     const genres = new Set();
