@@ -1383,6 +1383,35 @@
         }
 
         function restoreLastSession() {
+            // 1. Crash/Close Analyse vom letzten Mal
+            const lastHeartbeat = parseInt(localStorage.getItem('stat_heartbeat') || 0);
+            const lastSessionStart = parseInt(localStorage.getItem('stat_session_start') || 0);
+            const now = Date.now();
+
+            // Wenn der letzte Herzschlag älter als 15 Sekunden ist, war die App aus/geschlossen.
+            if (lastHeartbeat > 0 && lastSessionStart > 0 && (now - lastHeartbeat > 15000)) {
+                const duration = (lastHeartbeat - lastSessionStart) / 1000;
+                
+                if (duration > 5) { // Nur wenn länger als 5 Sek lief
+                    // Wir mogeln diesen Eintrag nachträglich in die DB mit dem ALTEN Zeitstempel
+                    if(db) {
+                         const tx = db.transaction(["stats_log"], "readwrite");
+                         const store = tx.objectStore("stats_log");
+                         store.add({
+                            timestamp: lastHeartbeat, // Zeitstempel des Schließens
+                            type: 'app_close',        // Neuer Typ
+                            tagId: localStorage.getItem('lastActiveTagId'), // Tag ID von damals
+                            durationSec: duration,
+                            details: `App beendet / geschlossen`
+                        });
+                    }
+                }
+                // Reset, damit wir es nicht doppelt loggen
+                localStorage.removeItem('stat_heartbeat');
+                localStorage.removeItem('stat_session_start');
+            }
+
+            // 2. Normale Wiederherstellung (Dein alter Code)
             const lastId = localStorage.getItem('lastActiveTagId');
             if(lastId) {
                 const tx = db.transaction(["tracks"], "readonly");
@@ -1622,6 +1651,13 @@
                                 title = "Steuerung";
                                 text = `${tName} (${log.details})`;
                                 break;
+                            case 'app_close':
+                                icon = "🚪"; color = "#7f8c8d"; // Grau
+                                title = "App beendet";
+                                const minC = Math.floor((log.durationSec||0)/60);
+                                const secC = Math.round((log.durationSec||0)%60);
+                                text = `${tName} <br><span style="color:#fab1a0">Lief davor: ${minC}m ${secC}s</span>`;
+                                break;
                             default:
                                 title = log.type;
                                 text = log.details || "";
@@ -1834,6 +1870,11 @@
         function forceSaveCurrentPosition() {
             if(!currentPlayingTagId) return;
             localStorage.setItem('lastActiveTagId', currentPlayingTagId);
+
+            // --- NEU: Herzschlag für Statistik (App-Crash/Close Erkennung) ---
+            localStorage.setItem('stat_heartbeat', Date.now());
+            if(currentSessionStart) localStorage.setItem('stat_session_start', currentSessionStart);
+            // -----------------------------------------------------------------
             
             const pos = audioPlayer.currentTime; 
             const tx = db.transaction(["tracks"], "readwrite"); 
