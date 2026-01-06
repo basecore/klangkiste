@@ -2199,74 +2199,95 @@
             loadTagList();
         }
         
-        // --- MASSEN-STEUERUNG (ABSTURZSICHER) ---
+        // --- MASSEN-STEUERUNG (Batch-Optimiert für Stabilität) ---
         function setAllLibraryVisibility(isHidden) {
-            // SICHERHEIT: Wenn schon was läuft, sofort abbrechen!
+            // 1. Sicherheits-Check
             if(isProcessingDatabase) {
-                showStatus("⚠️ Bitte warten! Bin noch beschäftigt...");
+                showStatus("⚠️ Warte noch auf Abschluss...");
                 return;
             }
 
-            const msgHide = "Alle Hörbücher in der Bibliothek verstecken?";
-            const msgShow = "Alle Hörbücher in der Bibliothek anzeigen?";
-
+            const msgHide = "Alle Hörbücher verstecken?";
+            const msgShow = "Alle Hörbücher anzeigen?";
             if(!confirm(isHidden ? msgHide : msgShow)) return;
-            
-            // SPERRE AKTIVIEREN & Buttons deaktivieren
-            isProcessingDatabase = true;
-            document.querySelectorAll('button').forEach(b => { if(!b.id.includes('stubborn')) b.disabled = true; });
 
-            const statusEl = document.getElementById('status-msg');
-            statusEl.style.display = 'block';
-            statusEl.innerText = "⏳ Starte Verarbeitung...";
+            // 2. Sperre setzen
+            isProcessingDatabase = true;
+            toggleAdminInteractions(true); // Buttons grau machen
+            showStatus("⏳ Lade Daten...");
+
+            // 3. Erstmal ALLE Daten lesen (Read-Only ist schnell und sicher)
+            const txRead = db.transaction(["tracks"], "readonly");
+            const storeRead = txRead.objectStore("tracks");
             
+            storeRead.getAll().onsuccess = (event) => {
+                const allTracks = event.target.result;
+                // Nur echte Hörbücher filtern (keine System-Dateien)
+                const targetTracks = allTracks.filter(t => t.tagId !== "system_bg" && t.tagId !== "system_settings");
+                
+                if(targetTracks.length === 0) {
+                    finishMassUpdate(0);
+                    return;
+                }
+
+                // 4. Start der Stapelverarbeitung (Batch Processing)
+                processBatch(targetTracks, 0, isHidden);
+            };
+            
+            txRead.onerror = () => {
+                isProcessingDatabase = false;
+                toggleAdminInteractions(false);
+                alert("Fehler beim Lesen der Datenbank.");
+            };
+        }
+
+        // Hilfsfunktion: Arbeitet die Liste in kleinen Paketen ab
+        function processBatch(tracks, startIndex, isHidden) {
+            const BATCH_SIZE = 20; // 20 Stück auf einmal - sicher für S8+
+            const endIndex = Math.min(startIndex + BATCH_SIZE, tracks.length);
+            const currentBatch = tracks.slice(startIndex, endIndex);
+
+            showStatus(`⏳ Verarbeite ${startIndex + 1} bis ${endIndex} von ${tracks.length}...`);
+
+            // Neue Transaktion NUR für diesen kleinen Stapel öffnen
             const tx = db.transaction(["tracks"], "readwrite");
             const store = tx.objectStore("tracks");
-            let count = 0;
 
-            store.openCursor().onsuccess = (event) => {
-                const cursor = event.target.result;
-                if (cursor) {
-                    const track = cursor.value;
-                    // System-Dateien ignorieren
-                    if(track.tagId !== "system_bg" && track.tagId !== "system_settings") {
-                        
-                        // 1. In Datenbank speichern
-                        track.hiddenInLib = isHidden;
-                        cursor.update(track);
-                        count++;
+            currentBatch.forEach(track => {
+                track.hiddenInLib = isHidden;
+                store.put(track); // Speichern
+            });
 
-                        // 2. LIVE STATUS UPDATE (alle 10 Einträge)
-                        if(count % 10 === 0) {
-                            statusEl.innerText = `⏳ Verarbeite Eintrag ${count}...`;
-                        }
+            tx.oncomplete = () => {
+                // Wenn Stapel gespeichert: UI aktualisieren (nur für diese 20)
+                currentBatch.forEach(track => {
+                     updateUIElement(track); // Diese Funktion hast du schon im Code
+                });
 
-                        // 3. UI sofort ändern (ohne Neuladen)
-                        const btn = document.getElementById(`btn-vis-${track.tagId}`);
-                        const badge = document.getElementById(`badge-${track.tagId}`);
-
-                        if(isHidden) {
-                            if(btn) { btn.innerText = "🚫"; btn.style.backgroundColor = "#555"; btn.title = "Ist versteckt"; }
-                            if(badge) { badge.style.display = "flex"; }
-                        } else {
-                            if(btn) { btn.innerText = "👁️"; btn.style.backgroundColor = "#f39c12"; btn.title = "Ist sichtbar"; }
-                            if(badge) { badge.style.display = "none"; }
-                        }
-                    }
-                    cursor.continue();
+                // Prüfen, ob noch was übrig ist
+                if (endIndex < tracks.length) {
+                    // Kleine Pause (50ms) für den Browser, damit er nicht einfriert
+                    setTimeout(() => {
+                        processBatch(tracks, endIndex, isHidden);
+                    }, 50);
                 } else {
-                    // FERTIG
-                    isProcessingDatabase = false; // SPERRE LÖSEN
-                    document.querySelectorAll('button').forEach(b => b.disabled = false); // Buttons freigeben
-                    showStatus(`✅ Fertig! ${count} Einträge aktualisiert.`);
+                    // Alles fertig!
+                    finishMassUpdate(tracks.length);
                 }
             };
-            
-            tx.onerror = () => {
-                isProcessingDatabase = false; 
-                document.querySelectorAll('button').forEach(b => b.disabled = false);
-                alert("Fehler beim Datenbank-Update.");
+
+            tx.onerror = (e) => {
+                console.error("Batch Error:", e);
+                isProcessingDatabase = false;
+                toggleAdminInteractions(false);
+                alert("Fehler beim Speichern eines Stapels. Datenbank evtl. voll?");
             };
+        }
+
+        function finishMassUpdate(count) {
+            isProcessingDatabase = false;
+            toggleAdminInteractions(false);
+            showStatus(`✅ Fertig! ${count} Einträge aktualisiert.`);
         }
 
         function toggleTrackVisibility(id) {
