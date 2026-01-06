@@ -1,11 +1,12 @@
 {
-  "name": "KlangKiste",
+  "name": "KlangKiste V73",
   "short_name": "KlangKiste",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f4f7f6",
   "theme_color": "#2ecc71",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "scope": "./",
   "icons": [
     {
       "src": "assets/icons/icon.png",
