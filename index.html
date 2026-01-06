@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V69 Performance</title>
+    <title>KlangKiste V70 Shadow-List</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -854,7 +854,7 @@
         </div>
 
         <div class="footer-info">
-            <p>KlangKiste NFC V69 Performance</p>
+            <p>KlangKiste NFC V70 Shadow-List</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
         </div>
     </div>
@@ -1002,6 +1002,9 @@
         let isProcessingDatabase = false; // Verhindert Race Conditions
         let adminListView = true;         // Standard: Listenansicht (Text) für Performance
 
+        // --- SCHATTEN-LISTE (NEU) ---
+        let hiddenTracks = new Set(); // Speichert versteckte IDs im RAM
+
         const audioPlayer = document.getElementById('audio-player');
         
         let wakeLock = null;
@@ -1025,7 +1028,7 @@
         });
 
         let currentKidsVolumePct = 1.0; 
-        let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: true, startMode: 'parent', bgMode: 'default', bgColor: '#ffffff', enableWakeLock: true, enableEcoMode: true, enableLibrary: true };
+        let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: true, startMode: 'parent', bgMode: 'default', bgColor: '#ffffff', enableWakeLock: true, enableEcoMode: true, enableLibrary: true, hiddenIDs: [] };
         let sleepTimerId = null; let showRemainingTime = true; 
         let currentPlayingTagId = null; let currentTrackIndex = 0; let currentPlaylist = []; 
         let isNfcScanning = false; let isLinkModeActive = false;
@@ -1165,7 +1168,14 @@
             const req = store.get(SYSTEM_SETTINGS_ID);
             req.onsuccess = () => {
                 if(req.result && req.result.data) {
-                    settings = req.result.data; updateUIFromSettings();
+                    settings = req.result.data; 
+                    updateUIFromSettings();
+                    
+                    // Shadow List laden
+                    if(settings.hiddenIDs && Array.isArray(settings.hiddenIDs)) {
+                        hiddenTracks = new Set(settings.hiddenIDs);
+                    }
+
                     if (settings.startMode === 'kids') { setTimeout(() => { goToKidsMode(); }, 100); }
                 } else { saveSettings(); }
             };
@@ -1198,6 +1208,9 @@
             settings.enableEcoMode = document.getElementById('check-ecomode').checked;
             settings.enableLibrary = document.getElementById('check-enable-lib').checked;
             settings.libMaxAge = parseInt(document.getElementById('lib-max-age-select').value);
+            
+            // SHADOW LIST SAVE
+            settings.hiddenIDs = Array.from(hiddenTracks);
 
             localStorage.setItem('klangkisteSettings_v16', JSON.stringify(settings));
             if(db) { const tx = db.transaction(["tracks"], "readwrite"); tx.objectStore("tracks").put({ tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: settings }); }
@@ -1207,6 +1220,7 @@
             const saved = localStorage.getItem('klangkisteSettings_v16');
             if (saved) { 
                 settings = JSON.parse(saved); 
+                if(settings.hiddenIDs) hiddenTracks = new Set(settings.hiddenIDs);
                 if (settings.startMode === 'kids') { setTimeout(() => { goToKidsMode(); }, 100); } 
             }
             updateUIFromSettings(); 
@@ -2065,7 +2079,7 @@
                     imageFileName: finalImgName, 
                     cueTracks: finalCue, 
                     meta: metaObj, 
-                    hiddenInLib: isHidden, 
+                    hiddenInLib: isHidden, // Keep in DB for backup
                     lastTrackIndex: oldRecord ? oldRecord.lastTrackIndex : 0, 
                     lastTime: oldRecord ? oldRecord.lastTime : 0 
                 };
@@ -2080,7 +2094,15 @@
                 } else {
                     showStatus("Gespeichert!");
                 }
-                tx.oncomplete = () => { cancelEdit(); loadTagList(); };
+                tx.oncomplete = () => { 
+                    // Update Shadow List for new entry
+                    if(isHidden) hiddenTracks.add(tagId);
+                    else hiddenTracks.delete(tagId);
+                    saveSettings();
+
+                    cancelEdit(); 
+                    loadTagList(); 
+                };
             };
 
             const cueFile = cueInput.files[0];
@@ -2137,7 +2159,9 @@
                         document.getElementById('meta-runtime').value = "";
                     }
                     
-                    document.getElementById('track-hidden-lib').checked = r.hiddenInLib === true;
+                    // Check via Shadow List AND DB
+                    const isHidden = hiddenTracks.has(id) || r.hiddenInLib === true;
+                    document.getElementById('track-hidden-lib').checked = isHidden;
                     
                     document.getElementById('form-title').innerText = "✏️ Bearbeiten: " + r.name;
                     document.getElementById('form-title').style.color = "#3498db";
@@ -2199,121 +2223,62 @@
             loadTagList();
         }
         
-        // --- MASSEN-STEUERUNG (Batch-Optimiert für Stabilität) ---
+        // --- MASSEN-STEUERUNG (SHADOW LIST MODE - ULTRA FAST) ---
         function setAllLibraryVisibility(isHidden) {
-            // 1. Sicherheits-Check
-            if(isProcessingDatabase) {
-                showStatus("⚠️ Warte noch auf Abschluss...");
-                return;
-            }
+            if(isProcessingDatabase) return;
 
             const msgHide = "Alle Hörbücher verstecken?";
             const msgShow = "Alle Hörbücher anzeigen?";
             if(!confirm(isHidden ? msgHide : msgShow)) return;
 
-            // 2. Sperre setzen
-            isProcessingDatabase = true;
-            toggleAdminInteractions(true); // Buttons grau machen
-            showStatus("⏳ Lade Daten...");
-
-            // 3. Erstmal ALLE Daten lesen (Read-Only ist schnell und sicher)
-            const txRead = db.transaction(["tracks"], "readonly");
-            const storeRead = txRead.objectStore("tracks");
+            showStatus("Verarbeite... 🚀");
             
-            storeRead.getAll().onsuccess = (event) => {
-                const allTracks = event.target.result;
-                // Nur echte Hörbücher filtern (keine System-Dateien)
-                const targetTracks = allTracks.filter(t => t.tagId !== "system_bg" && t.tagId !== "system_settings");
-                
-                if(targetTracks.length === 0) {
-                    finishMassUpdate(0);
-                    return;
-                }
-
-                // 4. Start der Stapelverarbeitung (Batch Processing)
-                processBatch(targetTracks, 0, isHidden);
-            };
-            
-            txRead.onerror = () => {
-                isProcessingDatabase = false;
-                toggleAdminInteractions(false);
-                alert("Fehler beim Lesen der Datenbank.");
-            };
-        }
-
-        // Hilfsfunktion: Arbeitet die Liste in kleinen Paketen ab
-        function processBatch(tracks, startIndex, isHidden) {
-            const BATCH_SIZE = 20; // 20 Stück auf einmal - sicher für S8+
-            const endIndex = Math.min(startIndex + BATCH_SIZE, tracks.length);
-            const currentBatch = tracks.slice(startIndex, endIndex);
-
-            showStatus(`⏳ Verarbeite ${startIndex + 1} bis ${endIndex} von ${tracks.length}...`);
-
-            // Neue Transaktion NUR für diesen kleinen Stapel öffnen
-            const tx = db.transaction(["tracks"], "readwrite");
+            // Nur IDs holen (sehr schnell)
+            const tx = db.transaction(["tracks"], "readonly");
             const store = tx.objectStore("tracks");
-
-            currentBatch.forEach(track => {
-                track.hiddenInLib = isHidden;
-                store.put(track); // Speichern
-            });
-
-            tx.oncomplete = () => {
-                // Wenn Stapel gespeichert: UI aktualisieren (nur für diese 20)
-                currentBatch.forEach(track => {
-                     updateUIElement(track); // Diese Funktion hast du schon im Code
+            
+            store.getAllKeys().onsuccess = (e) => {
+                const keys = e.target.result;
+                
+                keys.forEach(k => {
+                    if(k !== SYSTEM_BG_ID && k !== SYSTEM_SETTINGS_ID) {
+                        if(isHidden) hiddenTracks.add(k);
+                        else hiddenTracks.delete(k);
+                    }
                 });
-
-                // Prüfen, ob noch was übrig ist
-                if (endIndex < tracks.length) {
-                    // Kleine Pause (50ms) für den Browser, damit er nicht einfriert
-                    setTimeout(() => {
-                        processBatch(tracks, endIndex, isHidden);
-                    }, 50);
-                } else {
-                    // Alles fertig!
-                    finishMassUpdate(tracks.length);
-                }
+                
+                saveSettings(); // Speichert die neue Liste
+                loadTagList(); // UI Update
+                showStatus("Fertig! ✅");
             };
-
-            tx.onerror = (e) => {
-                console.error("Batch Error:", e);
-                isProcessingDatabase = false;
-                toggleAdminInteractions(false);
-                alert("Fehler beim Speichern eines Stapels. Datenbank evtl. voll?");
-            };
-        }
-
-        function finishMassUpdate(count) {
-            isProcessingDatabase = false;
-            toggleAdminInteractions(false);
-            showStatus(`✅ Fertig! ${count} Einträge aktualisiert.`);
         }
 
         function toggleTrackVisibility(id) {
             if(isProcessingDatabase) return;
-            const tx = db.transaction(["tracks"], "readwrite");
-            const store = tx.objectStore("tracks");
-            store.get(id).onsuccess = (e) => {
-                const track = e.target.result;
-                if(track) {
-                    track.hiddenInLib = !track.hiddenInLib;
-                    store.put(track);
+            
+            // Toggle im RAM
+            if(hiddenTracks.has(id)) {
+                hiddenTracks.delete(id);
+                showStatus("Sichtbar 👁️");
+            } else {
+                hiddenTracks.add(id);
+                showStatus("Versteckt 🚫");
+            }
+            
+            saveSettings(); // Persistieren
 
-                    const btn = document.getElementById(`btn-vis-${id}`);
-                    const badge = document.getElementById(`badge-${id}`);
+            // UI Update (DOM Manipulation)
+            const btn = document.getElementById(`btn-vis-${id}`);
+            const badge = document.getElementById(`badge-${id}`);
+            const isHidden = hiddenTracks.has(id);
 
-                    if(track.hiddenInLib) {
-                        if(btn) { btn.innerText = "🚫"; btn.style.backgroundColor = "#555"; btn.title = "Ist versteckt (Klick zum Anzeigen)"; }
-                        if(badge) { badge.style.display = "flex"; }
-                        showStatus("Versteckt 🚫");
-                    } else {
-                        if(btn) { btn.innerText = "👁️"; btn.style.backgroundColor = "#f39c12"; btn.title = "Ist sichtbar (Klick zum Verstecken)"; }
-                        if(badge) { badge.style.display = "none"; }
-                        showStatus("Sichtbar 👁️");
-                    }
-                }
-            };
+            if(isHidden) {
+                if(btn) { btn.innerText = "🚫"; btn.style.backgroundColor = "#555"; btn.title = "Ist versteckt (Klick zum Anzeigen)"; }
+                if(badge) { badge.style.display = "flex"; }
+            } else {
+                if(btn) { btn.innerText = "👁️"; btn.style.backgroundColor = "#f39c12"; btn.title = "Ist sichtbar (Klick zum Verstecken)"; }
+                if(badge) { badge.style.display = "none"; }
+            }
         }
 
         function loadTagList() {
@@ -2340,7 +2305,9 @@
                     // System-Dateien ignorieren
                     if(track.tagId !== "system_bg" && track.tagId !== "system_settings") {
                         
-                        const isHidden = track.hiddenInLib;
+                        // SHADOW LIST CHECK
+                        const isHidden = hiddenTracks.has(track.tagId);
+                        
                         const visIcon = isHidden ? "🚫" : "👁️";
                         const visTitle = isHidden ? "Ist versteckt" : "Ist sichtbar";
                         const visBtnColor = isHidden ? "#555" : "#f39c12";
@@ -2413,7 +2380,11 @@
             if(confirm("Wirklich löschen?")) { 
                 const tx = db.transaction(["tracks"], "readwrite"); 
                 tx.objectStore("tracks").delete(id); 
-                tx.oncomplete = () => loadTagList(); 
+                tx.oncomplete = () => {
+                    hiddenTracks.delete(id); // Auch aus Shadow List entfernen
+                    saveSettings();
+                    loadTagList(); 
+                };
             } 
         }
 
@@ -2642,7 +2613,9 @@
                 const ageLimit = (settings.libMaxAge !== undefined) ? settings.libMaxAge : 99;
 
                 tracks = tracks.filter(t => {
-                    if (t.hiddenInLib === true) return false;
+                    // SHADOW LIST CHECK
+                    if (hiddenTracks.has(t.tagId)) return false; // Wenn in Liste, dann ausblenden
+                    
                     const trackAge = (t.meta && t.meta.age_recommendation) ? parseInt(t.meta.age_recommendation) : 0;
                     if (trackAge > ageLimit) return false; 
                     return true;
