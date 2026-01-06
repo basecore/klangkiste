@@ -1,4 +1,8 @@
-const CACHE_NAME = 'klangkiste-v70-shadow-list'; // WICHTIG: Version hochgezählt für das finale Update
+// WICHTIG: Version erhöht auf v73, damit das Handy alles neu lädt!
+const CACHE_NAME = 'klangkiste-v73-full';
+
+// Da du bestätigt hast, dass diese Dateien existieren, 
+// können wir sie sicher hier auflisten.
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -10,42 +14,64 @@ const ASSETS_TO_CACHE = [
   './assets/icons/icon512_rounded.png'
 ];
 
-// 1. Installieren: Dateien in den Cache laden
-self.addEventListener('install', (e) => {
-  console.log('[Service Worker] Installiere & Cache Dateien...');
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
+// --- 1. INSTALLIEREN (Dateien in den Speicher laden) ---
+self.addEventListener('install', (event) => {
+  console.log('[Service Worker] Installiere Version:', CACHE_NAME);
+  
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('[Service Worker] Caching aller Dateien...');
+        return cache.addAll(ASSETS_TO_CACHE);
+      })
+      .catch((err) => {
+        console.error('[Service Worker] Fehler beim Cachen:', err);
+        // Falls hier ein Fehler auftaucht, stimmt ein Pfad nicht!
+      })
   );
-  // Zwingt den wartenden Service Worker sofort aktiv zu werden
-  self.skipWaiting(); 
+  // Zwingt den neuen SW sofort aktiv zu werden
+  self.skipWaiting();
 });
 
-// 2. Abrufen (Fetch): Erst Cache, dann Netzwerk
-self.addEventListener('fetch', (e) => {
-  e.respondWith(
-    caches.match(e.request).then((cachedResponse) => {
-      // Wenn im Cache, nimm das. Sonst lade aus dem Netz.
-      return cachedResponse || fetch(e.request);
-    })
-  );
-});
-
-// 3. Aktivieren: Alte Caches löschen (Aufräumen beim Update)
-self.addEventListener('activate', (e) => {
-  console.log('[Service Worker] Aktiviere Version:', CACHE_NAME);
-  e.waitUntil(
+// --- 2. AKTIVIEREN (Alte Caches löschen) ---
+self.addEventListener('activate', (event) => {
+  console.log('[Service Worker] Aktiviere...');
+  
+  event.waitUntil(
     caches.keys().then((keyList) => {
       return Promise.all(keyList.map((key) => {
-        // Lösche alle Caches, die nicht der aktuellen Version entsprechen
+        // Lösche alles, was nicht v74 ist
         if (key !== CACHE_NAME) {
-          console.log('[Service Worker] Entferne alten Cache:', key);
+          console.log('[Service Worker] Lösche alten Cache:', key);
           return caches.delete(key);
         }
       }));
     })
   );
-  // Übernimmt sofort die Kontrolle über alle offenen Tabs
   return self.clients.claim();
+});
+
+// --- 3. FETCH (Offline Support) ---
+self.addEventListener('fetch', (event) => {
+  // Nur GET Requests cachen
+  if (event.request.method !== 'GET') return;
+
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      // A) Datei ist im Cache? Nimm sie! (Offline Modus)
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      // B) Nicht im Cache? Hol sie aus dem Internet.
+      return fetch(event.request)
+        .then((networkResponse) => {
+          return networkResponse;
+        })
+        .catch(() => {
+          // C) Offline und Datei fehlt?
+          console.log("Offline und Datei nicht gefunden:", event.request.url);
+        });
+    })
+  );
 });
