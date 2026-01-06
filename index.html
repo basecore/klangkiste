@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V73 Shadow-List</title>
+    <title>KlangKiste V74 </title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -863,7 +863,7 @@
         </div>
 
         <div class="footer-info">
-            <p>KlangKiste NFC V73 Shadow-List</p>
+            <p>KlangKiste NFC V74 Full System Restore</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
         </div>
     </div>
@@ -2557,46 +2557,202 @@
 
         // --- BULK IMPORT & EXPORT ---
         async function exportKlangkisteJson() {
-            showStatus("Exportiere...");
-            const tx = db.transaction(["tracks"], "readonly"); const store = tx.objectStore("tracks"); const exportData = [];
-            store.openCursor().onsuccess = (event) => {
-                const cursor = event.target.result;
-                if (cursor) {
-                    const t = cursor.value;
-                    if(t.tagId !== SYSTEM_BG_ID && t.tagId !== SYSTEM_SETTINGS_ID) {
-                        exportData.push({ tagId: t.tagId, name: t.name, playlistFileNames: t.playlistFileNames || [], imageFileName: t.imageFileName || null, meta: t.meta || {}, tags: t.tags || [], filter_age: t.filter_age || 0 });
+            showStatus("Erstelle Full-Backup...");
+            
+            try {
+                const tx = db.transaction(["tracks", "stats_log"], "readonly");
+                const trackStore = tx.objectStore("tracks");
+                const statsStore = tx.objectStore("stats_log");
+
+                // 1. Hole alle Tracks & Einstellungen
+                const allTracksReq = trackStore.getAll();
+                const allStatsReq = statsStore.getAll();
+
+                // Wir warten, bis beide Anfragen fertig sind
+                const [tracks, stats] = await new Promise((resolve, reject) => {
+                    let tracksResult = null;
+                    let statsResult = null;
+                    let finishedCount = 0;
+
+                    const checkDone = () => {
+                        finishedCount++;
+                        if (finishedCount === 2) resolve([tracksResult, statsResult]);
+                    };
+
+                    allTracksReq.onsuccess = (e) => { tracksResult = e.target.result; checkDone(); };
+                    allStatsReq.onsuccess = (e) => { statsResult = e.target.result; checkDone(); };
+                    
+                    allTracksReq.onerror = reject;
+                    allStatsReq.onerror = reject;
+                });
+
+                // 2. Daten sortieren und aufbereiten
+                const exportData = {
+                    type: "FULL_BACKUP_V1",
+                    timestamp: Date.now(),
+                    systemSettings: {}, // Hier landen die globalen Einstellungen
+                    tracks: [],
+                    stats: stats || []
+                };
+
+                tracks.forEach(t => {
+                    if (t.tagId === SYSTEM_SETTINGS_ID) {
+                        // Globale Einstellungen (Alter, Filter, Volume etc.)
+                        exportData.systemSettings = t.data;
+                    } else if (t.tagId === SYSTEM_BG_ID) {
+                        // Hintergrundbild ignorieren wir im JSON (zu groß), 
+                        // oder wir müssten es Base64 codieren (komplex).
+                        // Besser: Ignorieren.
+                    } else {
+                        // Ein echtes Hörbuch - ALLES speichern
+                        exportData.tracks.push({
+                            tagId: t.tagId,
+                            name: t.name,
+                            playlistFileNames: t.playlistFileNames || [],
+                            imageFileName: t.imageFileName || null,
+                            meta: t.meta || {},
+                            tags: t.tags || [],
+                            filter_age: t.filter_age || 0,
+                            // --- NEUE FELDER ---
+                            lastTrackIndex: t.lastTrackIndex || 0,
+                            lastTime: t.lastTime || 0,            // Zeitstempel
+                            completed: t.completed || false,      // Fertig gehört?
+                            hiddenInLib: t.hiddenInLib || false,  // Versteckt?
+                            lastPlayedTimestamp: t.lastPlayedTimestamp || 0 // Zuletzt gehört Sortierung
+                        });
                     }
-                    cursor.continue();
-                } else {
-                    const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: "application/json"});
-                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "klangkiste.json"; document.body.appendChild(a); a.click(); document.body.removeChild(a); showStatus("Export fertig! ✅");
-                }
-            };
+                });
+
+                // 3. Download starten
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: "application/json"});
+                const a = document.createElement('a');
+                const dateStr = new Date().toISOString().slice(0,10);
+                a.href = URL.createObjectURL(blob);
+                a.download = `klangkiste_full_backup_${dateStr}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                showStatus("Full-Backup erstellt! ✅");
+
+            } catch (e) {
+                console.error(e);
+                alert("Export Fehler: " + e.message);
+            }
         }
         async function importKlangkisteJson(input) {
-            const file = input.files[0]; if(!file) return; showStatus("Lade Datenbank...");
+            const file = input.files[0]; if(!file) return; 
+            showStatus("Analysiere Backup...");
+            
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
-                    const data = JSON.parse(e.target.result); if(!Array.isArray(data)) throw new Error("Format falsch");
-                    const tx = db.transaction(["tracks"], "readwrite"); const store = tx.objectStore("tracks");
+                    const rawData = JSON.parse(e.target.result);
+                    let tracksToImport = [];
+                    let statsToImport = [];
+                    let settingsToImport = null;
+
+                    // A) Ist es das neue FULL BACKUP?
+                    if (rawData.type && rawData.type.startsWith("FULL_BACKUP")) {
+                        console.log("Full Backup erkannt!");
+                        tracksToImport = rawData.tracks || [];
+                        statsToImport = rawData.stats || [];
+                        settingsToImport = rawData.systemSettings || null;
+                    } 
+                    // B) Ist es das alte Format (einfaches Array)?
+                    else if (Array.isArray(rawData)) {
+                        console.log("Legacy Backup erkannt!");
+                        tracksToImport = rawData;
+                    } else {
+                        throw new Error("Unbekanntes Format");
+                    }
+
+                    if(!confirm(`Backup einspielen?\n\n• ${tracksToImport.length} Hörbücher\n• ${statsToImport.length} Statistik-Einträge\n• Einstellungen: ${settingsToImport ? "Ja" : "Nein"}`)) return;
+
+                    const tx = db.transaction(["tracks", "stats_log"], "readwrite");
+                    const trackStore = tx.objectStore("tracks");
+                    const statsStore = tx.objectStore("stats_log");
+
                     let updated = 0; let newEntries = 0;
-                    for(const entry of data) {
-                        await new Promise((resolve) => {
-                            const req = store.get(entry.tagId);
-                            req.onsuccess = () => {
-                                const existing = req.result;
-                                if(existing) { existing.name = entry.name; existing.meta = entry.meta; existing.tags = entry.tags; existing.filter_age = entry.filter_age; store.put(existing); updated++; } 
-                                else { store.put({ tagId: entry.tagId, name: entry.name, playlist: [], playlistFileNames: entry.playlistFileNames, imageBlob: null, imageFileName: entry.imageFileName, cueTracks: null, meta: entry.meta, tags: entry.tags, lastTrackIndex:0, lastTime:0 }); newEntries++; }
-                                resolve();
-                            };
+
+                    // 1. Einstellungen wiederherstellen
+                    if (settingsToImport) {
+                        // Auch in LocalStorage schreiben für sofortigen Zugriff
+                        localStorage.setItem('klangkisteSettings_v16', JSON.stringify(settingsToImport));
+                        trackStore.put({ tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: settingsToImport });
+                        
+                        // Settings Variable sofort aktualisieren
+                        settings = settingsToImport;
+                        if(settings.hiddenIDs) hiddenTracks = new Set(settings.hiddenIDs);
+                        updateUIFromSettings();
+                    }
+
+                    // 2. Statistik wiederherstellen
+                    if (statsToImport.length > 0) {
+                        // Optional: Alte Statistik vorher löschen? 
+                        // statsStore.clear(); // Falls gewünscht, Kommentar entfernen
+                        statsToImport.forEach(stat => {
+                            // Wir nutzen put statt add, damit keine doppelten IDs Fehler werfen (falls IDs im Backup sind)
+                            statsStore.put(stat);
                         });
                     }
-                    alert(`Datenbank geladen!\n\n• ${updated} Einträge aktualisiert\n• ${newEntries} neue Einträge erstellt.`);
-                    const btn = document.getElementById('btn-auto-repair'); if(btn) { btn.style.backgroundColor = "#e74c3c"; btn.style.animation = "pulse 2s infinite"; }
-                    loadTagList(); input.value = "";
-                } catch(e) { alert("Fehler: " + e); }
-            }; reader.readAsText(file);
+
+                    // 3. Tracks wiederherstellen (mit Erhalt der Audio-Blobs wenn möglich)
+                    for(const entry of tracksToImport) {
+                         await new Promise((resolve) => {
+                            const req = trackStore.get(entry.tagId);
+                            req.onsuccess = () => {
+                                const existing = req.result;
+                                
+                                // Wir bauen das neue Objekt
+                                const newRecord = {
+                                    tagId: entry.tagId,
+                                    name: entry.name,
+                                    playlistFileNames: entry.playlistFileNames,
+                                    imageFileName: entry.imageFileName,
+                                    meta: entry.meta,
+                                    tags: entry.tags,
+                                    filter_age: entry.filter_age,
+                                    // Die neuen wichtigen Infos:
+                                    lastTrackIndex: entry.lastTrackIndex || 0,
+                                    lastTime: entry.lastTime || 0,
+                                    completed: entry.completed || false,
+                                    hiddenInLib: entry.hiddenInLib || false,
+                                    lastPlayedTimestamp: entry.lastPlayedTimestamp || 0,
+                                    // Audio/Bild erhalten, wenn es schon da war!
+                                    playlist: existing ? existing.playlist : [],
+                                    imageBlob: existing ? existing.imageBlob : null,
+                                    cueTracks: existing ? existing.cueTracks : null // Oder aus Import wenn erweitert
+                                };
+                                
+                                trackStore.put(newRecord);
+                                if(existing) updated++; else newEntries++;
+                                resolve();
+                            };
+                         });
+                    }
+
+                    tx.oncomplete = () => {
+                        alert(`Wiederherstellung komplett!\n\nStatus: V76 Full Restore\n• Einstellungen geladen\n• ${statsToImport.length} Statistik-Events\n• ${updated} Tracks aktualisiert\n• ${newEntries} neue Tracks (leer)`);
+                        
+                        // Wichtig: Da Audio-Blobs im JSON fehlen, leuchten die Buttons evtl. rot (Repair nötig)
+                        const btn = document.getElementById('btn-auto-repair'); 
+                        if(btn && newEntries > 0) { 
+                            btn.style.backgroundColor = "#e74c3c"; 
+                            btn.style.animation = "pulse 2s infinite"; 
+                            showStatus("Bitte 'Automatisch Reparieren' nutzen für Audio!");
+                        }
+                        
+                        loadTagList(); 
+                        input.value = "";
+                    };
+
+                } catch(e) { 
+                    alert("Import Fehler: " + e.message); 
+                    console.error(e);
+                }
+            }; 
+            reader.readAsText(file);
         }
         async function handleBulkImport(input) {
             const files = Array.from(input.files); if(files.length === 0) return;
