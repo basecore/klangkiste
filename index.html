@@ -1245,11 +1245,116 @@
             if(pct < 40) bar.style.backgroundColor = "var(--green-safe)"; else if (pct < 75) bar.style.backgroundColor = "var(--orange-warn)"; else bar.style.backgroundColor = "var(--red-danger)";
         }
 
+        // --- HAUPTFUNKTION: Versucht MP3, sonst Backup ---
         function playTestTone() {
-            const testAudio = new Audio('assets/limit.mp3');
-            testAudio.volume = Math.pow(settings.maxVolume, 2);
-            showStatus("🔊 Spiele Test-Datei...");
-            testAudio.play().catch(e => { console.log("Fehler:", e); showStatus("Fehler: limit.mp3 fehlt?"); });
+            const path = 'assets/limit.mp3';
+            
+            // Audio-Objekt erstellen
+            const testAudio = new Audio();
+            
+            // Lautstärke berechnen (Quadratisch für natürlicheres Gefühl)
+            const targetVol = Math.pow(settings.maxVolume, 2);
+            testAudio.volume = targetVol;
+
+            // --- FEHLER-MANAGER ---
+            testAudio.addEventListener('error', (e) => {
+                const err = testAudio.error;
+                let errorDetails = "";
+
+                // Genaue Diagnose für dich
+                switch (err.code) {
+                    case 1: // MEDIA_ERR_ABORTED
+                        errorDetails = "Abbruch durch System/User";
+                        break;
+                    case 2: // MEDIA_ERR_NETWORK
+                        errorDetails = "Netzwerk/Cache Fehler (Service Worker inaktiv?)";
+                        break;
+                    case 3: // MEDIA_ERR_DECODE
+                        errorDetails = "Datei beschädigt (Dekodierfehler)";
+                        break;
+                    case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+                        errorDetails = "Datei nicht gefunden (404) oder Format falsch";
+                        break;
+                    default:
+                        errorDetails = "Unbekannter Fehler Code " + err.code;
+                }
+
+                console.warn("MP3 Fehler:", errorDetails);
+                
+                // Meldung an User und Backup starten
+                showStatus("⚠️ " + errorDetails + " -> Spiele Backup-Ton 🚨");
+                playBackupTone(targetVol);
+            });
+
+            // --- ERFOLGS-FALL ---
+            testAudio.addEventListener('canplaythrough', () => {
+                // Nur zur Info, dass MP3 geklappt hat
+                console.log("limit.mp3 erfolgreich geladen.");
+            });
+
+            // Setze Pfad und starte
+            testAudio.src = path;
+            
+            testAudio.play()
+                .then(() => {
+                    showStatus("🔊 Test-Ton (MP3) läuft...");
+                })
+                .catch(e => {
+                    // Dieser Block fängt Fehler ab, die SOFORT beim Aufruf passieren
+                    // (z.B. wenn der Browser Autoplay blockiert oder der Pfad komplett ungültig ist)
+                    console.error("Play-Promise Fehler:", e);
+                    
+                    if (e.name === "NotAllowedError") {
+                        showStatus("❌ Wiedergabe vom Browser blockiert (Bitte interagieren)");
+                    } else {
+                        // Bei allen anderen Fehlern: Backup versuchen!
+                        showStatus("⚠️ Startfehler -> Spiele Backup-Ton 🚨");
+                        playBackupTone(targetVol);
+                    }
+                });
+        }
+
+        // --- BACKUP FUNKTION (Web Audio API - funktioniert IMMER) ---
+        function playBackupTone(volume) {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) {
+                    alert("Kein Ton möglich: Weder MP3 noch WebAudio unterstützt.");
+                    return;
+                }
+                
+                const ctx = new AudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                // Ein angenehmer Sinus-Ton (ähnlich wie ein Testbild-Piepen)
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, ctx.currentTime); // 440 Hz (Standard Kammerton A)
+                
+                // Lautstärke setzen
+                gain.gain.setValueAtTime(volume, ctx.currentTime);
+                
+                // Verkabeln: Oszillator -> Lautstärke -> Ausgang
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                // Abspielen
+                osc.start();
+                
+                // Nach 1 Sekunde sanft ausblenden und stoppen
+                const stopTime = ctx.currentTime + 1;
+                gain.gain.exponentialRampToValueAtTime(0.001, stopTime);
+                osc.stop(stopTime);
+                
+                // Aufräumen nach dem Ton
+                setTimeout(() => {
+                    ctx.close();
+                }, 1200);
+
+            } catch(e) {
+                console.error("Sogar Backup gescheitert:", e);
+                alert("Totalausfall Audio: " + e.message);
+            }
         }
 
         // --- WAKE LOCK & ECO (SAFE) ---
