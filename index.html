@@ -2191,11 +2191,15 @@
         }
         
         function setAllLibraryVisibility(isHidden) {
-            const msgHide = "Alle Hörbücher in der Bibliothek verstecken?\n\nHinweis: Um den Speicher deines Geräts zu schonen, wird die Seite danach neu geladen.";
-            const msgShow = "Alle Hörbücher in der Bibliothek anzeigen?\n\nHinweis: Um den Speicher deines Geräts zu schonen, wird die Seite danach neu geladen.";
+            const msgHide = "Alle Hörbücher in der Bibliothek verstecken?";
+            const msgShow = "Alle Hörbücher in der Bibliothek anzeigen?";
 
             if(!confirm(isHidden ? msgHide : msgShow)) return;
-            showStatus("Verarbeite... Bitte warten ⏳");
+            
+            // Status anzeigen, damit du siehst, dass etwas passiert
+            const statusEl = document.getElementById('status-msg');
+            statusEl.style.display = 'block';
+            statusEl.innerText = "⏳ Verarbeite... (Bilder bleiben, Status ändert sich)";
             
             const tx = db.transaction(["tracks"], "readwrite");
             const store = tx.objectStore("tracks");
@@ -2205,25 +2209,41 @@
                 const cursor = event.target.result;
                 if (cursor) {
                     const track = cursor.value;
-                    // System-Einträge ignorieren
+                    // System-Dateien ignorieren
                     if(track.tagId !== "system_bg" && track.tagId !== "system_settings") {
+                        // 1. In Datenbank speichern
                         track.hiddenInLib = isHidden;
                         cursor.update(track);
                         count++;
+
+                        // 2. SOFORT auf dem Bildschirm ändern (DOM Manipulation)
+                        // Das verhindert den Absturz, weil wir nicht alles neu laden müssen
+                        const btn = document.getElementById(`btn-vis-${track.tagId}`);
+                        const badge = document.getElementById(`badge-${track.tagId}`);
+
+                        if(isHidden) {
+                            if(btn) { 
+                                btn.innerText = "🚫"; 
+                                btn.style.backgroundColor = "#555"; 
+                            }
+                            if(badge) { badge.style.display = "flex"; }
+                        } else {
+                            if(btn) { 
+                                btn.innerText = "👁️"; 
+                                btn.style.backgroundColor = "#f39c12"; 
+                            }
+                            if(badge) { badge.style.display = "none"; }
+                        }
                     }
                     cursor.continue();
                 } else {
-                    // WICHTIGE ÄNDERUNG HIER:
-                    // Statt loadTagList() aufzurufen (was den Absturz verursacht),
-                    // laden wir die Seite neu. Das ist sicher für den Speicher.
-                    alert(`${count} Einträge aktualisiert!\nDie Seite wird nun neu geladen.`);
-                    location.reload(); 
+                    // Fertig! WICHTIG: KEIN reload() und KEIN loadTagList() hier aufrufen!
+                    showStatus(`✅ ${count} Einträge aktualisiert.`);
                 }
             };
             
             tx.onerror = () => {
-                alert("Ein Fehler ist aufgetreten. Bitte Seite neu laden.");
-                location.reload();
+                alert("Fehler beim Datenbank-Update.");
             };
         }
 
@@ -2263,25 +2283,22 @@
                 const tracks = event.target.result;
                 let htmlBuffer = "";
 
-                // Sortieren
+                // Sortieren nach Name
                 tracks.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
 
                 tracks.forEach(track => {
+                    // System-Dateien ignorieren
                     if(track.tagId !== "system_bg" && track.tagId !== "system_settings") {
                         
-                        // SPEICHER-OPTIMIERUNG: 
-                        // Wir laden KEINE Bilder in der Admin-Liste, wenn es viele Tracks sind.
-                        // Das verhindert Abstürze auf dem S8+.
+                        // --- BILDER WIEDER AKTIVIERT ---
                         let imgHtml = `<div style="font-size:30px;">🎵</div>`;
                         
-                        // Falls du unbedingt Bilder willst, entferne die Kommentierung unten, 
-                        // aber das Risiko für Abstürze steigt bei >100 Items.
-                        /*
                         if (track.imageBlob) {
                             const url = URL.createObjectURL(track.imageBlob);
-                            imgHtml = `<img src="${url}" class="admin-cover-img" loading="lazy">`;
+                            // decoding="async" hilft dem S8+, nicht beim Laden zu ruckeln
+                            imgHtml = `<img src="${url}" class="admin-cover-img" loading="lazy" decoding="async">`;
                         }
-                        */
+                        // ------------------------------
                         
                         let metaInfo = "";
                         if(track.meta) {
