@@ -1944,21 +1944,71 @@
         }
 
         async function smartRelinkFiles(input) {
-            const files = Array.from(input.files); if(files.length === 0) return;
-            showStatus(`Prüfe ${files.length} Dateien...`);
-            const tx = db.transaction(["tracks"], "readwrite"); const store = tx.objectStore("tracks"); let fixedCount = 0;
-            store.getAll().onsuccess = (e) => {
-                e.target.result.forEach(record => {
-                    if(record.tagId === SYSTEM_BG_ID || record.tagId === SYSTEM_SETTINGS_ID) return;
-                    let changed = false;
-                    if (record.playlistFileNames && (!record.playlist || record.playlist.length === 0)) {
-                        const newPlaylist = []; record.playlistFileNames.forEach(name => { const f = files.find(x => x.name === name); if(f) newPlaylist.push(f); });
-                        if(newPlaylist.length > 0) { record.playlist = newPlaylist; changed = true; }
+            const files = Array.from(input.files); 
+            if(files.length === 0) return;
+            
+            // 1. Erstmal alle Tracks aus der DB holen
+            showStatus("Lade Datenbank für Analyse...");
+            const allTracks = await new Promise((resolve) => {
+                const tx = db.transaction(["tracks"], "readonly");
+                tx.objectStore("tracks").getAll().onsuccess = (e) => resolve(e.target.result);
+            });
+
+            let fixedCount = 0;
+            const total = allTracks.length;
+
+            // 2. Schleife durchlaufen (asynchron, damit UI nicht einfriert)
+            for (let i = 0; i < total; i++) {
+                const record = allTracks[i];
+                
+                // UI Update: Zeige Fortschritt an
+                showStatus(`Prüfe ${i + 1} / ${total}: ${record.name.substring(0, 15)}...`);
+                
+                // WICHTIG: Kurze Pause, damit der Browser den Text zeichnen kann
+                await new Promise(r => setTimeout(r, 0));
+
+                if(record.tagId === SYSTEM_BG_ID || record.tagId === SYSTEM_SETTINGS_ID) continue;
+
+                let changed = false;
+                
+                // Audio Files suchen & verknüpfen
+                if (record.playlistFileNames && (!record.playlist || record.playlist.length === 0)) {
+                    const newPlaylist = [];
+                    record.playlistFileNames.forEach(name => {
+                        const f = files.find(x => x.name === name);
+                        if(f) newPlaylist.push(f);
+                    });
+                    if(newPlaylist.length > 0) {
+                        record.playlist = newPlaylist;
+                        changed = true;
                     }
-                    if (record.imageFileName && !record.imageBlob) { const img = files.find(x => x.name === record.imageFileName); if(img) { record.imageBlob = img; changed = true; } }
-                    if(changed) { store.put(record); fixedCount++; }
-                });
-            }; tx.oncomplete = () => { showStatus(`${fixedCount} repariert! 🎉`); loadTagList(); input.value = ""; };
+                }
+                
+                // Cover Bild suchen & verknüpfen
+                if (record.imageFileName && !record.imageBlob) {
+                    const img = files.find(x => x.name === record.imageFileName);
+                    if(img) {
+                        record.imageBlob = img;
+                        changed = true;
+                    }
+                }
+
+                // Wenn etwas repariert wurde, speichern wir diesen EINEN Eintrag
+                if(changed) {
+                    await new Promise((resolve) => {
+                        const tx = db.transaction(["tracks"], "readwrite");
+                        const store = tx.objectStore("tracks");
+                        store.put(record);
+                        tx.oncomplete = () => resolve();
+                        tx.onerror = () => resolve(); // Fehler ignorieren und weitermachen
+                    });
+                    fixedCount++;
+                }
+            }
+
+            showStatus(`${fixedCount} Einträge erfolgreich repariert! 🎉`); 
+            loadTagList(); 
+            input.value = "";
         }
 
         function togglePlay() { 
