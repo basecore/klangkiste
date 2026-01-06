@@ -2048,12 +2048,35 @@
         }, {passive: true});
 
         function handleSecretSwitch() {
-            clickCount++; setTimeout(() => { clickCount = 0; }, 2000); 
+            clickCount++; 
+            setTimeout(() => { clickCount = 0; }, 2000); 
+            
             if (clickCount >= 5) {
+                // 1. Haupt-Modus umschalten
                 safeDisplay('kids-mode', 'none');
                 safeDisplay('parent-mode', 'flex');
-                isParentMode = true; clickCount = 0; releaseWakeLock(); endSessionLog();
-                if (document.exitFullscreen && document.fullscreenElement) { document.exitFullscreen().catch((e) => {}); }
+                
+                // 2. NEU: Störende Fenster zwangsweise schließen
+                // Damit die Bibliothek nicht den Admin-Bereich verdeckt
+                if(typeof closeLibrary === "function") {
+                    closeLibrary(); 
+                } else {
+                    document.getElementById('library-mode').style.display = 'none';
+                }
+                
+                // Auch andere eventuell offene Fenster schließen
+                document.getElementById('lib-info-modal').style.display = 'none';
+                document.getElementById('stats-modal').style.display = 'none';
+
+                // 3. Cleanup & System
+                isParentMode = true; 
+                clickCount = 0; 
+                releaseWakeLock(); 
+                endSessionLog();
+                
+                if (document.exitFullscreen && document.fullscreenElement) { 
+                    document.exitFullscreen().catch((e) => {}); 
+                }
             }
         }
         function autoFillName() {
