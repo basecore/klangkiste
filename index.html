@@ -543,6 +543,15 @@
         .list-name { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem; }
         .list-meta { font-size: 0.7rem; color: #aaa; font-family: monospace; }
 
+        /* Neu: Kleines Coverbild für die Liste */
+        .list-img-small {
+            width: 45px; height: 45px; 
+            border-radius: 5px; 
+            object-fit: cover; 
+            margin-right: 10px;
+            background: #333;
+        }
+
         /* --- GRID CARD (OLD) --- */
         .admin-card {
             background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden;
@@ -2313,10 +2322,20 @@
                         const visBtnColor = isHidden ? "#555" : "#f39c12";
                         
                         if(adminListView) {
-                            // --- SCHNELLE LISTE (OHNE BILDER) ---
+                            // --- SCHNELLE LISTE (JETZT MIT BILDERN) ---
+                            
+                            // Standard-Icon
+                            let iconHtml = `<div class="list-icon">🎵</div>`;
+                            
+                            // Wenn Bild vorhanden -> Bild anzeigen
+                            if (track.imageBlob) {
+                                const url = URL.createObjectURL(track.imageBlob);
+                                iconHtml = `<img src="${url}" class="list-img-small" loading="lazy" decoding="async">`;
+                            }
+
                             htmlBuffer += `
                                 <div class="admin-list-row">
-                                    <div class="list-icon">🎵</div>
+                                    ${iconHtml}
                                     <div class="list-info">
                                         <div class="list-name">${track.name}</div>
                                         <div class="list-meta">ID: ${track.tagId}</div>
@@ -2329,6 +2348,7 @@
                                 </div>
                             `;
                         } else {
+                            // ... (Der Code für "else" / Raster-Ansicht bleibt unverändert)
                             // --- RASTER ANSICHT (MIT BILDERN) ---
                             let imgHtml = `<div style="font-size:30px;">🎵</div>`;
                             
