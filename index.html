@@ -2191,8 +2191,8 @@
         }
         
         function setAllLibraryVisibility(isHidden) {
-            const msgHide = "Alle Hörbücher in der Bibliothek verstecken?\n\nHinweis: Das kann bei vielen Hörbüchern einen Moment dauern.";
-            const msgShow = "Alle Hörbücher in der Bibliothek anzeigen?\n\nHinweis: Das kann bei vielen Hörbüchern einen Moment dauern.";
+            const msgHide = "Alle Hörbücher in der Bibliothek verstecken?\n\nHinweis: Um den Speicher deines Geräts zu schonen, wird die Seite danach neu geladen.";
+            const msgShow = "Alle Hörbücher in der Bibliothek anzeigen?\n\nHinweis: Um den Speicher deines Geräts zu schonen, wird die Seite danach neu geladen.";
 
             if(!confirm(isHidden ? msgHide : msgShow)) return;
             showStatus("Verarbeite... Bitte warten ⏳");
@@ -2205,16 +2205,25 @@
                 const cursor = event.target.result;
                 if (cursor) {
                     const track = cursor.value;
-                    if(track.tagId !== SYSTEM_BG_ID && track.tagId !== SYSTEM_SETTINGS_ID) {
+                    // System-Einträge ignorieren
+                    if(track.tagId !== "system_bg" && track.tagId !== "system_settings") {
                         track.hiddenInLib = isHidden;
                         cursor.update(track);
                         count++;
                     }
                     cursor.continue();
                 } else {
-                    showStatus(`${count} Einträge aktualisiert.`);
-                    loadTagList(); 
+                    // WICHTIGE ÄNDERUNG HIER:
+                    // Statt loadTagList() aufzurufen (was den Absturz verursacht),
+                    // laden wir die Seite neu. Das ist sicher für den Speicher.
+                    alert(`${count} Einträge aktualisiert!\nDie Seite wird nun neu geladen.`);
+                    location.reload(); 
                 }
+            };
+            
+            tx.onerror = () => {
+                alert("Ein Fehler ist aufgetreten. Bitte Seite neu laden.");
+                location.reload();
             };
         }
 
