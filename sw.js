@@ -1,5 +1,5 @@
-// WICHTIG: Version erhöht auf v73, damit das Handy alles neu lädt!
-const CACHE_NAME = 'klangkiste-v73-full';
+// WICHTIG: Version erhöht auf v74, damit das Handy alles neu lädt!
+const CACHE_NAME = 'klangkiste-v74-full';
 
 // Da du bestätigt hast, dass diese Dateien existieren, 
 // können wir sie sicher hier auflisten.
