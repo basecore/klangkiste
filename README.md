@@ -1,4 +1,4 @@
-# 🎵 KlangKiste PWA (v70 High Performance)
+# 🎵 KlangKiste PWA (V73 High Performance)
 
 **Die smarte DIY "Toniebox" fürs Handy – 100% AI-Generated Code.**
 
@@ -8,16 +8,16 @@ Dieses Projekt ist eine kinderfreundliche Musik-Player-App, die alte Smartphones
 
 ---
 
-## ✨ Neue Funktionen in v70
+## ✨ Neue Funktionen in v73
 
 Diese Version markiert den größten technologischen Sprung seit Beginn des Projekts. Wir haben die interne Datenbank-Architektur komplett umgebaut, um maximale Geschwindigkeit und Stabilität zu garantieren.
 
-### 🚀 1. Die "Shadow-List" Technologie (Neu in v70)
+### 🚀 1. Die "Shadow-List" Technologie (Neu in v73)
 Früher führte das "Verstecken" vieler Hörbücher bei großen Bibliotheken (>100 Titel) oft zu Abstürzen, da Gigabytes an Daten neu geschrieben werden mussten.
-* **Die Lösung:** v70 speichert die Sichtbarkeit ("Versteckt/Sichtbar") nun in einer winzigen, separaten Liste (Schatten-Liste) in den Einstellungen.
+* **Die Lösung:** v73 speichert die Sichtbarkeit ("Versteckt/Sichtbar") nun in einer winzigen, separaten Liste (Schatten-Liste) in den Einstellungen.
 * **Das Ergebnis:** Änderungen passieren jetzt in **Millisekunden**, nicht mehr in Sekunden. Egal ob 10 oder 1000 Hörbücher – die App bleibt rasend schnell.
 
-### 🖼️ 2. Cover-Bilder sind zurück! (Neu in v70)
+### 🖼️ 2. Cover-Bilder sind zurück! (Neu in v73)
 Dank der neuen Performance-Architektur konnten wir die **Cover-Bilder in der Admin-Listenansicht** wieder aktivieren. Du siehst nun auch in der kompakten Liste sofort, um welches Hörbuch es sich handelt.
 
 ### ⚡ 3. Turbo-Massensteuerung
@@ -190,8 +190,8 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 
 ## 📂 Dateistruktur
 
-* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v70)
-* `sw.js` – Der Service Worker für die Offline-Funktionalität (Cache v70)
+* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v73)
+* `sw.js` – Der Service Worker für die Offline-Funktionalität (Cache v73)
 * `manifest.json` – Konfiguration für das App-Icon und den Vollbild-Modus
 * `assets/` – Ordner für Icons und Test-Sounds
 * `example/` – Beispieldateien (MP3s, PNGs, `klangkiste.json`) für schnellen Start
