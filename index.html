@@ -2263,17 +2263,25 @@
                 const tracks = event.target.result;
                 let htmlBuffer = "";
 
-                // SORTING FIX
+                // Sortieren
                 tracks.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
 
                 tracks.forEach(track => {
-                    if(track.tagId !== SYSTEM_BG_ID && track.tagId !== SYSTEM_SETTINGS_ID) {
+                    if(track.tagId !== "system_bg" && track.tagId !== "system_settings") {
                         
+                        // SPEICHER-OPTIMIERUNG: 
+                        // Wir laden KEINE Bilder in der Admin-Liste, wenn es viele Tracks sind.
+                        // Das verhindert Abstürze auf dem S8+.
                         let imgHtml = `<div style="font-size:30px;">🎵</div>`;
+                        
+                        // Falls du unbedingt Bilder willst, entferne die Kommentierung unten, 
+                        // aber das Risiko für Abstürze steigt bei >100 Items.
+                        /*
                         if (track.imageBlob) {
                             const url = URL.createObjectURL(track.imageBlob);
                             imgHtml = `<img src="${url}" class="admin-cover-img" loading="lazy">`;
                         }
+                        */
                         
                         let metaInfo = "";
                         if(track.meta) {
@@ -2281,21 +2289,16 @@
                             if(track.meta.genre) metaInfo += `• ${track.meta.genre}`;
                         }
                         
-                        let completedBadge = "";
-                        if(track.completed) {
-                            completedBadge = `<div class="completed-badge">✅</div>`;
-                        }
+                        let completedBadge = track.completed ? `<div class="completed-badge">✅</div>` : "";
 
-                        let hiddenBadge = "";
-                        if(track.hiddenInLib) {
-                            hiddenBadge = `<div id="badge-${track.tagId}" style="position:absolute; top:5px; left:5px; background:rgba(255,255,255,0.95); color:black; border-radius:50%; width:28px; height:28px; display:flex; justify-content:center; align-items:center; z-index:10; font-size:16px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚫</div>`;
-                        } else {
-                            hiddenBadge = `<div id="badge-${track.tagId}" style="display:none; position:absolute; top:5px; left:5px; background:rgba(255,255,255,0.95); color:black; border-radius:50%; width:28px; height:28px; justify-content:center; align-items:center; z-index:10; font-size:16px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚫</div>`;
-                        }
+                        // Badges und Buttons Logik
+                        const isHidden = track.hiddenInLib;
+                        const hiddenBadgeStyle = isHidden ? "display:flex;" : "display:none;";
+                        const hiddenBadge = `<div id="badge-${track.tagId}" style="${hiddenBadgeStyle} position:absolute; top:5px; left:5px; background:rgba(255,255,255,0.95); color:black; border-radius:50%; width:28px; height:28px; justify-content:center; align-items:center; z-index:10; font-size:16px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚫</div>`;
                         
-                        const visIcon = track.hiddenInLib ? "🚫" : "👁️";
-                        const visTitle = track.hiddenInLib ? "Ist versteckt (Klick zum Anzeigen)" : "Ist sichtbar (Klick zum Verstecken)";
-                        const visBtnColor = track.hiddenInLib ? "#555" : "#f39c12";
+                        const visIcon = isHidden ? "🚫" : "👁️";
+                        const visTitle = isHidden ? "Ist versteckt" : "Ist sichtbar";
+                        const visBtnColor = isHidden ? "#555" : "#f39c12";
 
                         htmlBuffer += `
                             <div class="admin-card">
@@ -2312,9 +2315,7 @@
                                     </div>
                                     <div class="admin-actions">
                                         <button class="btn-mini edit" onclick="loadTagForEdit('${track.tagId}')">✏️</button>
-                                        
                                         <button id="btn-vis-${track.tagId}" class="btn-mini vis" style="background-color:${visBtnColor};" onclick="toggleTrackVisibility('${track.tagId}')" title="${visTitle}">${visIcon}</button>
-                                        
                                         <button class="btn-mini play" onclick="playTrackByTag('${track.tagId}')">▶</button>
                                         <button class="btn-mini del" onclick="deleteTrack('${track.tagId}')">🗑</button>
                                     </div>
