@@ -1002,6 +1002,7 @@
         } catch(e){}
 
         let db; let isParentMode = true; let ndef; let clickCount = 0; 
+        let isProcessingDatabase = false; // Das ist unsere Sicherheits-Sperre
         const audioPlayer = document.getElementById('audio-player');
         
         let wakeLock = null;
@@ -1958,6 +1959,11 @@
         document.body.addEventListener('click', async () => { if(!ndef && "NDEFReader" in window) { try { await startNFC(); } catch(e) {} } }, { once: true });
 
         function goToKidsMode() {
+            if(isProcessingDatabase) {
+                showStatus("⚠️ Bitte warten! Datenbank arbeitet noch...");
+                return;
+            }
+
             try {
                 safeDisplay('parent-mode', 'none');
                 safeDisplay('kids-mode', 'flex'); 
@@ -2191,15 +2197,23 @@
         }
         
         function setAllLibraryVisibility(isHidden) {
+            // SICHERHEIT: Wenn schon was läuft, sofort abbrechen!
+            if(isProcessingDatabase) {
+                showStatus("⚠️ Bitte warten! Bin noch beschäftigt...");
+                return;
+            }
+
             const msgHide = "Alle Hörbücher in der Bibliothek verstecken?";
             const msgShow = "Alle Hörbücher in der Bibliothek anzeigen?";
 
             if(!confirm(isHidden ? msgHide : msgShow)) return;
             
-            // Status anzeigen, damit du siehst, dass etwas passiert
+            // SPERRE AKTIVIEREN
+            isProcessingDatabase = true;
+
             const statusEl = document.getElementById('status-msg');
             statusEl.style.display = 'block';
-            statusEl.innerText = "⏳ Verarbeite... (Bilder bleiben, Status ändert sich)";
+            statusEl.innerText = "⏳ Starte Verarbeitung...";
             
             const tx = db.transaction(["tracks"], "readwrite");
             const store = tx.objectStore("tracks");
@@ -2211,38 +2225,39 @@
                     const track = cursor.value;
                     // System-Dateien ignorieren
                     if(track.tagId !== "system_bg" && track.tagId !== "system_settings") {
+                        
                         // 1. In Datenbank speichern
                         track.hiddenInLib = isHidden;
                         cursor.update(track);
                         count++;
 
-                        // 2. SOFORT auf dem Bildschirm ändern (DOM Manipulation)
-                        // Das verhindert den Absturz, weil wir nicht alles neu laden müssen
+                        // 2. LIVE STATUS UPDATE (z.B. alle 5 Einträge, spart Rechenleistung)
+                        if(count % 5 === 0) {
+                            statusEl.innerText = `⏳ Verarbeite Eintrag ${count}...`;
+                        }
+
+                        // 3. UI sofort ändern (ohne Neuladen)
                         const btn = document.getElementById(`btn-vis-${track.tagId}`);
                         const badge = document.getElementById(`badge-${track.tagId}`);
 
                         if(isHidden) {
-                            if(btn) { 
-                                btn.innerText = "🚫"; 
-                                btn.style.backgroundColor = "#555"; 
-                            }
+                            if(btn) { btn.innerText = "🚫"; btn.style.backgroundColor = "#555"; }
                             if(badge) { badge.style.display = "flex"; }
                         } else {
-                            if(btn) { 
-                                btn.innerText = "👁️"; 
-                                btn.style.backgroundColor = "#f39c12"; 
-                            }
+                            if(btn) { btn.innerText = "👁️"; btn.style.backgroundColor = "#f39c12"; }
                             if(badge) { badge.style.display = "none"; }
                         }
                     }
                     cursor.continue();
                 } else {
-                    // Fertig! WICHTIG: KEIN reload() und KEIN loadTagList() hier aufrufen!
-                    showStatus(`✅ ${count} Einträge aktualisiert.`);
+                    // FERTIG
+                    isProcessingDatabase = false; // SPERRE LÖSEN
+                    showStatus(`✅ Fertig! ${count} Einträge aktualisiert.`);
                 }
             };
             
             tx.onerror = () => {
+                isProcessingDatabase = false; // Sperre lösen, auch bei Fehler
                 alert("Fehler beim Datenbank-Update.");
             };
         }
