@@ -1,4 +1,4 @@
-# 🎵 KlangKiste PWA (V73 High Performance)
+# 🎵 KlangKiste PWA (V74 Full Backup Edition)
 
 **Die smarte DIY "Toniebox" fürs Handy – 100% AI-Generated Code.**
 
@@ -8,29 +8,34 @@ Dieses Projekt ist eine kinderfreundliche Musik-Player-App, die alte Smartphones
 
 ---
 
-## ✨ Neue Funktionen in v73
+## ✨ Neue Funktionen in v74
 
-Diese Version markiert den größten technologischen Sprung seit Beginn des Projekts. Wir haben die interne Datenbank-Architektur komplett umgebaut, um maximale Geschwindigkeit und Stabilität zu garantieren.
+Diese Version fokussiert sich auf Datensicherheit und maximale Performance auf älteren Geräten (z.B. Samsung Galaxy S8).
 
-### 🚀 1. Die "Shadow-List" Technologie (Neu in v73)
-Früher führte das "Verstecken" vieler Hörbücher bei großen Bibliotheken (>100 Titel) oft zu Abstürzen, da Gigabytes an Daten neu geschrieben werden mussten.
-* **Die Lösung:** v73 speichert die Sichtbarkeit ("Versteckt/Sichtbar") nun in einer winzigen, separaten Liste (Schatten-Liste) in den Einstellungen.
-* **Das Ergebnis:** Änderungen passieren jetzt in **Millisekunden**, nicht mehr in Sekunden. Egal ob 10 oder 1000 Hörbücher – die App bleibt rasend schnell.
+### 📦 1. Full System Backup & Restore (Neu in v74)
+Der Export ist jetzt mächtiger denn je. Die neue `klangkiste_full_backup.json` speichert nicht mehr nur die Titel, sondern **den kompletten Zustand der App**:
+* **Fortschritt:** Speichert für jedes Hörbuch die exakte Sekunde und das Kapitel.
+* **Status:** Merkt sich, welche Hörbücher **versteckt** (Shadow-List) oder **abgeschlossen (✅)** sind.
+* **Statistik:** Die gesamte Hör-Historie und Timeline bleibt erhalten.
+* **Einstellungen:** Deine Anpassungen (Lautstärke-Limit, Sleep-Timer, Filter) werden mitgesichert.
+* *Wichtig:* Nach dem Import eines Full-Backups muss man nur noch den Ordner mit den MP3s auswählen ("Reparieren"), und alles ist exakt wie vorher.
 
-### 🖼️ 2. Cover-Bilder sind zurück! (Neu in v73)
-Dank der neuen Performance-Architektur konnten wir die **Cover-Bilder in der Admin-Listenansicht** wieder aktivieren. Du siehst nun auch in der kompakten Liste sofort, um welches Hörbuch es sich handelt.
+### 🧠 2. Smart RAM Management (Neu in v74)
+Speziell für Geräte mit wenig Arbeitsspeicher wurde die Speicherverwaltung komplett überarbeitet.
+* **Garbage Collection:** Beim Wechseln von Hörbüchern oder Schließen der Bibliothek wird der RAM sofort aggressiv bereinigt.
+* **Ergebnis:** Kein Stottern oder Abstürzen mehr, selbst bei Bibliotheken mit **über 100 Hörbüchern** und großen Cover-Bildern.
 
-### ⚡ 3. Turbo-Massensteuerung
-Die Funktionen **"Alle verstecken"** und **"Alle anzeigen"** arbeiten jetzt verzögerungsfrei und absolut absturzsicher. Ideal, um z.B. saisonale Inhalte (Weihnachtslieder) mit einem Klick zu verbergen.
+### 🔊 3. Hybride Audio-Engine (Neu in v74)
+Die App ist nun extrem robust im Flugmodus.
+* **Graceful Degradation:** Sollte die Datei `limit.mp3` im Offline-Cache fehlen oder beschädigt sein, wechselt die App automatisch auf die **Web Audio API** und erzeugt den Ton synthetisch. Keine Fehlermeldungen mehr beim Lautstärke-Test.
 
 ---
 
-## 🛠️ Highlights aus v69 & v68
+## 🚀 Highlights aus v73 (High Performance)
 
-* **🛡️ Datenbank-Sperren (Locking):** Verhindert Datenfehler ("Race Conditions"), wenn man zu schnell klickt. Die Oberfläche wird kurz gesperrt, während im Hintergrund gespeichert wird.
-* **📊 Profi-Statistik & Timeline:** Ein detaillierter Zeitstrahl protokolliert den Tagesablauf. Siehe genau, wann ein Hörspiel gestartet, pausiert oder übersprungen wurde.
-* **💾 Auto-Save & Smart Resume:** Die App speichert alle 5 Sekunden automatisch den Fortschritt. Nach einem Neustart geht es exakt an der letzten Stelle weiter.
-* **🔤 Perfekte Sortierung:** Bibliothek und Admin-Listen sind strikt alphabetisch (A-Z, deutsch) sortiert.
+* **🌑 Die "Shadow-List" Technologie:** Das Verstecken von Inhalten passiert in einer separaten Schatten-Datenbank. Änderungen an der Sichtbarkeit dauern nur Millisekunden, egal wie groß die Bibliothek ist.
+* **🖼️ Cover-Bilder im Admin-Modus:** Dank der neuen Performance-Architektur sind Cover-Bilder nun auch in der Admin-Listenansicht sichtbar, ohne den Speicher zu überlasten.
+* **⚡ Turbo-Massensteuerung:** "Alle verstecken" und "Alle anzeigen" arbeiten verzögerungsfrei.
 
 ---
 
@@ -99,21 +104,17 @@ Die App unterstützt mehrere Wege:
 * **C) Manuell anlernen:**
     Gehe auf „Neuen Tag anlernen", wähle Audio & Bild und fülle im Menü **„📝 Erweiterte Infos"** Details wie Beschreibung und Alter aus.
 
-### 2. NFC Tags nutzen (Optional)
+### 2. Backups & Restore (Neu in v74)
+
+* **Sichern:** Klicke auf **"Datenbank exportieren"**. Dies speichert eine Datei (`klangkiste_full_backup_DATUM.json`), die all deine Fortschritte, Einstellungen und Statistiken enthält.
+* **Wiederherstellen:** Lade diese Datei über **"Datenbank laden"**. Die App erkennt automatisch das Format und stellt alles wieder her. Da Browser aus Sicherheitsgründen keine Audio-Dateien exportieren dürfen, klicke danach auf den (dann rot blinkenden) Button **"Automatisch reparieren"** und wähle deinen MP3-Ordner erneut aus. Die App verknüpft die Dateien dann wieder vollautomatisch.
+
+### 3. NFC Tags nutzen (Optional)
 
 Wenn dein Android-Gerät NFC hat:
 1. Gehe auf „Tag scannen & speichern".
 2. Halte eine NFC-Karte oder Figur an das Handy.
 3. Die Musik ist nun mit diesem Tag verknüpft. Im Kinder-Modus startet sie sofort beim Auflegen.
-
-### 3. Statistik & Timeline ansehen
-
-Klicke im Eltern-Modus oben rechts auf den Button **„📊 Statistik"**. Hier erhältst du nun tiefe Einblicke:
-
-* **Timeline:** Ein scrollbarer Zeitstrahl zeigt chronologisch jedes Ereignis an (z.B. "20:00: Start Benjamin Blümchen", "20:05: Lautstärke auf 40%").
-* **Hördauer:** Gesamte Laufzeit für Heute, 7 Tage oder Alles.
-* **Favoriten:** Welche Hörspiele laufen am öftesten?
-* **Erfolge:** Siehe, welche Hörspiele bereits **vollständig (✅)** gehört wurden.
 
 ### 4. Kinder-Modus verlassen
 
@@ -173,13 +174,13 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 
 3. **Abhängigkeiten installieren:**
     Öffne ein Terminal in dem Ordner und führe aus:
-    ```
+    ```bash
     pip install requests beautifulsoup4 playwright
     playwright install
     ```
 
 4. **Script starten:**
-    ```
+    ```bash
     python taf_klangkiste_final.py
     ```
 
@@ -190,8 +191,8 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 
 ## 📂 Dateistruktur
 
-* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v73)
-* `sw.js` – Der Service Worker für die Offline-Funktionalität (Cache v73)
+* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v76)
+* `sw.js` – Der Service Worker für die Offline-Funktionalität (Cache v74)
 * `manifest.json` – Konfiguration für das App-Icon und den Vollbild-Modus
 * `assets/` – Ordner für Icons und Test-Sounds
 * `example/` – Beispieldateien (MP3s, PNGs, `klangkiste.json`) für schnellen Start
@@ -208,4 +209,4 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 ## 👨‍💻 Credits
 
 Entwickelt von Sebastian Rößer mit Unterstützung von **Google Gemini 3 Pro**.  
-Version 70 „High Performance / Shadow-List Edition".
+Version 74 „Full Backup Edition".
