@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V74 </title>
+    <title>KlangKiste V75 (Folder Update) </title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -468,7 +468,7 @@
         .btn-import { background-color: var(--green-safe); color: white; position: relative;}
         .btn-relink { background-color: var(--orange-warn); color: #333; position: relative; margin-top:10px; width: 100%;}
         
-        #import-file-hidden, #relink-file-hidden, #bg-img-hidden, #bulk-folder-input, #repair-folder-input {
+        #import-file-hidden, #relink-file-hidden, #bg-img-hidden, #bulk-folder-input, #repair-folder-input, #bulk-folder-struct-input {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             opacity: 0; cursor: pointer;
         }
@@ -744,10 +744,10 @@
             <label>Massen-Steuerung:</label>
             <div class="btn-io-group">
                 <button class="btn-admin" style="background-color: #2d3436; color:white; border: 1px solid #555;" onclick="setAllLibraryVisibility(true)">
-                     🚫 Alle verstecken
+                      🚫 Alle verstecken
                 </button>
                 <button class="btn-admin" style="background-color: #2ecc71; color:white;" onclick="setAllLibraryVisibility(false)">
-                     👁️ Alle anzeigen
+                      👁️ Alle anzeigen
                 </button>
             </div>
         </div>
@@ -842,8 +842,13 @@
                 ☁️ Beispiele direkt laden (Online)
             </button>
 
+            <button class="btn-admin" style="background-color: #16a085; position:relative; margin-bottom:5px;">
+                📂 Ordner-Struktur importieren (Smart)
+                <div style="font-size:0.7em; opacity:0.8;">1 Ordner = 1 Hörbuch | Bild im Ordner = Cover</div>
+                <input type="file" id="bulk-folder-struct-input" webkitdirectory directory multiple onchange="handleFolderAlbumImport(this)">
+            </button>
             <button class="btn-admin" style="background-color: #e67e22; position:relative; margin-bottom:10px;">
-                📂 Massen-Import (Ordner)
+                📂 Massen-Import (Dateien/Flat)
                 <input type="file" id="bulk-folder-input" webkitdirectory directory multiple onchange="handleBulkImport(this)">
             </button>
             
@@ -863,7 +868,7 @@
         </div>
 
         <div class="footer-info">
-            <p>KlangKiste NFC V74 Full System Restore</p>
+            <p>KlangKiste NFC V75 Folder Update</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
         </div>
     </div>
@@ -1535,9 +1540,9 @@
                 if (duration > 5) { // Nur wenn länger als 5 Sek lief
                     // Wir mogeln diesen Eintrag nachträglich in die DB mit dem ALTEN Zeitstempel
                     if(db) {
-                         const tx = db.transaction(["stats_log"], "readwrite");
-                         const store = tx.objectStore("stats_log");
-                         store.add({
+                          const tx = db.transaction(["stats_log"], "readwrite");
+                          const store = tx.objectStore("stats_log");
+                          store.add({
                             timestamp: lastHeartbeat, // Zeitstempel des Schließens
                             type: 'app_close',        // Neuer Typ
                             tagId: localStorage.getItem('lastActiveTagId'), // Tag ID von damals
@@ -1677,24 +1682,24 @@
                 if(sortedTracks.length === 0) topListEl.innerHTML = "<div style='color:#777; font-style:italic;'>Keine Daten</div>";
                 
                 sortedTracks.forEach(tagId => {
-                     const tReq = trackStore.get(tagId);
-                     tReq.onsuccess = (tr) => {
-                         const track = tr.target.result;
-                         const name = track ? track.name : "Unbekannt";
-                         const duration = Math.round(trackCounts[tagId] / 60);
-                         
-                         const maxVal = trackCounts[sortedTracks[0]];
-                         const pct = (trackCounts[tagId] / maxVal) * 100;
+                      const tReq = trackStore.get(tagId);
+                      tReq.onsuccess = (tr) => {
+                          const track = tr.target.result;
+                          const name = track ? track.name : "Unbekannt";
+                          const duration = Math.round(trackCounts[tagId] / 60);
+                          
+                          const maxVal = trackCounts[sortedTracks[0]];
+                          const pct = (trackCounts[tagId] / maxVal) * 100;
 
-                         const row = document.createElement('div');
-                         row.className = 'chart-row';
-                         row.innerHTML = `
+                          const row = document.createElement('div');
+                          row.className = 'chart-row';
+                          row.innerHTML = `
                             <div class="chart-label">${name}</div>
                             <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${pct}%"></div></div>
                             <div class="chart-val">${duration}m</div>
-                         `;
-                         topListEl.appendChild(row);
-                     }
+                          `;
+                          topListEl.appendChild(row);
+                      }
                 });
 
                 const heatEl = document.getElementById('stats-time-heatmap');
@@ -2566,11 +2571,10 @@
                             const url = URL.createObjectURL(track.imageBlob);
                             imgHtml = `<img src="${url}" class="admin-cover-img" loading="lazy">`;
                         }
-                        // ... Rest des Grid-HTMLs (wie vorher) ...
-                         // Hinweis: Füge hier den Rest deines alten Grid-HTML Codes ein
-                         let completedBadge = track.completed ? `<div class="completed-badge">✅</div>` : "";
-                         const hiddenBadgeStyle = isHidden ? "display:flex;" : "display:none;";
-                         const hiddenBadge = `<div id="badge-${track.tagId}" style="${hiddenBadgeStyle} position:absolute; top:5px; left:5px; background:rgba(255,255,255,0.95); color:black; border-radius:50%; width:28px; height:28px; justify-content:center; align-items:center; z-index:10; font-size:16px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚫</div>`;
+                        
+                        let completedBadge = track.completed ? `<div class="completed-badge">✅</div>` : "";
+                        const hiddenBadgeStyle = isHidden ? "display:flex;" : "display:none;";
+                        const hiddenBadge = `<div id="badge-${track.tagId}" style="${hiddenBadgeStyle} position:absolute; top:5px; left:5px; background:rgba(255,255,255,0.95); color:black; border-radius:50%; width:28px; height:28px; justify-content:center; align-items:center; z-index:10; font-size:16px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚫</div>`;
 
                         htmlBuffer += `
                             <div class="admin-card">
@@ -2804,6 +2808,7 @@
             }; 
             reader.readAsText(file);
         }
+        
         async function handleBulkImport(input) {
             const files = Array.from(input.files); if(files.length === 0) return;
             const klangkisteJsonFile = files.find(f => f.name.toLowerCase().startsWith('klangkiste') && f.name.toLowerCase().endsWith('.json'));
@@ -2818,6 +2823,7 @@
             } else { await handleClassicBulkImport(files); }
             input.value = ""; 
         }
+
         async function handleKlangkisteJsonImport(jsonFile, allFiles) {
             const readFileAsText = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsText(file); });
             const usedAudioSet = new Set();
@@ -2834,6 +2840,94 @@
                 showStatus(`${count} Smart-Import fertig!`); loadTagList(); return usedAudioSet;
             } catch (e) { alert("Fehler JSON: " + e); return usedAudioSet; }
         }
+
+        // --- NEW: INTELLIGENT FOLDER IMPORT ---
+        async function handleFolderAlbumImport(input) {
+            const files = Array.from(input.files); 
+            if(files.length === 0) return;
+
+            showStatus("Analysiere Ordner-Struktur...");
+            
+            // 1. Gruppieren nach Ordnerpfad
+            const groups = {};
+            files.forEach(f => {
+                // webkitRelativePath ist z.B. "Hörspiele/Benjamin Blümchen/01 - Zoo.mp3"
+                // Wir wollen nach "Hörspiele/Benjamin Blümchen" gruppieren.
+                const pathParts = f.webkitRelativePath ? f.webkitRelativePath.split('/') : [f.name];
+                
+                let groupKey = "";
+                let folderName = "";
+
+                if (pathParts.length > 1) {
+                    pathParts.pop(); // Dateiname entfernen
+                    groupKey = pathParts.join('/'); // Pfad als Schlüssel
+                    folderName = pathParts[pathParts.length - 1]; // Letzter Ordnername als Titel
+                } else {
+                    // Datei liegt direkt im Root -> Einzeldatei-Logik oder überspringen?
+                    // Wir behandeln sie als eigenen Eintrag
+                    groupKey = "root_" + f.name;
+                    folderName = f.name.replace(/\.[^/.]+$/, "");
+                }
+
+                if (!groups[groupKey]) {
+                    groups[groupKey] = { 
+                        audio: [], 
+                        img: null, 
+                        name: folderName 
+                    };
+                }
+
+                const ext = f.name.split('.').pop().toLowerCase();
+                
+                if(['mp3', 'm4a', 'ogg', 'wav', 'flac'].includes(ext)) {
+                    groups[groupKey].audio.push(f);
+                } else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+                    // Nimm das erste Bild im Ordner als Cover
+                    if(!groups[groupKey].img) groups[groupKey].img = f;
+                }
+            });
+
+            // 2. Datenbank speichern
+            let count = 0;
+            const groupKeys = Object.keys(groups);
+            
+            for (let i = 0; i < groupKeys.length; i++) {
+                const g = groups[groupKeys[i]];
+                if(g.audio.length === 0) continue;
+
+                // Sortiere Audio-Dateien alphabetisch (wichtig für 01, 02...)
+                g.audio.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
+
+                showStatus(`Importiere ${i+1}/${groupKeys.length}: ${g.name}`);
+                
+                await new Promise((resolve) => {
+                    const tx = db.transaction(["tracks"], "readwrite");
+                    const store = tx.objectStore("tracks");
+                    
+                    const record = {
+                        tagId: "folder_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+                        name: g.name.replace(/_/g, ' '), // Unterstriche durch Leerzeichen ersetzen
+                        playlist: g.audio,
+                        playlistFileNames: g.audio.map(f => f.name),
+                        imageBlob: g.img,
+                        imageFileName: g.img ? g.img.name : null,
+                        cueTracks: null,
+                        lastTrackIndex: 0,
+                        lastTime: 0
+                    };
+                    
+                    store.put(record);
+                    tx.oncomplete = () => { count++; resolve(); };
+                    tx.onerror = () => resolve(); // Fehler ignorieren
+                });
+            }
+
+            showStatus(`${count} Hörbücher importiert! 🎉`);
+            loadTagList();
+            input.value = "";
+        }
+
+        // --- OLD: CLASSIC IMPORT (FLAT / FILE BASED) ---
         async function handleClassicBulkImport(files) {
             const groups = {};
             files.forEach(f => {
@@ -2881,8 +2975,7 @@
                 activeCoverUrls.push(url); // <--- NEU: Zur Lösch-Liste hinzufügen
                 imgHtml = `<img src="${url}" class="lib-cover-img" loading="lazy">`;
             }
-            // ... rest der Funktion ...
-
+            
             let infoBtnHtml = "";
             if(!isSmall) { 
                  infoBtnHtml = `<button class="lib-card-info-btn" onclick="showAlbumInfo(event, '${track.tagId}')">i</button>`;
