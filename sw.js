@@ -1,5 +1,5 @@
-// WICHTIG: Version erhöht auf v74, damit das Handy alles neu lädt!
-const CACHE_NAME = 'klangkiste-v74-full';
+// WICHTIG: Version erhöht auf v75, damit das Handy alles neu lädt!
+const CACHE_NAME = 'klangkiste-v75-full';
 
 // Da du bestätigt hast, dass diese Dateien existieren, 
 // können wir sie sicher hier auflisten.
@@ -40,7 +40,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keyList) => {
       return Promise.all(keyList.map((key) => {
-        // Lösche alles, was nicht v74 ist
+        // Lösche alles, was nicht v75 ist
         if (key !== CACHE_NAME) {
           console.log('[Service Worker] Lösche alten Cache:', key);
           return caches.delete(key);
