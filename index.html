@@ -832,10 +832,9 @@
             <h2>📂 Datenbank</h2>
             
             <div class="info-box-blue">
-                <strong>ℹ️ Hybrid-Import:</strong><br>
-                1. Sucht nach <code>klangkiste.json</code> für perfekte Daten.<br>
-                2. Fragt nach "restlichen" MP3s im Ordner (Achtung: Cover & Cue müssen <u>exakt</u> wie MP3 heißen).<br>
-                3. Browser "Upload" bestätigen (Daten bleiben lokal!).
+                <strong>ℹ️ Import-Info:</strong><br>
+                Nutze <strong>"Ordner-Struktur"</strong> für sortierte Alben (1 Ordner = 1 Hörbuch).<br>
+                Nutze <strong>"Massen-Import"</strong> für lose Dateien oder wenn du eine <code>klangkiste.json</code> hast.
             </div>
 
             <button class="btn-admin" style="background-color: #0984e3; margin-top:10px;" onclick="loadExamplesFromGitHub(event)">
@@ -849,6 +848,7 @@
             </button>
             <button class="btn-admin" style="background-color: #e67e22; position:relative; margin-bottom:10px;">
                 📂 Massen-Import (Dateien/Flat)
+                <div style="font-size:0.7em; opacity:0.8;">1 MP3 = 1 Hörbuch | Unterstützt klangkiste.json</div>
                 <input type="file" id="bulk-folder-input" webkitdirectory directory multiple onchange="handleBulkImport(this)">
             </button>
             
