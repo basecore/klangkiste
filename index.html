@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V75 (Folder Update) </title>
+    <title>KlangKiste V76 (Tracknames & Links) </title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -504,7 +504,7 @@
             border-top: 1px solid rgba(255,255,255,0.1);
         }
         
-        .footer-info a { color: #74b9ff; text-decoration: none; }
+        .footer-info a { color: #74b9ff; text-decoration: none; font-weight: bold; }
         .footer-info a:hover { text-decoration: underline; }
 
         /* --- ADMIN GRID / LIST VIEW --- */
@@ -868,8 +868,12 @@
         </div>
 
         <div class="footer-info">
-            <p>KlangKiste NFC V75 Folder Update</p>
+            <p>KlangKiste NFC V76</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
+            <p>
+                <a href="https://github.com/basecore/klangkiste/tree/main" target="_blank">GitHub Projekt</a> | 
+                <a href="https://github.com/basecore/klangkiste/issues" target="_blank">Hilfe / Issues</a>
+            </p>
         </div>
     </div>
     
@@ -964,7 +968,7 @@
              <button id="btn-skip" class="btn-control btn-secondary" onclick="skipForward()" title="Skip">
                  <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
              </button>
-             <button id="btn-next-track" class="btn-control btn-secondary" style="display:none;" onclick="skipToNextCueTrack()" title="Next Chapter">
+             <button id="btn-next-track" class="btn-control btn-secondary" style="display:none;" onclick="skipToNextCueTrack()" title="Next Track/Chapter">
                  <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
              </button>
         </div>
@@ -1481,8 +1485,14 @@
                     
                     currentPlayingTagId = tagId; currentPlaylist = track.playlist;
                     currentCueTracks = track.cueTracks || null;
+                    
                     const nextBtn = document.getElementById('btn-next-track');
-                    if(currentCueTracks && currentCueTracks.length > 0) { nextBtn.style.display = "flex"; } else { nextBtn.style.display = "none"; }
+                    // UPDATE: Zeige Button wenn Cues ODER wenn Playlist > 1
+                    if((currentCueTracks && currentCueTracks.length > 0) || (currentPlaylist && currentPlaylist.length > 1)) { 
+                        nextBtn.style.display = "flex"; 
+                    } else { 
+                        nextBtn.style.display = "none"; 
+                    }
 
                     let startIndex = track.lastTrackIndex || 0; let startTime = track.lastTime || 0;
                     if(startIndex >= currentPlaylist.length) startIndex = 0;
@@ -1580,7 +1590,12 @@
                         currentCueTracks = track.cueTracks || null;
                         
                         const nextBtn = document.getElementById('btn-next-track');
-                        if(currentCueTracks && currentCueTracks.length > 0) { nextBtn.style.display = "flex"; } else { nextBtn.style.display = "none"; }
+                        // UPDATE: Zeige Button wenn Cues ODER wenn Playlist > 1
+                        if((currentCueTracks && currentCueTracks.length > 0) || (currentPlaylist && currentPlaylist.length > 1)) { 
+                            nextBtn.style.display = "flex"; 
+                        } else { 
+                            nextBtn.style.display = "none"; 
+                        }
 
                         let startIndex = track.lastTrackIndex || 0; 
                         let startTime = track.lastTime || 0;
@@ -1827,22 +1842,48 @@
 
         function updateInfoText() {
             const infoEl = document.getElementById('playlist-info');
-            if (currentCueTracks) { infoEl.innerText = "Kapitel laden..."; } 
-            else {
-                if(currentPlaylist.length > 1) infoEl.innerText = `Teil ${currentTrackIndex+1} von ${currentPlaylist.length}`;
-                else infoEl.innerText = "";
+            
+            // PRIORITÄT: Cues -> Dateiname -> Fallback
+            if (currentCueTracks) { 
+                infoEl.innerText = "Kapitel laden..."; 
+            } else {
+                if(currentPlaylist.length > 0 && currentPlaylist[currentTrackIndex]) {
+                     // Echtes File-Objekt Name holen
+                     let fname = currentPlaylist[currentTrackIndex].name;
+                     // ".mp3" Endung entfernen für schönere Ansicht
+                     if(fname.lastIndexOf('.') > 0) fname = fname.substring(0, fname.lastIndexOf('.'));
+                     
+                     infoEl.innerText = fname;
+                } else {
+                    infoEl.innerText = "";
+                }
             }
         }
 
         function skipToNextCueTrack() {
-            if(!currentCueTracks || !audioPlayer.src) return;
-            const now = audioPlayer.currentTime;
-            const nextTrack = currentCueTracks.find(t => t.time > (now + 2)); 
-            if(nextTrack) { 
-                audioPlayer.currentTime = nextTrack.time; 
-                showStatus("⏩ " + nextTrack.title); 
-                logStatEvent('seek', currentPlayingTagId, 0, "Kapitel: " + nextTrack.title);
-            } else { showStatus("Ende erreicht"); }
+            // Dies ist jetzt der generische "NEXT" Button
+            
+            // 1. Priorität: Cue Tracks (Kapitel innerhalb einer Datei)
+            if(currentCueTracks && audioPlayer.src) {
+                const now = audioPlayer.currentTime;
+                const nextTrack = currentCueTracks.find(t => t.time > (now + 2)); 
+                if(nextTrack) { 
+                    audioPlayer.currentTime = nextTrack.time; 
+                    showStatus("⏩ " + nextTrack.title); 
+                    logStatEvent('seek', currentPlayingTagId, 0, "Kapitel: " + nextTrack.title);
+                } else { showStatus("Ende erreicht"); }
+                return;
+            }
+
+            // 2. Priorität: Mehrere Dateien (Ordner Import) - ZUM NÄCHSTEN TRACK SPRINGEN
+            if(currentPlaylist.length > 1) {
+                if(currentTrackIndex + 1 < currentPlaylist.length) {
+                    playPlaylistIndex(currentTrackIndex + 1, 0);
+                    showStatus("⏭️ Nächster Track");
+                } else {
+                    showStatus("Ende der Playlist");
+                }
+            }
         }
 
         audioPlayer.onended = () => {
@@ -2753,7 +2794,7 @@
 
                     // 3. Tracks wiederherstellen (mit Erhalt der Audio-Blobs wenn möglich)
                     for(const entry of tracksToImport) {
-                         await new Promise((resolve) => {
+                          await new Promise((resolve) => {
                             const req = trackStore.get(entry.tagId);
                             req.onsuccess = () => {
                                 const existing = req.result;
@@ -2783,7 +2824,7 @@
                                 if(existing) updated++; else newEntries++;
                                 resolve();
                             };
-                         });
+                          });
                     }
 
                     tx.oncomplete = () => {
@@ -3107,7 +3148,7 @@
                         addFilterChip(`Ab ${age} Jahren`, `age_${age}`);
                     });
                     Array.from(genres).sort().forEach(genre => {
-                         addFilterChip(genre, `genre_${genre}`);
+                          addFilterChip(genre, `genre_${genre}`);
                     });
                 }
 
