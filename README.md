@@ -1,41 +1,50 @@
-# 🎵 KlangKiste PWA (V74 Full Backup Edition)
+# 🎵 KlangKiste PWA (V76 Smart Folder Edition)
 
 **Die smarte DIY "Toniebox" fürs Handy – 100% AI-Generated Code.**
 
-Dieses Projekt ist eine kinderfreundliche Musik-Player-App, die alte Smartphones in sichere, werbefreie Abspielgeräte verwandelt. Sie läuft als **Progressive Web App (PWA)** komplett offline im Browser.
+Dieses Projekt ist eine kinderfreundliche Musik-Player-App, die alte Smartphones in sichere, werbefreie Abspielgeräte verwandelt. Sie läuft als **Progressive Web App (PWA)** komplett offline im Browser und nutzt IndexedDB zur Speicherung von hunderten Hörspielen.
 
 > 🤖 **Made with Gemini:** Dieses gesamte Projekt (HTML, CSS, JavaScript Logik, Datenbank-Struktur) wurde vollständig durch **Google Gemini 3 Pro** erstellt und analysiert. Es ist ein Experiment, wie weit KI-gestützte Entwicklung ohne manuelles Coden gehen kann.
 
 ---
 
-## ✨ Neue Funktionen in v74
+## ✨ Neu in v76: Der Smart Folder Import
 
-Diese Version fokussiert sich auf Datensicherheit und maximale Performance auf älteren Geräten (z.B. Samsung Galaxy S8).
+Das Highlight dieser Version ist die intelligente Erkennung von Ordnerstrukturen. Das mühsame manuelle Anlegen von Alben entfällt!
 
-### 📦 1. Full System Backup & Restore (Neu in v74)
-Der Export ist jetzt mächtiger denn je. Die neue `klangkiste_full_backup.json` speichert nicht mehr nur die Titel, sondern **den kompletten Zustand der App**:
-* **Fortschritt:** Speichert für jedes Hörbuch die exakte Sekunde und das Kapitel.
-* **Status:** Merkt sich, welche Hörbücher **versteckt** (Shadow-List) oder **abgeschlossen (✅)** sind.
-* **Statistik:** Die gesamte Hör-Historie und Timeline bleibt erhalten.
-* **Einstellungen:** Deine Anpassungen (Lautstärke-Limit, Sleep-Timer, Filter) werden mitgesichert.
-* *Wichtig:* Nach dem Import eines Full-Backups muss man nur noch den Ordner mit den MP3s auswählen ("Reparieren"), und alles ist exakt wie vorher.
+### 📂 1. "Smart Folder" Struktur-Import (Neu in v76)
+Du hast deine Hörspiele am PC bereits in Ordnern sortiert? Perfekt!
+* **Wie es funktioniert:** Wähle einen Oberordner (z.B. "Meine Hörspiele") aus.
+* **Die Magie:** Die App erkennt automatisch jeden Unterordner als **eigenes Album**.
+* **Beispiel:**
+    * `Hörspiele/Benjamin Blümchen/01 - Zoo.mp3` -> Wird Album "Benjamin Blümchen"
+    * `Hörspiele/Leo Lausemaus/Titel.mp3` -> Wird Album "Leo Lausemaus"
+* **Automatische Cover:** Wenn in einem Ordner ein Bild (jpg/png) liegt, wird es automatisch als Cover für dieses Album gesetzt.
+* **Sortierung:** Dateien innerhalb des Ordners werden automatisch alphabetisch sortiert (01, 02, 03...).
 
-### 🧠 2. Smart RAM Management (Neu in v74)
-Speziell für Geräte mit wenig Arbeitsspeicher wurde die Speicherverwaltung komplett überarbeitet.
-* **Garbage Collection:** Beim Wechseln von Hörbüchern oder Schließen der Bibliothek wird der RAM sofort aggressiv bereinigt.
-* **Ergebnis:** Kein Stottern oder Abstürzen mehr, selbst bei Bibliotheken mit **über 100 Hörbüchern** und großen Cover-Bildern.
-
-### 🔊 3. Hybride Audio-Engine (Neu in v74)
-Die App ist nun extrem robust im Flugmodus.
-* **Graceful Degradation:** Sollte die Datei `limit.mp3` im Offline-Cache fehlen oder beschädigt sein, wechselt die App automatisch auf die **Web Audio API** und erzeugt den Ton synthetisch. Keine Fehlermeldungen mehr beim Lautstärke-Test.
+### ⚡ 2. Admin Listen-Ansicht (Neu in v76)
+Für Eltern mit großen Sammlungen (500+ Alben):
+* **Umschaltbar:** Im Eltern-Modus kannst du nun zwischen **Raster (Grid)** und **Liste** umschalten.
+* **Performance:** Die Listen-Ansicht benötigt kaum Rechenleistung und lädt sofort, auch auf sehr alten Handys.
 
 ---
 
-## 🚀 Highlights aus v73 (High Performance)
+## 🚀 Wichtige Funktionen aus v74/v75
 
-* **🌑 Die "Shadow-List" Technologie:** Das Verstecken von Inhalten passiert in einer separaten Schatten-Datenbank. Änderungen an der Sichtbarkeit dauern nur Millisekunden, egal wie groß die Bibliothek ist.
-* **🖼️ Cover-Bilder im Admin-Modus:** Dank der neuen Performance-Architektur sind Cover-Bilder nun auch in der Admin-Listenansicht sichtbar, ohne den Speicher zu überlasten.
-* **⚡ Turbo-Massensteuerung:** "Alle verstecken" und "Alle anzeigen" arbeiten verzögerungsfrei.
+Diese Funktionen sorgen für Datensicherheit und Performance auf älteren Geräten.
+
+### 📦 Full System Backup & Restore
+Der Export ist mächtiger denn je. Die `klangkiste_full_backup.json` speichert **den kompletten Zustand der App**:
+* **Fortschritt:** Speichert für jedes Hörbuch die exakte Sekunde und das Kapitel.
+* **Status:** Merkt sich, welche Hörbücher **versteckt** (Shadow-List) oder **abgeschlossen (✅)** sind.
+* **Statistik:** Die gesamte Hör-Historie und Timeline bleibt erhalten.
+* **Einstellungen:** Anpassungen (Lautstärke-Limit, Sleep-Timer, Filter) werden mitgesichert.
+
+### 🧠 Smart RAM Management
+Speziell für Geräte mit wenig Arbeitsspeicher (z.B. Galaxy S8). Beim Wechseln von Hörbüchern oder Schließen der Bibliothek wird der RAM sofort aggressiv bereinigt. Ergebnis: Kein Stottern mehr.
+
+### 🔊 Hybride Audio-Engine
+Die App ist extrem robust. Sollte eine MP3-Datei beschädigt sein oder fehlen, wechselt die App automatisch auf die **Web Audio API** und erzeugt einen synthetischen Ton, statt abzustürzen.
 
 ---
 
@@ -64,7 +73,7 @@ Verwaltung der Inhalte und Einsicht in das Nutzungsverhalten.
 | **Verwaltung** | **Statistik** |
 |:---:|:---:|
 | <img src="docs/screenshots/parent-mode.png" width="200"> | <img src="docs/screenshots/stats_view.png" width="200"> |
-| *Tags anlernen & Import* | *Timeline & Fortschritt (✅)* |
+| *Smart Folder & Tags* | *Timeline & Fortschritt (✅)* |
 
 ---
 
@@ -91,23 +100,23 @@ Die App muss nicht über den Play Store geladen werden, sondern wird direkt übe
 
 ---
 
-## 📖 Bedienung
+## 📖 Bedienung & Musik hinzufügen
 
-### 1. Musik hinzufügen
+### 1. Musik importieren (4 Wege)
 
-Die App unterstützt mehrere Wege:
+* **A) Ordner-Struktur Import (Smart - Neu in v76):**
+    Der beste Weg für sortierte Sammlungen. Wähle deinen Haupt-Ordner. Die App erstellt für jeden Unterordner automatisch ein Album und nutzt enthaltene Bilder als Cover.
+* **B) Massen-Import (Dateien):**
+    Für lose MP3s oder wenn du unser Python-Tool nutzt. Wähle Dateien und die `klangkiste.json` aus – dann sind alle Titel, Cover und Texte sofort perfekt gesetzt!
+* **C) Online-Beispiele:**
+    Lade mit einem Klick vorbereitete KI-generierte Hörspiele direkt vom Server (zum Testen).
+* **D) Manuell anlernen:**
+    Gehe auf „Neuen Tag anlernen", wähle Audio & Bild einzeln und fülle Details wie Beschreibung und Alter aus.
 
-* **A) Online-Beispiele (Neu):**
-    Lade mit einem Klick vorbereitete KI-generierte Hörspiele direkt vom Server (siehe unten).
-* **B) Massen-Import (Empfohlen):**
-    Erstelle Ordner mit MP3s und Covern am PC und lade sie über „Massen-Import" hoch. **Tipp:** Wenn du unser Python-Tool (siehe unten) mit den TAF-Dateien nutzt, wird eine `klangkiste.json` erstellt. Wähle diese Datei und den Ordner aus – dann sind alle Titel, Cover und Texte sofort perfekt gesetzt!
-* **C) Manuell anlernen:**
-    Gehe auf „Neuen Tag anlernen", wähle Audio & Bild und fülle im Menü **„📝 Erweiterte Infos"** Details wie Beschreibung und Alter aus.
-
-### 2. Backups & Restore (Neu in v74)
+### 2. Backups & Restore
 
 * **Sichern:** Klicke auf **"Datenbank exportieren"**. Dies speichert eine Datei (`klangkiste_full_backup_DATUM.json`), die all deine Fortschritte, Einstellungen und Statistiken enthält.
-* **Wiederherstellen:** Lade diese Datei über **"Datenbank laden"**. Die App erkennt automatisch das Format und stellt alles wieder her. Da Browser aus Sicherheitsgründen keine Audio-Dateien exportieren dürfen, klicke danach auf den (dann rot blinkenden) Button **"Automatisch reparieren"** und wähle deinen MP3-Ordner erneut aus. Die App verknüpft die Dateien dann wieder vollautomatisch.
+* **Wiederherstellen:** Lade diese Datei über **"Datenbank laden"**. Die App erkennt automatisch das Format. Da Browser aus Sicherheitsgründen keine Audio-Dateien exportieren dürfen, klicke danach auf den (rot blinkenden) Button **"Automatisch reparieren"** und wähle deinen MP3-Ordner erneut aus.
 
 ### 3. NFC Tags nutzen (Optional)
 
@@ -125,31 +134,21 @@ Es gibt keinen sichtbaren „Zurück"-Button, damit Kinder die App nicht versehe
 
 ## 🚀 Schnellstart mit Beispielen
 
-Du möchtest die App sofort testen? Wir haben Beispiel-Hörspiele vorbereitet (inkl. Cover & Metadaten).
+Du möchtest die App sofort testen? Wir haben Beispiel-Hörspiele vorbereitet.
 
 ### ⚡ Methode 1: Direkt in der App laden (Empfohlen)
-
-Du musst nichts manuell herunterladen! Die App holt sich die Dateien direkt vom Server.
-
 1. Öffne den Bereich **„📂 Datenbank“** im Eltern-Modus.
 2. Klicke auf den blauen Button **„☁️ Beispiele direkt laden (Online)“**.
-3. Bestätige den Download. Fertig! 🎉
+3. Bestätige den Download. Fertig!
 
 <img src="docs/screenshots/import-online.png" width="400" alt="Screenshot des Online Import Buttons">
 
+> **⚠️ Hinweis zu den Beispielen:** Die enthaltenen Hörbücher wurden testweise mit der **KI Suno 4.5** generiert. Sie dienen rein zu Testzwecken.
 
-> **⚠️ Hinweis zu den Beispielen:** > Die enthaltenen Hörbücher wurden testweise mit der **KI Suno 4.5** generiert. Sie dienen rein zu Testzwecken der App-Funktionen.  
-> **Bitte beachten:** Die Geschichten, Betonung und Aussprache sind experimentell ("KI-generiert") und entsprechen qualitativ nicht echten, professionellen Hörbüchern.
-
-### 📥 Methode 2: Manuell herunterladen (für Offline-Installationen)
-
-Falls du die Dateien lieber selbst auf dem Handy haben möchtest:
-
+### 📥 Methode 2: Manuell herunterladen
 1. Gehe auf https://github.com/basecore/klangkiste
 2. Klicke auf den grünen **„Code"**-Button -> **„Download ZIP"**
-3. Entpacke die Datei.
-4. Gehe in der App auf **„📂 Massen-Import"**.
-5. Wähle im Ordner `example/` die Datei `klangkiste.json` und die MP3/PNG Dateien aus.
+3. Entpacke die Datei und lade Ordner `example/` über "Massen-Import".
 
 ---
 
@@ -192,7 +191,7 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 ## 📂 Dateistruktur
 
 * `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v76)
-* `sw.js` – Der Service Worker für die Offline-Funktionalität (Cache v74)
+* `sw.js` – Der Service Worker für die Offline-Funktionalität (Cache v76)
 * `manifest.json` – Konfiguration für das App-Icon und den Vollbild-Modus
 * `assets/` – Ordner für Icons und Test-Sounds
 * `example/` – Beispieldateien (MP3s, PNGs, `klangkiste.json`) für schnellen Start
@@ -208,5 +207,5 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 
 ## 👨‍💻 Credits
 
-Entwickelt von Sebastian Rößer mit Unterstützung von **Google Gemini 3 Pro**.  
-Version 74 „Full Backup Edition".
+Entwickelt von Sebastian Rößer mit Unterstützung von **Google Gemini 3 Pro**.
+Version 76 „Smart Folder Edition".
