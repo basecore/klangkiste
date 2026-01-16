@@ -77,6 +77,16 @@ Verwaltung der Inhalte und Einsicht in das Nutzungsverhalten.
 
 ---
 
+## 🌍 Direkt im Browser nutzen (Ohne Installation)
+
+Du musst die App nicht zwingend installieren. Du kannst sie auch einfach direkt als Webseite verwenden:
+
+👉 **[https://basecore.github.io/klangkiste/](https://basecore.github.io/klangkiste/)**
+
+**Hinweis:** Die App funktioniert auch so vollumfänglich und speichert deine Datenbank im Browser. Deine Daten bleiben erhalten, **solange du deine Browser-Daten (Cache/Webseitendaten) nicht löschst**.
+
+---
+
 # 📲 Installation (Android)
 
 Die App muss nicht über den Play Store geladen werden, sondern wird direkt über den Browser installiert.
