@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V77 (Full + Bluetooth)</title>
+    <title>KlangKiste V77 (Full + BT Fix)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -3208,43 +3208,67 @@
 
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 
-        // --- BLUETOOTH LISTENER ---
-        // Das ist der Teil, der die Tastatureingaben vom ESP32 abfängt
+        // --- BLUETOOTH KEYBOARD LISTENER ---
+        // Das hier ist der wichtigste Teil für den ESP32 Reader!
         let btBuffer = "";
         let btTimeout;
-        document.addEventListener('keydown', e => {
-            // Buffer löschen, wenn 1 Sekunde nichts passiert (gegen manuelles Tippen)
+
+        document.addEventListener('keydown', (e) => {
+            // 1. Timeout Reset (Buffer löschen wenn zu langsam -> Mensch tippt)
             clearTimeout(btTimeout);
-            btTimeout = setTimeout(() => btBuffer = "", 1000); 
-            
-            if(e.key === "Enter") {
-                // Wir lauschen auf das sichere Präfix "UID "
-                if(btBuffer.includes("UID")) {
-                    // ID extrahieren (alles nach "UID ")
-                    let id = btBuffer.substring(btBuffer.indexOf("UID")+3).trim();
-                    // Eventuelle Minuszeichen entfernen
-                    id = id.replace(/-/g, "").trim();
+            btTimeout = setTimeout(() => { btBuffer = ""; }, 500); // 500ms reichen für BT
+
+            // 2. Wenn Enter gedrückt wird (Ende der Übertragung)
+            if (e.key === "Enter") {
+                // Prüfen auf "UID" Marker (auch "UID " mit Space)
+                if (btBuffer.includes("UID")) {
+                    // DAS IST DER FIX FÜR "START/STOP":
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // ID extrahieren (schneidet "UID " weg)
+                    // Wir sind tolerant: "UID " oder "UID" geht beides
+                    let id = btBuffer.substring(btBuffer.indexOf("UID") + 3).trim();
                     
-                    console.log("BT Scan erkannt:", id);
-                    showStatus("📡 Reader: " + id);
-                    
-                    // Logik ausführen
-                    if (isParentMode) {
-                        if (isLinkModeActive) { 
-                            saveTrackLink(id); 
-                            isLinkModeActive = false; 
-                        } else { 
-                            showStatus("Tag erkannt: " + id); 
+                    // Sicherstellen dass keine Bindestriche da sind (Layout safe)
+                    id = id.replace(/-/g, "").replace(/_/g, "").trim();
+
+                    console.log("BT Input:", id);
+
+                    if (id.length > 0) {
+                        // VISUELLES FEEDBACK
+                        const status = document.getElementById('status-msg');
+                        status.innerText = "📡 Empfangen: " + id;
+                        status.style.display = 'block';
+                        setTimeout(() => status.style.display = 'none', 3000);
+
+                        // LOGIK VERTEILUNG
+                        if (isParentMode) {
+                            // Admin Modus
+                            if (isLinkModeActive) {
+                                // Wir warten gerade auf einen Tag zum Speichern
+                                saveTrackLink(id);
+                                isLinkModeActive = false;
+                                document.getElementById('scan-status').innerText = "✅ Tag gespeichert: " + id;
+                            } else {
+                                // Einfach nur gescannt im Admin Menü (Zeige Tag ID)
+                                 console.log("Admin Scan:", id);
+                                 showStatus("Tag ID: " + id);
+                            }
+                        } else {
+                            // Kinder Modus -> Abspielen
+                            playTrackByTag(id);
                         }
-                    } else {
-                        // Im Kindermodus: Abspielen!
-                        playTrackByTag(id);
                     }
-                    e.preventDefault(); // Verhindern, dass Enter irgendwo anders triggert
                 }
+                // Buffer leeren
                 btBuffer = "";
+                return false; // Stop further processing
             } else {
-                btBuffer += e.key;
+                // Zeichen sammeln (nur wenn kein Shift/Alt etc)
+                if (e.key.length === 1) {
+                    btBuffer += e.key;
+                }
             }
         });
 
