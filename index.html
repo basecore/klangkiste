@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V77 (Full + BT Fix)</title>
+    <title>KlangKiste V76 (Tracknames & Links) </title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -868,7 +868,7 @@
         </div>
 
         <div class="footer-info">
-            <p>KlangKiste NFC V77</p>
+            <p>KlangKiste NFC V76</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>
                 <a href="https://github.com/basecore/klangkiste/tree/main" target="_blank">GitHub Projekt</a> | 
@@ -1848,12 +1848,12 @@
                 infoEl.innerText = "Kapitel laden..."; 
             } else {
                 if(currentPlaylist.length > 0 && currentPlaylist[currentTrackIndex]) {
-                      // Echtes File-Objekt Name holen
-                      let fname = currentPlaylist[currentTrackIndex].name;
-                      // ".mp3" Endung entfernen für schönere Ansicht
-                      if(fname.lastIndexOf('.') > 0) fname = fname.substring(0, fname.lastIndexOf('.'));
-                      
-                      infoEl.innerText = fname;
+                     // Echtes File-Objekt Name holen
+                     let fname = currentPlaylist[currentTrackIndex].name;
+                     // ".mp3" Endung entfernen für schönere Ansicht
+                     if(fname.lastIndexOf('.') > 0) fname = fname.substring(0, fname.lastIndexOf('.'));
+                     
+                     infoEl.innerText = fname;
                 } else {
                     infoEl.innerText = "";
                 }
@@ -3207,71 +3207,6 @@
         }
 
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
-
-        // --- BLUETOOTH KEYBOARD LISTENER ---
-        // Das hier ist der wichtigste Teil für den ESP32 Reader!
-        let btBuffer = "";
-        let btTimeout;
-
-        document.addEventListener('keydown', (e) => {
-            // 1. Timeout Reset (Buffer löschen wenn zu langsam -> Mensch tippt)
-            clearTimeout(btTimeout);
-            btTimeout = setTimeout(() => { btBuffer = ""; }, 500); // 500ms reichen für BT
-
-            // 2. Wenn Enter gedrückt wird (Ende der Übertragung)
-            if (e.key === "Enter") {
-                // Prüfen auf "UID" Marker (auch "UID " mit Space)
-                if (btBuffer.includes("UID")) {
-                    // DAS IST DER FIX FÜR "START/STOP":
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    // ID extrahieren (schneidet "UID " weg)
-                    // Wir sind tolerant: "UID " oder "UID" geht beides
-                    let id = btBuffer.substring(btBuffer.indexOf("UID") + 3).trim();
-                    
-                    // Sicherstellen dass keine Bindestriche da sind (Layout safe)
-                    id = id.replace(/-/g, "").replace(/_/g, "").trim();
-
-                    console.log("BT Input:", id);
-
-                    if (id.length > 0) {
-                        // VISUELLES FEEDBACK
-                        const status = document.getElementById('status-msg');
-                        status.innerText = "📡 Empfangen: " + id;
-                        status.style.display = 'block';
-                        setTimeout(() => status.style.display = 'none', 3000);
-
-                        // LOGIK VERTEILUNG
-                        if (isParentMode) {
-                            // Admin Modus
-                            if (isLinkModeActive) {
-                                // Wir warten gerade auf einen Tag zum Speichern
-                                saveTrackLink(id);
-                                isLinkModeActive = false;
-                                document.getElementById('scan-status').innerText = "✅ Tag gespeichert: " + id;
-                            } else {
-                                // Einfach nur gescannt im Admin Menü (Zeige Tag ID)
-                                 console.log("Admin Scan:", id);
-                                 showStatus("Tag ID: " + id);
-                            }
-                        } else {
-                            // Kinder Modus -> Abspielen
-                            playTrackByTag(id);
-                        }
-                    }
-                }
-                // Buffer leeren
-                btBuffer = "";
-                return false; // Stop further processing
-            } else {
-                // Zeichen sammeln (nur wenn kein Shift/Alt etc)
-                if (e.key.length === 1) {
-                    btBuffer += e.key;
-                }
-            }
-        });
-
     </script>
 </body>
 </html>
