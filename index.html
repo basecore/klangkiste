@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V76 (Tracknames & Links) </title>
+    <title>KlangKiste V76 (Bluetooth Ready)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -1848,12 +1848,12 @@
                 infoEl.innerText = "Kapitel laden..."; 
             } else {
                 if(currentPlaylist.length > 0 && currentPlaylist[currentTrackIndex]) {
-                     // Echtes File-Objekt Name holen
-                     let fname = currentPlaylist[currentTrackIndex].name;
-                     // ".mp3" Endung entfernen für schönere Ansicht
-                     if(fname.lastIndexOf('.') > 0) fname = fname.substring(0, fname.lastIndexOf('.'));
-                     
-                     infoEl.innerText = fname;
+                      // Echtes File-Objekt Name holen
+                      let fname = currentPlaylist[currentTrackIndex].name;
+                      // ".mp3" Endung entfernen für schönere Ansicht
+                      if(fname.lastIndexOf('.') > 0) fname = fname.substring(0, fname.lastIndexOf('.'));
+                      
+                      infoEl.innerText = fname;
                 } else {
                     infoEl.innerText = "";
                 }
@@ -3207,6 +3207,47 @@
         }
 
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+
+        // --- BLUETOOTH LISTENER ---
+        // Das ist der Teil, der die Tastatureingaben vom ESP32 abfängt
+        let btBuffer = "";
+        let btTimeout;
+        document.addEventListener('keydown', e => {
+            // Buffer löschen, wenn 1 Sekunde nichts passiert (gegen manuelles Tippen)
+            clearTimeout(btTimeout);
+            btTimeout = setTimeout(() => btBuffer = "", 1000); 
+            
+            if(e.key === "Enter") {
+                // Wir lauschen auf das sichere Präfix "UID "
+                if(btBuffer.includes("UID")) {
+                    // ID extrahieren (alles nach "UID ")
+                    let id = btBuffer.substring(btBuffer.indexOf("UID")+3).trim();
+                    // Eventuelle Minuszeichen entfernen
+                    id = id.replace(/-/g, "").trim();
+                    
+                    console.log("BT Scan erkannt:", id);
+                    showStatus("📡 Reader: " + id);
+                    
+                    // Logik ausführen
+                    if (isParentMode) {
+                        if (isLinkModeActive) { 
+                            saveTrackLink(id); 
+                            isLinkModeActive = false; 
+                        } else { 
+                            showStatus("Tag erkannt: " + id); 
+                        }
+                    } else {
+                        // Im Kindermodus: Abspielen!
+                        playTrackByTag(id);
+                    }
+                    e.preventDefault(); // Verhindern, dass Enter irgendwo anders triggert
+                }
+                btBuffer = "";
+            } else {
+                btBuffer += e.key;
+            }
+        });
+
     </script>
 </body>
 </html>
