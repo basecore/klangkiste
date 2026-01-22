@@ -1,6 +1,6 @@
 # 📟 ESP32 Tonie Unlocker (ABRobot Edition)
 
-Ein kostengünstiges (< 10€) Standalone-Tool zum Analysieren von Tonie-Figuren, Deaktivieren des Privacy-Modes (bei Kreativ-Tonies) und Auslesen der echten UIDs für die KlangKiste.
+Ein kostengünstiges (< 10€) Standalone-Tool zum Analysieren von Tonie-Figuren, Deaktivieren des Privacy-Modes und Auslesen der echten UIDs für die KlangKiste.
 
 Basierend auf dem extrem kompakten **ESP32-C3 SuperMini mit integriertem 0.42" OLED**.
 
