@@ -33,21 +33,19 @@ Preise basierend auf AliExpress (Stand: Jan 2026).
 ## 🛠️ Verkabelung (Wiring)
 
 Wir nutzen handelsübliche **Female-to-Female (Buchse-zu-Buchse)** Jumper-Kabel.
-Die Konfiguration nutzt **GPIO 7 als Chip Select** und **GPIO 1 als Reset**, um GPIO 0 (Boot-Pin) freizuhalten.
-
-**⚠️ WICHTIG:** Das Display ist auf diesem Board intern bereits an GPIO 5 & 6 angeschlossen. Diese Pins nicht nutzen! Das PN5180 läuft auf **3.3V** (5V zerstört es!).
+**Achtung:** NSS (Chip Select) liegt bei dieser Konfiguration auf **GPIO 8**!
 
 | PN5180 Pin | ESP32-C3 Pin | Farbe (Dein Setup) | Funktion |
 | :--- | :--- | :--- | :--- |
 | **5V** | **5V** | 🔴 **Rot** | Strom für Antenne (Optional) |
 | **3.3V** | **3.3V** | 🟠 **Orange** | Strom für Logik |
 | **GND** | **GND** | ⚫ **Schwarz** | Masse |
-| **RST** | **GPIO 1** | 🟡 **Gelb** | Reset (Weg von Pin 0!) |
-| **NSS** | **GPIO 7** | 🟢 **Grün** | Chip Select |
+| **RST** | **GPIO 1** | 🟣 **Lila** | Reset |
+| **NSS** | **GPIO 8** | 🔘 **Grau** | Chip Select |
 | **MOSI** | **GPIO 2** | 🔵 **Blau** | Daten zum PN5180 |
-| **MISO** | **GPIO 3** | 🟣 **Lila** | Daten vom PN5180 |
-| **SCK** | **GPIO 4** | ⚪ **Weiß** | Takt |
-| **BUSY** | **GPIO 10** | 🔘 **Grau** | Status |
+| **MISO** | **GPIO 3** | 🟡 **Gelb** | Daten vom PN5180 |
+| **SCK** | **GPIO 4** | 🟢 **Grün** | Takt |
+| **BUSY** | **GPIO 10** | ⚪ **Weiß** | Status |
 
 > **Hinweis zum 5V Pin:** Da dein PN5180 Modul einen 5V Pin hat, kannst du diesen an den 5V (VBUS) des ESP32 anschließen, um die Antennenleistung zu stärken. Die Datenleitungen (MOSI, MISO etc.) bleiben dabei sicher auf 3.3V.
 
@@ -55,14 +53,14 @@ Die Konfiguration nutzt **GPIO 7 als Chip Select** und **GPIO 1 als Reset**, um 
 
 ## 📺 Display-Anzeigen (Logik)
 
-Die Firmware V11.4 nutzt ein intelligentes 2-Seiten-System, um auf dem winzigen Display alle Infos anzuzeigen.
+Die Firmware **V11.3** nutzt ein intelligentes 2-Seiten-System, um auf dem winzigen Display alle Infos anzuzeigen.
 
 ### 1. Start & Diagnose
 Direkt nach dem Einstecken prüft der ESP32, ob der NFC-Reader antwortet.
 
 | Status | Zeile 1 | Zeile 2 | Zeile 3 |
 | :--- | :--- | :--- | :--- |
-| **Boot** | `System Start` | `V11.4 (Custom)` | `2026-01-22` |
+| **Boot** | `System Start` | `V11.3 (Custom)` | `2026-01-22` |
 | **Check OK** | `NFC OK` | `Chip: v3.5` | `Bereit.` |
 | **Fehler** | `HARDWARE` | `FEHLER!` | `Kabel checken` |
 
@@ -155,8 +153,22 @@ Damit der ESP32 den Befehl zum Entsperren des Privacy-Modes senden darf, müssen
 > **Grund:** Die Funktion `issueISO15693Command` ist normalerweise versteckt, wir brauchen sie aber für den Unlock-Befehl.
 
 ### 📄 Firmware flashen
+
 1.  Öffne die Datei `Esp32_Tonie_Unlocker.ino` aus diesem Repository.
-2.  **Passwort setzen:** Suche im Code nach `const uint8_t toniePass[]`. Du musst dort das Passwort für den ICODE-SLIX2 eintragen (siehe Link im Code-Kommentar).
-    * *Hinweis: Das Standard-Passwort ist oft {0x0F, 0x0F, 0x0F, 0x0F}, aber Tonies nutzen ein eigenes. Suche online danach.*
+2.  **Passwort setzen (Wichtig):**
+    Suche im Code nach dem Abschnitt `SICHERHEITSEINSTELLUNGEN`. Du musst dort das Passwort für den ICODE-SLIX2 (Privacy Mode) eintragen. Ohne das korrekte Passwort können Kreativ-Tonies nicht entsperrt werden.
+
+    ```cpp
+    // ================================================================
+    // SICHERHEITSEINSTELLUNGEN
+    // ================================================================
+    // check for ICODE-SLIX2 password protected tag
+    // put your privacy password here, e.g.:
+    // [https://de.ifixit.com/Antworten/Ansehen/513422/nfc+Chips+f%C3%BCr+tonies+kaufen](https://de.ifixit.com/Antworten/Ansehen/513422/nfc+Chips+f%C3%BCr+tonies+kaufen)
+    //
+    // default factory password for ICODE-SLIX2 is {0x0F, 0x0F, 0x0F, 0x0F}
+    const uint8_t toniePass[] = {0x00, 0x00, 0x00, 0x00}; // <-- Hier dein PW eintragen!
+    ```
+
 3.  Schließe den ESP32-C3 per USB-C an.
 4.  Wähle den richtigen COM-Port und klicke auf **Upload**.
