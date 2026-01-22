@@ -184,6 +184,6 @@ Damit der ESP32 den Befehl zum Entsperren des Privacy-Modes senden darf, müssen
 
 Eine alternative Methode, um den Privacy-Mode zu deaktivieren, ist die sogenannte "Klopfmethode", falls man dieses Tool gerade nicht zur Hand hat.
 
-> "Eine weitere Möglichkeit, den Privacy-Modus zu deaktivieren, ist die sogenannte „Knock Methode“. Ich habe herausgefunden, dass man einen RFID-Tag auf die Toniebox legen und schnell wieder herunternehmen kann, noch bevor die Box den Privacy-Modus für diesen Tag wieder aktivieren kann. Das Ganze muss innerhalb einer halben Sekunde geschehen. Am einfachsten gelingt dies, indem man mit dem Tag leicht auf die Oberfläche des Toniebox-Lesers klopft und ihn sofort wieder anhebt. Daher nenne ich es die „Knock Methode“ – oder auf Deutsch: die „Klopfmethode“."
+> "Eine weitere Möglichkeit, den Privacy-Modus zu deaktivieren, ist die sogenannte „Knock Methode“. Wenn man einen RFID-Tag auf die Toniebox legt und schnell wieder herunternimmt, noch bevor die Box den Privacy-Modus für diesen Tag wieder aktivieren kann, bleibt der Privacy-Modus deaktiviert. Das Ganze muss innerhalb einer halben Sekunde geschehen. Am einfachsten gelingt dies, indem man mit dem Tag leicht auf die Oberfläche des Toniebox-Lesers klopft und ihn sofort wieder anhebt. Daher nenne ich es die „Knock Methode“ – oder auf Deutsch: die „Klopfmethode“."
 
 **Hinweis:** Für die Klopfmethode benötigt man ein sehr gutes Timing!
