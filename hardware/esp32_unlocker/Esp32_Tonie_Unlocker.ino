@@ -7,10 +7,10 @@
 // ================================================================
 // EINSTELLUNGEN
 // ================================================================
-#define FIRMWARE_VERSION "V11.3 (Final)"
+#define FIRMWARE_VERSION "V11.3 (2-Pages)"
 #define BUILD_DATE       "2026-01-22" 
 
-// Display Setup (128x64)
+// Display Setup (ABRobot ESP32-C3 internal wiring)
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_SDA 5
@@ -21,7 +21,7 @@
 #define X_OFF 28  
 #define Y_OFF 24
 
-// NFC Hardware (ESP32-C3 Pins)
+// NFC Hardware
 #define PN5180_RST  1   
 #define PN5180_BUSY 10
 #define PN5180_SS   8   
@@ -29,34 +29,38 @@
 #define PN5180_MISO 3
 #define PN5180_SCK  4
 
-// Das geheime Tonie-Passwort
-const uint8_t toniePass[] = {0x5B, 0x6E, 0xFD, 0x7F};
+// ================================================================
+// SICHERHEITSEINSTELLUNGEN
+// ================================================================
+// check for ICODE-SLIX2 password protected tag
+// put your privacy password here, e.g.:
+// https://de.ifixit.com/Antworten/Ansehen/513422/nfc+Chips+f%C3%BCr+tonies+kaufen
+//
+// default factory password for ICODE-SLIX2 is {0x0F, 0x0F, 0x0F, 0x0F}
+//
+const uint8_t toniePass[] = {0x00, 0x00, 0x00, 0x00}; // <--- HIER ANPASSEN!
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 // ================================================================
-// LOGIK KLASSE (Erbt von der Lib, um Commands zu senden)
+// LOGIK KLASSE
 // ================================================================
 class TonieNFC : public PN5180ISO15693 {
   public:
     using PN5180ISO15693::PN5180ISO15693;
 
-    // Führt den Unlock durch (Privacy Mode deaktivieren)
     bool unlockTonie() {
       uint8_t cmdGetRnd[] = {0x02, 0xB2, 0x04}; 
       uint8_t resp[16]; uint8_t *respPtr = resp; 
       
-      // 1. Zufallszahl vom Tag holen
       ISO15693ErrorCode rc = issueISO15693Command(cmdGetRnd, sizeof(cmdGetRnd), &respPtr);
       if (rc != ISO15693_EC_OK) return false;
 
-      // 2. Passwort berechnen (XOR mit Zufallszahl)
       uint8_t rnd1 = respPtr[1]; uint8_t rnd2 = respPtr[2];
       uint8_t xorPW[4];
       xorPW[0] = toniePass[0] ^ rnd1; xorPW[1] = toniePass[1] ^ rnd2;
       xorPW[2] = toniePass[2] ^ rnd1; xorPW[3] = toniePass[3] ^ rnd2;
       
-      // 3. Unlock senden
       uint8_t cmdUnlock[] = {0x02, 0xB3, 0x04, 0x04, xorPW[0], xorPW[1], xorPW[2], xorPW[3]};
       return (issueISO15693Command(cmdUnlock, sizeof(cmdUnlock), &respPtr) == ISO15693_EC_OK);
     }
@@ -68,7 +72,7 @@ TonieNFC nfc(PN5180_SS, PN5180_BUSY, PN5180_RST);
 // HELFER FUNKTIONEN
 // ================================================================
 
-// Formatiert UID mit Doppelpunkten: E0:04:03...
+// Erzeugt den langen String mit Doppelpunkten: E0:04:03...
 String getFormattedUID(uint8_t* uid) {
   String s = "";
   for (int i = 7; i >= 0; i--) {
@@ -100,29 +104,25 @@ void setup() {
   Serial.begin(115200);
   delay(1000); 
 
-  // Display Init
+  // Display
   Wire.begin(OLED_SDA, OLED_SCL); 
-  if(!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS)) {
-     Serial.println("Display Error");
-  }
+  display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS);
   
-  showPage("System Start", FIRMWARE_VERSION, BUILD_DATE);
+  showPage("Tonie Reader", FIRMWARE_VERSION, BUILD_DATE);
   delay(2000);
 
-  // NFC Init
+  // NFC
   SPI.begin(PN5180_SCK, PN5180_MISO, PN5180_MOSI, PN5180_SS);
-  nfc.begin(); 
-  nfc.reset();
+  nfc.begin(); nfc.reset();
   
-  // Hardware Check
   uint8_t productVersion[2];
   nfc.readEEprom(PRODUCT_VERSION, productVersion, 2);
-  if (productVersion[1] == 0xFF || productVersion[1] == 0x00) {
+  if (productVersion[1] == 0xFF) {
       showPage("HARDWARE", "FEHLER!", "Kabel checken");
       while(1) delay(100); 
   }
   
-  nfc.setupRF(); // HF Feld einschalten
+  nfc.setupRF(); 
   showPage("Bereit", "Warte auf", "Figur...");
 }
 
@@ -131,7 +131,7 @@ void setup() {
 // ================================================================
 void loop() {
   
-  // 1. UNLOCK VERSUCH (Blindfeuer)
+  // 1. UNLOCK
   bool unlockSent = nfc.unlockTonie();
   if(unlockSent) delay(5); 
 
@@ -143,8 +143,7 @@ void loop() {
     Serial.println(F("TAG GEFUNDEN"));
     showPage("Gefunden!", "Lese...", "Daten...");
 
-    // 3. VALIDIERUNG: Können wir Block 4 lesen?
-    // Das bestätigt, ob der Privacy Mode wirklich aus ist.
+    // 3. READ BLOCK 4 (Check Privacy)
     uint8_t data[4];
     ISO15693ErrorCode readRC = nfc.readSingleBlock(uid, 4, data, 4);
 
@@ -177,7 +176,7 @@ void loop() {
         showPage("LOCKED!", "Privacy Mode", "Aktiv!");
         delay(2500);
         
-        // Zeige trotzdem UID zur Diagnose
+        // Seite 2: Trotzdem UID anzeigen
         String fullUID = getFormattedUID(uid);
         String part1 = fullUID.substring(0, 12);
         String part2 = fullUID.substring(12);
@@ -185,7 +184,7 @@ void loop() {
         delay(5000);
     }
     
-    // Reset für nächsten Scan
+    // Reset
     showPage("Bereit", "Warte auf", "Figur...");
     nfc.reset();
     nfc.setupRF();
