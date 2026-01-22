@@ -33,35 +33,36 @@ Preise basierend auf AliExpress (Stand: Jan 2026).
 ## 🛠️ Verkabelung (Wiring)
 
 Wir nutzen handelsübliche **Female-to-Female (Buchse-zu-Buchse)** Jumper-Kabel.
-Die Farben in der Tabelle sind Vorschläge (Standard Regenbogen-Kabel), um Verwechslungen zu vermeiden.
+Die Konfiguration nutzt **GPIO 7 als Chip Select** und **GPIO 1 als Reset**, um GPIO 0 (Boot-Pin) freizuhalten.
 
 **⚠️ WICHTIG:** Das Display ist auf diesem Board intern bereits an GPIO 5 & 6 angeschlossen. Diese Pins nicht nutzen! Das PN5180 läuft auf **3.3V** (5V zerstört es!).
 
-
-
-| ESP32-C3 Pin | PN5180 Pin | Funktion | Farbe (Kabel) |
+| PN5180 Pin | ESP32-C3 Pin | Farbe (Dein Setup) | Funktion |
 | :--- | :--- | :--- | :--- |
-| **3.3V** | **3.3V** | Stromversorgung | 🔴 **Rot** |
-| **GND** | **GND** | Masse | ⚫ **Schwarz** |
-| **GPIO 1** | **RST** | Reset | 🟡 **Gelb** |
-| **GPIO 8** | **NSS** | Chip Select | 🟠 **Orange** |
-| **GPIO 2** | **MOSI** | SPI Data Out | 🟢 **Grün** |
-| **GPIO 3** | **MISO** | SPI Data In | 🔵 **Blau** |
-| **GPIO 4** | **SCK** | SPI Clock | 🟣 **Lila** |
-| **GPIO 10** | **BUSY** | Status Signal | ⚪ **Weiß/Grau** |
+| **5V** | **5V** | 🔴 **Rot** | Strom für Antenne (Optional) |
+| **3.3V** | **3.3V** | 🟠 **Orange** | Strom für Logik |
+| **GND** | **GND** | ⚫ **Schwarz** | Masse |
+| **RST** | **GPIO 1** | 🟡 **Gelb** | Reset (Weg von Pin 0!) |
+| **NSS** | **GPIO 7** | 🟢 **Grün** | Chip Select |
+| **MOSI** | **GPIO 2** | 🔵 **Blau** | Daten zum PN5180 |
+| **MISO** | **GPIO 3** | 🟣 **Lila** | Daten vom PN5180 |
+| **SCK** | **GPIO 4** | ⚪ **Weiß** | Takt |
+| **BUSY** | **GPIO 10** | 🔘 **Grau** | Status |
+
+> **Hinweis zum 5V Pin:** Da dein PN5180 Modul einen 5V Pin hat, kannst du diesen an den 5V (VBUS) des ESP32 anschließen, um die Antennenleistung zu stärken. Die Datenleitungen (MOSI, MISO etc.) bleiben dabei sicher auf 3.3V.
 
 ---
 
-## 📺 Display-Anzeigen (Was passiert wann?)
+## 📺 Display-Anzeigen (Logik)
 
-Die Firmware V11.3 nutzt ein intelligentes 2-Seiten-System, um auf dem winzigen Display alle Infos anzuzeigen.
+Die Firmware V11.4 nutzt ein intelligentes 2-Seiten-System, um auf dem winzigen Display alle Infos anzuzeigen.
 
 ### 1. Start & Diagnose
 Direkt nach dem Einstecken prüft der ESP32, ob der NFC-Reader antwortet.
 
 | Status | Zeile 1 | Zeile 2 | Zeile 3 |
 | :--- | :--- | :--- | :--- |
-| **Boot** | `System Start` | `V11.3 (Final)` | `2026-01-22` |
+| **Boot** | `System Start` | `V11.4 (Custom)` | `2026-01-22` |
 | **Check OK** | `NFC OK` | `Chip: v3.5` | `Bereit.` |
 | **Fehler** | `HARDWARE` | `FEHLER!` | `Kabel checken` |
 
@@ -71,3 +72,91 @@ Das Gerät ist bereit zum Scannen.
 Bereit
 Warte auf
 Figur...
+```
+
+### 3. Figur erkannt (Szenarien)
+Wenn eine Figur aufgelegt wird, versucht das Tool sie zu entsperren und liest den Speicher.
+
+**✅ Szenario A: Kreativ-Tonie (Unlock erfolgreich)**
+Zeigt an, dass die Figur "offen" ist und welche Audio-ID sie hat (für Custom Content).
+
+*Seite 1 (2,5 Sek):*
+```text
+UNLOCKED!
+Typ: Custom
+ID: 21161870
+```
+*Seite 2 (5,0 Sek - Die lange Seriennummer):*
+```text
+SerialNr.:
+E0:04:03:50:
+1B:5A:0F:C5
+```
+
+**✅ Szenario B: Original-Tonie / Standard Tag**
+Zeigt an, dass der Tag lesbar ist, aber keinen Custom-Inhalt hat.
+
+*Seite 1:*
+```text
+UNLOCKED!
+Typ: Original
+(Standard)
+```
+
+**❌ Szenario C: Gesperrt (Privacy Mode aktiv)**
+Konnte trotz Unlock-Versuch nicht gelesen werden (falsches Passwort oder defekt).
+
+*Seite 1:*
+```text
+LOCKED!
+Privacy Mode
+Aktiv!
+```
+
+---
+
+## 💻 Software Installation
+
+### 1. Arduino IDE Setup
+* **Version:** Arduino IDE 2.3.7 (oder neuer)
+* **Board Manager URL:** `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`
+* **Installiertes Paket:** `esp32 by Espressif Systems`
+    * ⚠️ **WICHTIG:** Wähle **Version 2.0.17**! (Version 3.x verursacht SPI-Fehler).
+
+### 2. Board Einstellungen (Tools Menü)
+* **Board:** `ESP32C3 Dev Module`
+* **USB CDC On Boot:** `Enabled` (Zwingend nötig für Serial Monitor!)
+* **CPU Frequency:** `160MHz (WiFi)`
+* **Flash Mode:** `QIO`
+* **Flash Frequency:** `80MHz`
+* **Partition Scheme:** `Default 4MB with spiffs`
+* **Upload Speed:** `921600`
+
+### 3. Bibliotheken
+Installiere folgende Bibliotheken über den Library Manager oder Import:
+
+1.  `Adafruit SSD1306` (Display)
+2.  `Adafruit GFX Library` (Grafik)
+3.  `Adafruit BusIO`
+4.  **PN5180 Library:**
+    * Download: [ATrappmann/PN5180-Library](https://github.com/ATrappmann/PN5180-Library) (Code -> Download ZIP)
+    * Import: `Sketch` -> `Bibliothek einbinden` -> `.ZIP Bibliothek hinzufügen`
+
+### 🔧 Der "Privacy Hack" (Zwingend erforderlich!)
+Damit der ESP32 den Befehl zum Entsperren des Privacy-Modes senden darf, müssen wir eine Sicherheitsstufe in der Bibliothek entfernen.
+
+1.  Gehe in deinen Arduino Ordner: `Dokumente/Arduino/libraries/PN5180-Library-master/src/`
+2.  Öffne die Datei `PN5180ISO15693.h` mit einem Texteditor.
+3.  Suche die Zeile `class PN5180ISO15693 {`.
+4.  Suche direkt darunter das Wort `private:`.
+5.  Ändere es in `public:`.
+6.  Speichern.
+
+> **Grund:** Die Funktion `issueISO15693Command` ist normalerweise versteckt, wir brauchen sie aber für den Unlock-Befehl.
+
+### 📄 Firmware flashen
+1.  Öffne die Datei `Esp32_Tonie_Unlocker.ino` aus diesem Repository.
+2.  **Passwort setzen:** Suche im Code nach `const uint8_t toniePass[]`. Du musst dort das Passwort für den ICODE-SLIX2 eintragen (siehe Link im Code-Kommentar).
+    * *Hinweis: Das Standard-Passwort ist oft {0x0F, 0x0F, 0x0F, 0x0F}, aber Tonies nutzen ein eigenes. Suche online danach.*
+3.  Schließe den ESP32-C3 per USB-C an.
+4.  Wähle den richtigen COM-Port und klicke auf **Upload**.
