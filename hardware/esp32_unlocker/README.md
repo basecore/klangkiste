@@ -15,6 +15,9 @@ Basierend auf dem extrem kompakten **ESP32-C3 SuperMini mit integriertem 0.42" O
 | **Firmware** | [Esp32_Tonie_Unlocker.ino](Esp32_Tonie_Unlocker.ino) |
 | **Bibliothek** | [PN5180-Library von ATrappmann](https://github.com/ATrappmann/PN5180-Library) |
 
+![Setup mit Tonie](../../docs/screenshots/setup_full.jpg)
+*(Der fertige Unlocker im Einsatz mit einem Kreativ-Tonie und Tag)*
+
 ---
 
 ## 💰 Einkaufsliste (Bill of Materials)
@@ -24,7 +27,7 @@ Preise basierend auf AliExpress (Stand: Jan 2026).
 | Komponente | Details | Preis ca. |
 | :--- | :--- | :--- |
 | **ESP32-C3 OLED** | "ESP32-C3 SuperMini Development Board 0.42 inch OLED" | **2,60 €** |
-| **NFC Reader** | "PN5180 NFC RF Sensor ISO15693" (Rot oder Grün) | **5,02 €** |
+| **NFC Reader** | "PN5180 NFC RF Sensor ISO15693" (Blau) | **5,02 €** |
 | **Kabel** | "Dupont Jumper Wire 10cm Female-to-Female" | **1,30 €** |
 | **Gesamt** | | **~ 8,92 €** |
 
@@ -54,6 +57,8 @@ Wir nutzen handelsübliche **Female-to-Female (Buchse-zu-Buchse)** Jumper-Kabel.
 ## 📺 Display-Anzeigen (Logik)
 
 Die Firmware **V11.3** nutzt ein intelligentes 2-Seiten-System, um auf dem winzigen Display alle Infos anzuzeigen.
+
+![OLED Nahaufnahme](../../docs/screenshots/oled_closeup.jpg)
 
 ### 1. Start & Diagnose
 Direkt nach dem Einstecken prüft der ESP32, ob der NFC-Reader antwortet.
@@ -172,3 +177,13 @@ Damit der ESP32 den Befehl zum Entsperren des Privacy-Modes senden darf, müssen
 
 3.  Schließe den ESP32-C3 per USB-C an.
 4.  Wähle den richtigen COM-Port und klicke auf **Upload**.
+
+---
+
+## ℹ️ Alternative: Die "Klopfmethode" (Knock Method)
+
+Eine alternative Methode, um den Privacy-Mode zu deaktivieren, ist die sogenannte "Klopfmethode", falls man dieses Tool gerade nicht zur Hand hat.
+
+> "Eine weitere Möglichkeit, den Privacy-Modus zu deaktivieren, ist die sogenannte „Knock Methode“. Ich habe herausgefunden, dass man einen RFID-Tag auf die Toniebox legen und schnell wieder herunternehmen kann, noch bevor die Box den Privacy-Modus für diesen Tag wieder aktivieren kann. Das Ganze muss innerhalb einer halben Sekunde geschehen. Am einfachsten gelingt dies, indem man mit dem Tag leicht auf die Oberfläche des Toniebox-Lesers klopft und ihn sofort wieder anhebt. Daher nenne ich es die „Knock Methode“ – oder auf Deutsch: die „Klopfmethode“."
+
+**Hinweis:** Für die Klopfmethode benötigt man ein sehr gutes Timing!
