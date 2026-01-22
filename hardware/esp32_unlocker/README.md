@@ -4,7 +4,7 @@ Ein kompaktes Standalone-Tool zum Analysieren von Tonie-Figuren und Deaktivieren
 
 ## ✨ Funktionen (Firmware V11.3)
 * **All-in-One:** Sehr kompakt durch integriertes Display.
-* **Privacy Unlock:** Entfernt die Sperre von neuen Kreativ-Tonies.
+* **Privacy Unlock:** Entfernt die Sperre von neuen Kreativ-Tonies (Passwort erforderlich, siehe Code).
 * **Deep Scan:** Zeigt "Original" vs. "Custom" und die echte UID an.
 * **Safety:** Nutzt nur 3.3V Logik (NFC-Reader freundlich).
 
@@ -52,13 +52,14 @@ Da das Display intern verdrahtet ist (SDA=5, SCL=6), muss nur der NFC-Reader ang
 Installiere folgende Libs:
 * `Adafruit SSD1306`
 * `Adafruit GFX Library`
-* `PN5180 Library` von *ATrappmann* (als ZIP importieren).
+* `PN5180 Library` von *ATrappmann*: [GitHub Link](https://github.com/ATrappmann/PN5180-Library) (als ZIP importieren).
 
-**⚠️ Library Hack:**
+**⚠️ Library Hack (Wichtig!):**
 Öffne die Datei `src/PN5180ISO15693.h` in der installierten PN5180-Bibliothek und ändere `private:` zu `public:` um den Unlock-Befehl freizuschalten.
 
 ---
 
-## 📄 Firmware (V11.3)
+## 📄 Firmware
 
-*(Füge hier den C++ Code ein oder verweise auf die .ino Datei im Repo)*
+Lade die Datei [`Esp32_Tonie_Unlocker.ino`](Esp32_Tonie_Unlocker.ino) auf das Board.
+**Achtung:** Du musst im Code das Passwort für den Privacy-Mode selbst eintragen (siehe Kommentar im Code).
