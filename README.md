@@ -212,7 +212,7 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 
 ## 📟 Hardware: Der ESP32 Unlocker
 
-Du möchtest **Kreativ-Tonies einfach entsperren** ohne die "Klopf-Methode" anwenden zu müssen oder die **exakte UID auslesen**, um sie in der App zu nutzen?
+Du möchtest **Tonie-Figuren einfach entsperren** ohne die "Klopf-Methode" anwenden zu müssen oder die **exakte UID auslesen**, um sie in der App zu nutzen?
 Wir haben ein DIY-Diagnose-Tool auf Basis eines ESP32 und PN5180 entwickelt.
 
 👉 **[Hier geht es zur Hardware-Dokumentation & Bauanleitung](hardware/esp32_unlocker/README.md)**
