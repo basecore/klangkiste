@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V77 (SD-Card Optimized) </title>
+    <title>KlangKiste V78 (Link Mode) </title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -468,7 +468,7 @@
         .btn-import { background-color: var(--green-safe); color: white; position: relative;}
         .btn-relink { background-color: var(--orange-warn); color: #333; position: relative; margin-top:10px; width: 100%;}
         
-        #import-file-hidden, #relink-file-hidden, #bg-img-hidden, #bulk-folder-input, #repair-folder-input, #bulk-folder-struct-input, #live-source-input {
+        #import-file-hidden, #relink-file-hidden, #bg-img-hidden, #bulk-folder-input, #repair-folder-input, #bulk-folder-struct-input, #live-source-input, #restore-session-input {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             opacity: 0; cursor: pointer;
         }
@@ -632,9 +632,18 @@
 
     <div id="parent-mode">
         
+        <div id="smart-restore-banner" style="display:none; background:#e74c3c; padding:15px; border-radius:10px; margin-bottom:20px; text-align:center; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);">
+            <div style="font-weight:bold; font-size:1.1rem; margin-bottom:5px;">⚠️ Verknüpfung erneuern</div>
+            <div style="font-size:0.9rem; margin-bottom:10px; opacity:0.9;">Der Browser hat den Zugriff auf die Musik vergessen.</div>
+            <button class="btn-admin" style="background-color: white; color:#c0392b; font-weight:bold; position:relative;">
+                📂 Musik-Ordner erneut auswählen
+                <input type="file" id="restore-session-input" webkitdirectory directory multiple onchange="handleSDSourceSelect(this)">
+            </button>
+        </div>
+
         <button class="btn-admin" style="background-color: #e67e22; margin-bottom: 10px; position:relative;">
-            📂 Audio-Quelle verbinden (Session)
-            <div style="font-size:0.7em; opacity:0.8;">Für SD-Karten Modus: Ordner hier wählen (nach Neustart)</div>
+            🔗 Audio-Verknüpfung erneuern (Session)
+            <div style="font-size:0.7em; opacity:0.8;">Nötig nach jedem Neustart im Verknüpfungs-Modus</div>
             <input type="file" id="live-source-input" webkitdirectory directory multiple onchange="handleSDSourceSelect(this)">
         </button>
 
@@ -841,8 +850,11 @@
             <div class="checkbox-wrapper" style="border-left: 3px solid #e67e22;">
                 <input type="checkbox" id="check-sd-mode" onchange="saveSettings()">
                 <div>
-                    <strong>☑️ SD-Karten Modus (Nur Metadaten speichern)</strong><br>
-                    <span style="font-size:0.8em; color:#ccc;">Verhindert "Speicher voll". Erfordert erneutes Auswählen des Ordners nach App-Neustart (Session Link).</span>
+                    <strong>🔗 Verknüpfungs-Modus (Link Mode)</strong><br>
+                    <span style="font-size:0.8em; color:#ccc;">
+                        Speichert KEINE Audio-Daten, nur Titel/Bilder.<br>
+                        <span style="color:#ff9f43">⚠️ Zugriff muss nach jedem App-Neustart erneuert werden!</span>
+                    </span>
                 </div>
             </div>
 
@@ -883,7 +895,7 @@
         </div>
 
         <div class="footer-info">
-            <p>KlangKiste NFC V77 (SD)</p>
+            <p>KlangKiste NFC V78 (Link Mode)</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>
                 <a href="https://github.com/basecore/klangkiste/tree/main" target="_blank">GitHub Projekt</a> | 
@@ -1038,7 +1050,7 @@
         // --- SCHATTEN-LISTE (NEU) ---
         let hiddenTracks = new Set(); // Speichert versteckte IDs im RAM
         
-        // --- LIVE SESSION MAP (NEU für SD-Card Support) ---
+        // --- LIVE SESSION MAP (NEU für Link Mode) ---
         let sessionFileMap = new Map();
 
         const audioPlayer = document.getElementById('audio-player');
@@ -1112,12 +1124,26 @@
             showStatus("Verarbeite Audio-Quelle...");
             
             // Map füllen: Filename -> File Object
+            sessionFileMap.clear(); // Reset vor neuem Laden
             files.forEach(f => {
                 sessionFileMap.set(f.name, f);
             });
             
             showStatus(`✅ Verbunden: ${files.length} Dateien im Zugriff`);
+            checkLinkModeStatus(); // UI Aktualisieren (Banner weg)
             input.value = ""; // Reset
+        }
+
+        // --- CHECK: LINK MODE BANNER ---
+        function checkLinkModeStatus() {
+            const banner = document.getElementById('smart-restore-banner');
+            const isLinkMode = settings.sdCardMode === true;
+            // Wenn Link-Modus AN ist, aber wir noch keine Dateien im RAM haben (SessionMap leer)
+            if (isLinkMode && sessionFileMap.size === 0) {
+                if(banner) banner.style.display = 'block';
+            } else {
+                if(banner) banner.style.display = 'none';
+            }
         }
         
         // --- PROFI STATS LOGGING ENGINE ---
@@ -1247,6 +1273,8 @@
             document.getElementById('check-enable-lib').checked = settings.enableLibrary !== false; 
             document.getElementById('lib-max-age-select').value = settings.libMaxAge !== undefined ? settings.libMaxAge : "99";
             document.getElementById('check-sd-mode').checked = settings.sdCardMode || false;
+            
+            checkLinkModeStatus(); // Initial Check
             updateBgUIState(); 
         }
 
@@ -1269,6 +1297,8 @@
 
             localStorage.setItem('klangkisteSettings_v16', JSON.stringify(settings));
             if(db) { const tx = db.transaction(["tracks"], "readwrite"); tx.objectStore("tracks").put({ tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: settings }); }
+            
+            checkLinkModeStatus(); // UI Update bei Änderung
         }
 
         function loadSettings() {
@@ -1464,7 +1494,7 @@
                             if (reconstructed.length > 0) {
                                 currentPlaylist = reconstructed;
                             } else {
-                                alert("SD-Karten Modus aktiv, aber Dateien nicht verknüpft.\n\nBitte im Eltern-Menü auf 'Audio-Quelle verbinden' drücken und den Ordner wählen!");
+                                alert("Link-Modus aktiv, aber Dateien nicht verknüpft.\n\nBitte im Eltern-Menü auf 'Audio-Verknüpfung erneuern' drücken und den Ordner wählen!");
                                 showStatus("⚠️ Audio-Quelle fehlt");
                                 return;
                             }
@@ -1546,7 +1576,7 @@
                           const store = tx.objectStore("stats_log");
                           store.add({
                             timestamp: lastHeartbeat, 
-                            type: 'app_close',       
+                            type: 'app_close',        
                             tagId: localStorage.getItem('lastActiveTagId'), 
                             durationSec: duration,
                             details: `App beendet / geschlossen`
@@ -1583,7 +1613,7 @@
                         if(!track.playlist || track.playlist.length === 0) {
                              // Wir haben keine Audio-Daten, können also nicht wirklich "wiederherstellen"
                              // ohne User Interaktion. Wir setzen nur die Metadaten.
-                             showStatus("Wiederhergestellt (Audio fehlt)");
+                             // Hier wird kein Status gezeigt, da wir das Banner haben!
                         } else {
                             currentPlaylist = track.playlist;
                             // Pre-Load Playlist Logic...
@@ -2483,174 +2513,24 @@
             } 
         }
 
-        // --- BULK IMPORT & EXPORT ---
-        async function exportKlangkisteJson() {
-            showStatus("Erstelle Full-Backup...");
-            try {
-                const tx = db.transaction(["tracks", "stats_log"], "readonly");
-                const trackStore = tx.objectStore("tracks");
-                const statsStore = tx.objectStore("stats_log");
-                const allTracksReq = trackStore.getAll();
-                const allStatsReq = statsStore.getAll();
-
-                const [tracks, stats] = await new Promise((resolve, reject) => {
-                    let tracksResult = null; let statsResult = null; let finishedCount = 0;
-                    const checkDone = () => { finishedCount++; if (finishedCount === 2) resolve([tracksResult, statsResult]); };
-                    allTracksReq.onsuccess = (e) => { tracksResult = e.target.result; checkDone(); };
-                    allStatsReq.onsuccess = (e) => { statsResult = e.target.result; checkDone(); };
-                    allTracksReq.onerror = reject; allStatsReq.onerror = reject;
-                });
-
-                const exportData = {
-                    type: "FULL_BACKUP_V1", timestamp: Date.now(), systemSettings: {}, tracks: [], stats: stats || []
-                };
-
-                tracks.forEach(t => {
-                    if (t.tagId === SYSTEM_SETTINGS_ID) { exportData.systemSettings = t.data; } 
-                    else if (t.tagId === SYSTEM_BG_ID) { } 
-                    else {
-                        exportData.tracks.push({
-                            tagId: t.tagId, name: t.name, playlistFileNames: t.playlistFileNames || [],
-                            imageFileName: t.imageFileName || null, meta: t.meta || {}, tags: t.tags || [],
-                            filter_age: t.filter_age || 0, lastTrackIndex: t.lastTrackIndex || 0, lastTime: t.lastTime || 0,
-                            completed: t.completed || false, hiddenInLib: t.hiddenInLib || false, lastPlayedTimestamp: t.lastPlayedTimestamp || 0
-                        });
-                    }
-                });
-
-                const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: "application/json"});
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = `klangkiste_full_backup_${new Date().toISOString().slice(0,10)}.json`;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                showStatus("Full-Backup erstellt! ✅");
-            } catch (e) { console.error(e); alert("Export Fehler: " + e.message); }
-        }
-        async function importKlangkisteJson(input) {
-            const file = input.files[0]; if(!file) return; 
-            showStatus("Analysiere Backup...");
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const rawData = JSON.parse(e.target.result);
-                    let tracksToImport = []; let statsToImport = []; let settingsToImport = null;
-
-                    if (rawData.type && rawData.type.startsWith("FULL_BACKUP")) {
-                        tracksToImport = rawData.tracks || []; statsToImport = rawData.stats || []; settingsToImport = rawData.systemSettings || null;
-                    } else if (Array.isArray(rawData)) { tracksToImport = rawData; } 
-                    else { throw new Error("Unbekanntes Format"); }
-
-                    if(!confirm(`Backup einspielen?\n\n• ${tracksToImport.length} Hörbücher\n• ${statsToImport.length} Statistik-Einträge\n• Einstellungen: ${settingsToImport ? "Ja" : "Nein"}`)) return;
-
-                    const tx = db.transaction(["tracks", "stats_log"], "readwrite");
-                    const trackStore = tx.objectStore("tracks");
-                    const statsStore = tx.objectStore("stats_log");
-
-                    let updated = 0; let newEntries = 0;
-
-                    if (settingsToImport) {
-                        localStorage.setItem('klangkisteSettings_v16', JSON.stringify(settingsToImport));
-                        trackStore.put({ tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: settingsToImport });
-                        settings = settingsToImport;
-                        if(settings.hiddenIDs) hiddenTracks = new Set(settings.hiddenIDs);
-                        updateUIFromSettings();
-                    }
-                    if (statsToImport.length > 0) { statsToImport.forEach(stat => { statsStore.put(stat); }); }
-
-                    for(const entry of tracksToImport) {
-                          await new Promise((resolve) => {
-                            const req = trackStore.get(entry.tagId);
-                            req.onsuccess = () => {
-                                const existing = req.result;
-                                const newRecord = {
-                                    tagId: entry.tagId, name: entry.name, playlistFileNames: entry.playlistFileNames,
-                                    imageFileName: entry.imageFileName, meta: entry.meta, tags: entry.tags, filter_age: entry.filter_age,
-                                    lastTrackIndex: entry.lastTrackIndex || 0, lastTime: entry.lastTime || 0,
-                                    completed: entry.completed || false, hiddenInLib: entry.hiddenInLib || false,
-                                    lastPlayedTimestamp: entry.lastPlayedTimestamp || 0,
-                                    playlist: existing ? existing.playlist : [],
-                                    imageBlob: existing ? existing.imageBlob : null,
-                                    cueTracks: existing ? existing.cueTracks : null 
-                                };
-                                trackStore.put(newRecord);
-                                if(existing) updated++; else newEntries++;
-                                resolve();
-                            };
-                          });
-                    }
-                    tx.oncomplete = () => {
-                        alert(`Wiederherstellung komplett!`);
-                        const btn = document.getElementById('btn-auto-repair'); 
-                        if(btn && newEntries > 0) { 
-                            btn.style.backgroundColor = "#e74c3c"; 
-                            showStatus("Bitte 'Automatisch Reparieren' nutzen für Audio!");
-                        }
-                        loadTagList(); input.value = "";
-                    };
-                } catch(e) { alert("Import Fehler: " + e.message); }
-            }; 
-            reader.readAsText(file);
-        }
-        
-        async function handleBulkImport(input) {
-            const files = Array.from(input.files); if(files.length === 0) return;
-            const klangkisteJsonFile = files.find(f => f.name.toLowerCase().startsWith('klangkiste') && f.name.toLowerCase().endsWith('.json'));
-            if (klangkisteJsonFile) {
-                const usedAudioFiles = await handleKlangkisteJsonImport(klangkisteJsonFile, files);
-                const audioExtensions = ['.mp3', '.m4a', '.ogg', '.wav', '.flac'];
-                const leftoverAudio = files.filter(f => {
-                    const ext = f.name.substring(f.name.lastIndexOf('.')).toLowerCase();
-                    return audioExtensions.includes(ext) && !usedAudioFiles.has(f.name);
-                });
-                if (leftoverAudio.length > 0) { if(confirm(`Smart Import fertig. Noch ${leftoverAudio.length} weitere Audio-Dateien gefunden. Auch importieren?`)) { await handleClassicBulkImport(files.filter(f => !usedAudioFiles.has(f.name))); } }
-            } else { await handleClassicBulkImport(files); }
-            input.value = ""; 
-        }
-
-        async function handleKlangkisteJsonImport(jsonFile, allFiles) {
-            const readFileAsText = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsText(file); });
-            const usedAudioSet = new Set();
-            
-            // CHECK SD MODE
-            const isSDMode = document.getElementById('check-sd-mode').checked;
-
-            try {
-                const jsonText = await readFileAsText(jsonFile); const metadataEntries = JSON.parse(jsonText); let count = 0; const findFile = (name) => allFiles.find(f => f.name === name);
-                for (let i = 0; i < metadataEntries.length; i++) {
-                    const entry = metadataEntries[i]; showStatus(`Smart Import ${i+1}/${metadataEntries.length}: ${entry.name}`);
-                    const audioFiles = []; if (entry.playlistFileNames) { for (const fname of entry.playlistFileNames) { const f = findFile(fname); if (f) { audioFiles.push(f); usedAudioSet.add(f.name); } } }
-                    if (audioFiles.length === 0) continue;
-                    
-                    // Populate Live Map immediately
-                    if(isSDMode) {
-                        audioFiles.forEach(f => sessionFileMap.set(f.name, f));
-                    }
-
-                    let imageBlob = null; if (entry.imageFileName) imageBlob = findFile(entry.imageFileName);
-                    let cueTracks = null; if(entry.playlistFileNames.length > 0) { const audioBase = entry.playlistFileNames[0].replace(/\.[^/.]+$/, ""); const cueFile = findFile(audioBase + ".cue"); if (cueFile) { try { const cueText = await readFileAsText(cueFile); cueTracks = parseCueSheet(cueText); } catch(e) {} } }
-                    
-                    await new Promise((resolve) => { 
-                        const tx = db.transaction(["tracks"], "readwrite"); const store = tx.objectStore("tracks"); 
-                        store.put({ 
-                            tagId: entry.tagId, name: entry.name, 
-                            playlist: isSDMode ? [] : audioFiles, // EMPTY IF SD MODE
-                            playlistFileNames: entry.playlistFileNames, 
-                            imageBlob: imageBlob, imageFileName: entry.imageFileName, cueTracks: cueTracks, meta: entry.meta, tags: entry.tags, lastTrackIndex: 0, lastTime: 0 
-                        }); 
-                        tx.oncomplete = () => { count++; resolve(); }; 
-                    });
-                }
-                showStatus(`${count} Smart-Import fertig!`); loadTagList(); return usedAudioSet;
-            } catch (e) { alert("Fehler JSON: " + e); return usedAudioSet; }
-        }
-
-        // --- NEW: INTELLIGENT FOLDER IMPORT (WITH SD MODE CHECK) ---
+        // --- NEW: INTELLIGENT FOLDER IMPORT (WITH LINK MODE INTEGRATION) ---
         async function handleFolderAlbumImport(input) {
             const files = Array.from(input.files); 
             if(files.length === 0) return;
             
-            // CHECK SD MODE
             const isSDMode = document.getElementById('check-sd-mode').checked;
+
+            // --- LINK MODE: SOFORT VERBINDEN ---
+            if(isSDMode) {
+                files.forEach(f => {
+                    if(f.name.match(/\.(mp3|m4a|ogg|wav|flac)$/i)) {
+                        sessionFileMap.set(f.name, f);
+                    }
+                });
+                showStatus("Dateien für Sitzung verknüpft! 🔗");
+                checkLinkModeStatus(); // Falls das Banner sichtbar war, weg damit
+            }
+            // -----------------------------
 
             showStatus("Analysiere Ordner-Struktur...");
             
@@ -2677,8 +2557,6 @@
                 
                 if(['mp3', 'm4a', 'ogg', 'wav', 'flac'].includes(ext)) {
                     groups[groupKey].audio.push(f);
-                    // Populate Live Map immediately
-                    if(isSDMode) sessionFileMap.set(f.name, f);
                 } else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
                     if(!groups[groupKey].img) groups[groupKey].img = f;
                 }
@@ -2702,7 +2580,7 @@
                     const record = {
                         tagId: "folder_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
                         name: g.name.replace(/_/g, ' '), 
-                        playlist: isSDMode ? [] : g.audio, // EMPTY IF SD MODE
+                        playlist: isSDMode ? [] : g.audio, // LEER WENN LINK MODE
                         playlistFileNames: g.audio.map(f => f.name),
                         imageBlob: g.img,
                         imageFileName: g.img ? g.img.name : null,
@@ -2722,6 +2600,35 @@
             input.value = "";
         }
 
+        async function handleBulkImport(input) {
+            const files = Array.from(input.files); if(files.length === 0) return;
+            
+            const isSDMode = document.getElementById('check-sd-mode').checked;
+
+            // --- LINK MODE: SOFORT VERBINDEN ---
+            if(isSDMode) {
+                files.forEach(f => {
+                    if(f.name.match(/\.(mp3|m4a|ogg|wav|flac)$/i)) {
+                        sessionFileMap.set(f.name, f);
+                    }
+                });
+                checkLinkModeStatus();
+            }
+            // -----------------------------
+
+            const klangkisteJsonFile = files.find(f => f.name.toLowerCase().startsWith('klangkiste') && f.name.toLowerCase().endsWith('.json'));
+            if (klangkisteJsonFile) {
+                const usedAudioFiles = await handleKlangkisteJsonImport(klangkisteJsonFile, files);
+                const audioExtensions = ['.mp3', '.m4a', '.ogg', '.wav', '.flac'];
+                const leftoverAudio = files.filter(f => {
+                    const ext = f.name.substring(f.name.lastIndexOf('.')).toLowerCase();
+                    return audioExtensions.includes(ext) && !usedAudioFiles.has(f.name);
+                });
+                if (leftoverAudio.length > 0) { if(confirm(`Smart Import fertig. Noch ${leftoverAudio.length} weitere Audio-Dateien gefunden. Auch importieren?`)) { await handleClassicBulkImport(files.filter(f => !usedAudioFiles.has(f.name))); } }
+            } else { await handleClassicBulkImport(files); }
+            input.value = ""; 
+        }
+
         async function handleClassicBulkImport(files) {
             const isSDMode = document.getElementById('check-sd-mode').checked;
             
@@ -2733,7 +2640,6 @@
                 if (!groups[basePath].name) groups[basePath].name = fileNameOnly;
                 if(['mp3', 'm4a', 'ogg', 'wav', 'flac'].includes(ext)) { 
                     groups[basePath].audio.push(f); 
-                    if(isSDMode) sessionFileMap.set(f.name, f);
                 } else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) { groups[basePath].img = f; } else if (ext === 'cue') { groups[basePath].cue = f; }
             });
             let count = 0; const groupKeys = Object.keys(groups);
@@ -2756,217 +2662,6 @@
                 });
             }
             showStatus(`${count} Importiert! 🎉`); loadTagList();
-        }
-        function parseCueSheet(cueText) {
-            const tracks = []; const lines = cueText.split('\n'); let currentTrack = null;
-            lines.forEach(line => {
-                line = line.trim();
-                if (line.startsWith('TRACK')) { currentTrack = {}; }
-                if (line.startsWith('TITLE') && currentTrack) { const match = line.match(/"([^"]+)"/); if (match) currentTrack.title = match[1]; }
-                if (line.startsWith('INDEX 01') && currentTrack) {
-                    const parts = line.split(' '); const timeStr = parts[parts.length - 1]; const timeParts = timeStr.split(':');
-                    const min = parseInt(timeParts[0], 10); const sec = parseInt(timeParts[1], 10); const frames = parseInt(timeParts[2], 10);
-                    currentTrack.time = (min * 60) + sec + (frames / 75); tracks.push(currentTrack); currentTrack = null;
-                }
-            }); return tracks;
-        }
-
-        function createLibCard(track, isSmall = false) {
-            const div = document.createElement('div');
-            div.className = isSmall ? 'recent-card' : 'lib-card';
-            div.onclick = () => {
-                closeLibrary();
-                playTrackByTag(track.tagId);
-            };
-
-            let imgHtml = `<div class="lib-placeholder">🎵</div>`;
-            if (track.imageBlob) {
-                const url = URL.createObjectURL(track.imageBlob);
-                activeCoverUrls.push(url); 
-                imgHtml = `<img src="${url}" class="lib-cover-img" loading="lazy">`;
-            }
-            
-            let infoBtnHtml = "";
-            if(!isSmall) { 
-                 infoBtnHtml = `<button class="lib-card-info-btn" onclick="showAlbumInfo(event, '${track.tagId}')">i</button>`;
-            }
-
-            let metaInfo = "";
-            if(!isSmall && track.meta) {
-                 if(track.meta.runtime) metaInfo += `⏱️ ${track.meta.runtime} min`;
-            }
-            
-            let completedBadge = "";
-            if(track.completed) {
-                completedBadge = `<div class="completed-badge">✅</div>`;
-            }
-
-            div.innerHTML = `
-                <div class="lib-cover-wrap" style="${isSmall ? 'border-radius:10px;' : ''}">
-                    ${imgHtml}
-                    ${infoBtnHtml}
-                    ${completedBadge}
-                </div>
-                ${!isSmall ? `
-                <div class="lib-card-body">
-                    <div class="lib-card-title">${track.name}</div>
-                    <span class="lib-meta-tag">${metaInfo}</span>
-                </div>` : ''}
-            `;
-            return div;
-        }
-
-        function showAlbumInfo(event, tagId) {
-            event.stopPropagation(); 
-            const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
-            store.get(tagId).onsuccess = (e) => {
-                const track = e.target.result;
-                if(!track) return;
-
-                const modal = document.getElementById('lib-info-modal');
-                const imgEl = document.getElementById('info-modal-img');
-                const titleEl = document.getElementById('info-modal-title');
-                const metaEl = document.getElementById('info-modal-meta');
-                const descEl = document.getElementById('info-modal-desc');
-
-                if(track.imageBlob) imgEl.src = URL.createObjectURL(track.imageBlob);
-                else imgEl.src = "";
-
-                titleEl.innerText = track.name;
-                
-                let metaText = [];
-                if(track.meta) {
-                    if(track.meta.age_recommendation) metaText.push(`Ab ${track.meta.age_recommendation} J.`);
-                    if(track.meta.genre) metaText.push(track.meta.genre);
-                    if(track.meta.runtime) metaText.push(`${track.meta.runtime} min`);
-                }
-                metaEl.innerText = metaText.join(" • ");
-
-                if(track.meta && track.meta.description) {
-                    descEl.innerText = track.meta.description;
-                    descEl.style.display = 'block';
-                } else {
-                    descEl.style.display = 'none';
-                }
-                modal.style.display = 'flex';
-            };
-        }
-
-        function closeAlbumInfo() {
-            document.getElementById('lib-info-modal').style.display = 'none';
-        }
-
-        // --- LIBRARY MODE LOGIC ---
-        let currentLibFilter = 'all';
-        let activeCoverUrls = []; 
-
-        function openLibrary() {
-            if(!db) { showStatus("Datenbank lädt..."); return; }
-            document.getElementById('library-mode').style.setProperty('display', 'block', 'important');
-            renderLibrary();
-        }
-
-        function closeLibrary() {
-            document.getElementById('library-mode').style.display = 'none';
-            if(activeCoverUrls.length > 0) {
-                activeCoverUrls.forEach(url => URL.revokeObjectURL(url));
-                activeCoverUrls = [];
-            }
-        }
-
-        function renderLibrary() {
-            const contentArea = document.getElementById('lib-content-area');
-            const filterContainer = document.getElementById('lib-filters');
-            contentArea.innerHTML = "";
-            
-            if(!db) return; 
-
-            const tx = db.transaction(["tracks"], "readonly");
-            const store = tx.objectStore("tracks");
-            const request = store.getAll();
-
-            request.onsuccess = (e) => {
-                let tracks = e.target.result;
-                
-                tracks = tracks.filter(t => t.tagId !== "system_bg" && t.tagId !== "system_settings");
-                tracks.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
-
-                const ageLimit = (settings.libMaxAge !== undefined) ? settings.libMaxAge : 99;
-
-                tracks = tracks.filter(t => {
-                    if (hiddenTracks.has(t.tagId)) return false; 
-                    const trackAge = (t.meta && t.meta.age_recommendation) ? parseInt(t.meta.age_recommendation) : 0;
-                    if (trackAge > ageLimit) return false; 
-                    return true;
-                });
-
-                if(filterContainer.children.length <= 2) { 
-                    const genres = new Set();
-                    const ages = new Set();
-                    tracks.forEach(t => {
-                        if(t.meta && t.meta.genre) genres.add(t.meta.genre);
-                        if(t.meta && t.meta.age_recommendation) ages.add(t.meta.age_recommendation);
-                    });
-                    Array.from(ages).sort((a,b) => a-b).forEach(age => {
-                        addFilterChip(`Ab ${age} Jahren`, `age_${age}`);
-                    });
-                    Array.from(genres).sort().forEach(genre => {
-                          addFilterChip(genre, `genre_${genre}`);
-                    });
-                }
-
-                if (currentLibFilter === 'all' || currentLibFilter === 'recent') {
-                    const recentTracks = [...tracks].filter(t => t.lastPlayedTimestamp).sort((a, b) => b.lastPlayedTimestamp - a.lastPlayedTimestamp).slice(0, 3);
-                    if (recentTracks.length > 0) {
-                        const recentDiv = document.createElement('div');
-                        recentDiv.innerHTML = `<div class="section-title">Zuletzt gehört 🕒</div><div class="recent-grid" id="recent-grid-target"></div>`;
-                        contentArea.appendChild(recentDiv);
-                        const target = recentDiv.querySelector('#recent-grid-target');
-                        recentTracks.forEach(t => {
-                            target.appendChild(createLibCard(t, true));
-                        });
-                    }
-                }
-
-                if (currentLibFilter === 'recent') return; 
-
-                const gridDiv = document.createElement('div');
-                gridDiv.className = 'library-grid';
-                if(currentLibFilter === 'all') gridDiv.style.marginTop = "10px";
-                
-                let filteredTracks = tracks;
-                if (currentLibFilter.startsWith('age_')) {
-                    const age = parseInt(currentLibFilter.split('_')[1]);
-                    filteredTracks = tracks.filter(t => t.meta && t.meta.age_recommendation == age);
-                } else if (currentLibFilter.startsWith('genre_')) {
-                    const g = currentLibFilter.replace('genre_', '');
-                    filteredTracks = tracks.filter(t => t.meta && t.meta.genre === g);
-                }
-
-                filteredTracks.forEach(t => {
-                    gridDiv.appendChild(createLibCard(t));
-                });
-                
-                contentArea.appendChild(gridDiv);
-            };
-        }
-
-        function addFilterChip(label, value) {
-            const container = document.getElementById('lib-filters');
-            if(container.querySelector(`[data-val="${value}"]`)) return;
-            const chip = document.createElement('div');
-            chip.className = 'filter-chip';
-            chip.innerText = label;
-            chip.dataset.val = value;
-            chip.onclick = function() { applyLibFilter(value, this); };
-            container.appendChild(chip);
-        }
-
-        function applyLibFilter(filterVal, el) {
-            currentLibFilter = filterVal;
-            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-            if(el) el.classList.add('active');
-            renderLibrary();
         }
 
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
