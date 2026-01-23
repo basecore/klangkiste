@@ -1,4 +1,4 @@
-# 🎵 KlangKiste PWA (V79 Safe Import Edition)
+# 🎵 KlangKiste PWA (V80 Safe Import Edition)
 
 **Die smarte DIY "Toniebox" fürs Handy – 100% AI-Generated Code.**
 
@@ -8,7 +8,7 @@ Dieses Projekt ist eine kinderfreundliche Musik-Player-App, die alte Smartphones
 
 ---
 
-## ✨ Neu in v79: Safe-Import & Filter
+## ✨ Neu in v80: Safe-Import & Filter
 
 Das Highlight dieser Version ist die volle Kontrolle darüber, was auf dem Gerät landet. Nie wieder überfüllter Speicher oder unpassende Inhalte!
 
@@ -199,7 +199,7 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 
 ## 📂 Dateistruktur
 
-* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v79)
+* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v80)
 * `sw.js` – Der Service Worker für die Offline-Funktionalität (Cache v76+)
 * `manifest.json` – Konfiguration für das App-Icon und den Vollbild-Modus
 * `assets/` – Ordner für Icons und Test-Sounds
