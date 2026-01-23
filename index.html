@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V78 (Safe Import) </title>
+    <title>KlangKiste V79 (Pro Import) </title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -674,9 +674,14 @@
             <div style="font-size:0.9em; color:#ccc;">Wähle aus, was gespeichert werden soll.</div>
             <div style="font-size:0.85em; color:#f1c40f; font-weight:bold; background:rgba(241, 196, 15, 0.2); padding:5px; border-radius:5px;">⚠️ Achtung: Daten landen im internen Browser-Speicher. Große Mengen können den Browser verlangsamen oder füllen.</div>
             
+            <div style="font-size:0.8em; color:#aaa; margin-bottom:5px;">
+                💡 Tipp: Nutze <b>-text</b> um Titel auszuschließen (z.B. <i>-paw</i>).
+            </div>
+            
             <div style="display:flex; gap:10px; margin-bottom:5px;">
-                <input type="text" id="import-search" placeholder="🔍 Filtern nach Name..." onkeyup="filterImportList()" style="margin-bottom:0; flex:2;">
-                <input type="number" id="import-age-filter" placeholder="Bis Alter (z.B. 4)" onkeyup="filterImportList()" onchange="filterImportList()" style="margin-bottom:0; flex:1;">
+                <input type="text" id="import-search" placeholder="Suche..." onkeyup="filterImportList()" style="margin-bottom:0; flex:2;">
+                <input type="number" id="import-min-age" placeholder="Ab J." onkeyup="filterImportList()" onchange="filterImportList()" style="margin-bottom:0; flex:0.5;">
+                <input type="number" id="import-max-age" placeholder="Bis J." onkeyup="filterImportList()" onchange="filterImportList()" style="margin-bottom:0; flex:0.5;">
             </div>
             
             <div class="import-controls">
@@ -930,7 +935,7 @@
         </div>
 
         <div class="footer-info">
-            <p>KlangKiste NFC V78</p>
+            <p>KlangKiste NFC V79</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>
                 <a href="https://github.com/basecore/klangkiste/tree/main" target="_blank">GitHub Projekt</a> | 
@@ -1191,7 +1196,8 @@
 
             document.getElementById('import-modal').style.display = 'flex';
             document.getElementById('import-search').value = ""; // Reset Search
-            document.getElementById('import-age-filter').value = ""; // Reset Age
+            document.getElementById('import-min-age').value = ""; // Reset Min Age
+            document.getElementById('import-max-age').value = ""; // Reset Max Age
         }
 
         function closeImportModal() {
@@ -1203,24 +1209,47 @@
         }
 
         function filterImportList() {
-            const term = document.getElementById('import-search').value.toLowerCase();
-            const maxAgeInput = document.getElementById('import-age-filter').value;
-            const maxAge = maxAgeInput ? parseInt(maxAgeInput) : 99; // Wenn leer, zeige alle (99)
+            const rawTerm = document.getElementById('import-search').value.toLowerCase().trim();
+            const minAgeInput = document.getElementById('import-min-age').value;
+            const maxAgeInput = document.getElementById('import-max-age').value;
+
+            const minAge = minAgeInput ? parseInt(minAgeInput) : 0;
+            const maxAge = maxAgeInput ? parseInt(maxAgeInput) : 99;
+
+            // Detect Negative Filter
+            let isNegative = false;
+            let term = rawTerm;
+            if(term.startsWith('-') && term.length > 1) {
+                isNegative = true;
+                term = term.substring(1); // Remove the minus
+            }
 
             const items = document.querySelectorAll('.import-item');
             
             items.forEach(item => {
                 const searchData = item.dataset.search || "";
-                const itemAge = parseInt(item.dataset.age) || 0; // 0 wenn unbekannt
+                const itemAge = parseInt(item.dataset.age) || 0; // 0 = Unbekannt
 
-                // Filter Logik: Text muss passen UND (Alter <= Max ODER Alter unbekannt)
-                const matchesText = searchData.includes(term);
-                
-                // Wenn Item Alter 0 (unbekannt) ist, zeigen wir es sicherheitshalber an, 
-                // es sei denn, man will STRIKT filtern. Hier: Unbekannt = OK.
-                // Wenn Item Alter > Max Age, dann verstecken.
+                // 1. Text Check
+                let matchesText = true;
+                if (term) {
+                    if (isNegative) {
+                        // EXCLUDE mode: If it contains the term, hide it.
+                        if (searchData.includes(term)) matchesText = false;
+                    } else {
+                        // INCLUDE mode: Must contain term
+                        if (!searchData.includes(term)) matchesText = false;
+                    }
+                }
+
+                // 2. Age Check
+                // Unbekannt (0) wird meistens durchgelassen, es sei denn man ist streng.
+                // Hier: Wenn Alter bekannt ( > 0), dann muss es im Bereich liegen.
                 let matchesAge = true;
-                if(itemAge > maxAge) matchesAge = false;
+                if (itemAge > 0) {
+                    if (itemAge < minAge) matchesAge = false; // Zu jung
+                    if (itemAge > maxAge) matchesAge = false; // Zu alt
+                }
 
                 if(matchesText && matchesAge) item.style.display = 'flex';
                 else item.style.display = 'none';
@@ -3262,7 +3291,7 @@
                     }
 
                     tx.oncomplete = () => {
-                        alert(`Wiederherstellung komplett!\n\nStatus: V78 Full Restore\n• Einstellungen geladen\n• ${statsToImport.length} Statistik-Events\n• ${updated} Tracks aktualisiert\n• ${newEntries} neue Tracks (leer)`);
+                        alert(`Wiederherstellung komplett!\n\nStatus: V79 Full Restore\n• Einstellungen geladen\n• ${statsToImport.length} Statistik-Events\n• ${updated} Tracks aktualisiert\n• ${newEntries} neue Tracks (leer)`);
                         
                         // Wichtig: Da Audio-Blobs im JSON fehlen, leuchten die Buttons evtl. rot (Repair nötig)
                         const btn = document.getElementById('btn-auto-repair'); 
