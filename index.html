@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V77 (Smart Import) </title>
+    <title>KlangKiste V78 (Safe Import) </title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -674,11 +674,14 @@
             <div style="font-size:0.9em; color:#ccc;">Wähle aus, was gespeichert werden soll.</div>
             <div style="font-size:0.85em; color:#f1c40f; font-weight:bold; background:rgba(241, 196, 15, 0.2); padding:5px; border-radius:5px;">⚠️ Achtung: Daten landen im internen Browser-Speicher. Große Mengen können den Browser verlangsamen oder füllen.</div>
             
-            <input type="text" id="import-search" placeholder="🔍 Filtern nach Name oder Alter..." onkeyup="filterImportList()" style="margin-bottom:0;">
+            <div style="display:flex; gap:10px; margin-bottom:5px;">
+                <input type="text" id="import-search" placeholder="🔍 Filtern nach Name..." onkeyup="filterImportList()" style="margin-bottom:0; flex:2;">
+                <input type="number" id="import-age-filter" placeholder="Bis Alter (z.B. 4)" onkeyup="filterImportList()" onchange="filterImportList()" style="margin-bottom:0; flex:1;">
+            </div>
             
             <div class="import-controls">
-                <button class="btn-modal-action btn-filter" onclick="toggleImportCheckboxes(true)">Alle an</button>
-                <button class="btn-modal-action btn-filter" style="background:#e67e22" onclick="toggleImportCheckboxes(false)">Alle aus</button>
+                <button class="btn-modal-action btn-filter" onclick="toggleImportCheckboxes(true)">Alle sichtbaren an</button>
+                <button class="btn-modal-action btn-filter" style="background:#e67e22" onclick="toggleImportCheckboxes(false)">Alle sichtbaren aus</button>
             </div>
         </div>
         <div id="import-list-container" class="import-list">
@@ -927,7 +930,7 @@
         </div>
 
         <div class="footer-info">
-            <p>KlangKiste NFC V77</p>
+            <p>KlangKiste NFC V78</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>
                 <a href="https://github.com/basecore/klangkiste/tree/main" target="_blank">GitHub Projekt</a> | 
@@ -1188,6 +1191,7 @@
 
             document.getElementById('import-modal').style.display = 'flex';
             document.getElementById('import-search').value = ""; // Reset Search
+            document.getElementById('import-age-filter').value = ""; // Reset Age
         }
 
         function closeImportModal() {
@@ -1200,10 +1204,25 @@
 
         function filterImportList() {
             const term = document.getElementById('import-search').value.toLowerCase();
+            const maxAgeInput = document.getElementById('import-age-filter').value;
+            const maxAge = maxAgeInput ? parseInt(maxAgeInput) : 99; // Wenn leer, zeige alle (99)
+
             const items = document.querySelectorAll('.import-item');
+            
             items.forEach(item => {
                 const searchData = item.dataset.search || "";
-                if(searchData.includes(term)) item.style.display = 'flex';
+                const itemAge = parseInt(item.dataset.age) || 0; // 0 wenn unbekannt
+
+                // Filter Logik: Text muss passen UND (Alter <= Max ODER Alter unbekannt)
+                const matchesText = searchData.includes(term);
+                
+                // Wenn Item Alter 0 (unbekannt) ist, zeigen wir es sicherheitshalber an, 
+                // es sei denn, man will STRIKT filtern. Hier: Unbekannt = OK.
+                // Wenn Item Alter > Max Age, dann verstecken.
+                let matchesAge = true;
+                if(itemAge > maxAge) matchesAge = false;
+
+                if(matchesText && matchesAge) item.style.display = 'flex';
                 else item.style.display = 'none';
             });
         }
@@ -1256,6 +1275,16 @@
             // Kurz warten, damit UI rendert
             await new Promise(r => setTimeout(r, 50));
 
+            // Suche nach globaler klangkiste.json im Root oder Unterordnern für Metadaten
+            let globalMetadata = [];
+            const klangkisteJsonFile = files.find(f => f.name.toLowerCase().endsWith('klangkiste.json'));
+            if(klangkisteJsonFile) {
+                try {
+                    const text = await new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsText(klangkisteJsonFile); });
+                    globalMetadata = JSON.parse(text);
+                } catch(e) { console.log("JSON Error", e); }
+            }
+
             // 1. Gruppieren nach Ordnerpfad (RAM only, noch kein DB write)
             const groups = {};
             files.forEach(f => {
@@ -1292,6 +1321,14 @@
                     // Sortieren
                     g.audio.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
                     
+                    // Versuche Metadaten zu finden (Match by Name)
+                    let metaData = {};
+                    if(globalMetadata.length > 0) {
+                        // Versuch 1: Exakter Name Match
+                        const found = globalMetadata.find(m => m.name === g.name);
+                        if(found && found.meta) metaData = found.meta;
+                    }
+
                     // Vorbereitetes Objekt für DB
                     const record = {
                         tagId: "folder_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
@@ -1301,6 +1338,7 @@
                         imageBlob: g.img,
                         imageFileName: g.img ? g.img.name : null,
                         cueTracks: null,
+                        meta: metaData, // Hier Alter einfügen
                         lastTrackIndex: 0,
                         lastTime: 0
                     };
@@ -1309,7 +1347,7 @@
                         name: record.name,
                         fileCount: g.audio.length,
                         data: record, // Das volle Objekt
-                        meta: {} // Bei Ordnern meist leer, es sei denn wir finden JSON (das wäre komplexer bei Foldern)
+                        meta: metaData // Für Filter
                     });
                 }
             });
@@ -3224,7 +3262,7 @@
                     }
 
                     tx.oncomplete = () => {
-                        alert(`Wiederherstellung komplett!\n\nStatus: V77 Full Restore\n• Einstellungen geladen\n• ${statsToImport.length} Statistik-Events\n• ${updated} Tracks aktualisiert\n• ${newEntries} neue Tracks (leer)`);
+                        alert(`Wiederherstellung komplett!\n\nStatus: V78 Full Restore\n• Einstellungen geladen\n• ${statsToImport.length} Statistik-Events\n• ${updated} Tracks aktualisiert\n• ${newEntries} neue Tracks (leer)`);
                         
                         // Wichtig: Da Audio-Blobs im JSON fehlen, leuchten die Buttons evtl. rot (Repair nötig)
                         const btn = document.getElementById('btn-auto-repair'); 
