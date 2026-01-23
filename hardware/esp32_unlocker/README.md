@@ -15,7 +15,8 @@ Basierend auf dem extrem kompakten **ESP32-C3 SuperMini mit integriertem 0.42" O
 | **Firmware** | [Esp32_Tonie_Unlocker.ino](Esp32_Tonie_Unlocker.ino) |
 | **Bibliothek** | [PN5180-Library von ATrappmann](https://github.com/ATrappmann/PN5180-Library) |
 
-![Setup mit Tonie](../../docs/screenshots/setup_full.jpg)
+<img src="../../docs/screenshots/setup_full.jpg" width="400" alt="Setup mit Tonie">
+<br>
 *(Der fertige Unlocker im Einsatz mit einem Kreativ-Tonie und Tag)*
 
 ---
@@ -58,7 +59,7 @@ Wir nutzen handelsübliche **Female-to-Female (Buchse-zu-Buchse)** Jumper-Kabel.
 
 Die Firmware **V11.3** nutzt ein intelligentes 2-Seiten-System, um auf dem winzigen Display alle Infos anzuzeigen.
 
-![OLED Nahaufnahme](../../docs/screenshots/oled_closeup.jpg)
+<img src="../../docs/screenshots/oled_closeup.jpg" width="300" alt="OLED Nahaufnahme">
 
 ### 1. Start & Diagnose
 Direkt nach dem Einstecken prüft der ESP32, ob der NFC-Reader antwortet.
