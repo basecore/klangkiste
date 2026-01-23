@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V77 (SD-Card Link Edition)</title>
+    <title>KlangKiste V77 (Pure Link Edition)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -466,9 +466,8 @@
         .btn-io-group { display: flex; gap: 10px; margin-top: 10px; }
         .btn-export { background-color: var(--purple-admin); color: white; }
         .btn-import { background-color: var(--green-safe); color: white; position: relative;}
-        .btn-relink { background-color: var(--orange-warn); color: #333; position: relative; margin-top:10px; width: 100%;}
         
-        #import-file-hidden, #relink-file-hidden, #bg-img-hidden, #bulk-folder-input, #repair-folder-input, #bulk-folder-struct-input {
+        #import-file-hidden, #bg-img-hidden {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             opacity: 0; cursor: pointer;
         }
@@ -832,27 +831,17 @@
             <h2>📂 Datenbank</h2>
             
             <div class="info-box-blue">
-                <strong>ℹ️ Import-Info:</strong><br>
-                Nutze <strong>"SD-Karte / Ordner verknüpfen"</strong>, um Speicher zu sparen (empfohlen).<br>
+                <strong>ℹ️ Neuer Import (Pure Link):</strong><br>
+                Es wird nichts mehr in den Browser-Speicher kopiert. Alle Hörbücher bleiben auf der SD-Karte und werden direkt gestreamt.<br>
+                Unterstützt Ordner-Struktur (1 Ordner = 1 Album) und auch lose Dateien.
             </div>
 
-            <button class="btn-admin" style="background-color: #8e44ad; position:relative; margin-bottom:10px;" onclick="importViaFileSystemAPI()">
-                🔗 SD-Karte / Ordner verknüpfen (Spart Speicher!)
+            <button class="btn-admin" style="background-color: #8e44ad; margin-bottom:10px; padding: 15px;" onclick="linkAudioLibrary()">
+                🔗 Bibliothek verbinden (SD-Karte)
             </button>
 
             <button class="btn-admin" style="background-color: #0984e3; margin-top:10px;" onclick="loadExamplesFromGitHub(event)">
                 ☁️ Beispiele direkt laden (Online)
-            </button>
-
-            <button class="btn-admin" style="background-color: #16a085; position:relative; margin-bottom:5px;">
-                📂 Ordner-Struktur importieren (Smart)
-                <div style="font-size:0.7em; opacity:0.8;">Kopiert Dateien in den Browser-Speicher</div>
-                <input type="file" id="bulk-folder-struct-input" webkitdirectory directory multiple onchange="handleFolderAlbumImport(this)">
-            </button>
-            <button class="btn-admin" style="background-color: #e67e22; position:relative; margin-bottom:10px;">
-                📂 Massen-Import (Dateien/Flat)
-                <div style="font-size:0.7em; opacity:0.8;">Kopiert Dateien in den Browser-Speicher</div>
-                <input type="file" id="bulk-folder-input" webkitdirectory directory multiple onchange="handleBulkImport(this)">
             </button>
             
             <div class="btn-io-group">
@@ -862,16 +851,13 @@
                     <input type="file" id="import-file-hidden" accept=".json" onchange="importKlangkisteJson(this)">
                 </button>
             </div>
-            <button class="btn-admin btn-relink" id="btn-auto-repair" style="position:relative;">
-                🪄 Automatisch reparieren (Dateien verknüpfen)
-                <input type="file" id="repair-folder-input" webkitdirectory directory multiple onchange="smartRelinkFiles(this)">
-            </button>
+            
             <hr style="margin: 15px 0; border-top:1px solid #555;">
             <button class="btn-admin" style="background-color: #ff4757;" onclick="clearDatabase()">🗑️ Datenbank leeren</button>
         </div>
 
         <div class="footer-info">
-            <p>KlangKiste NFC V77 (SD-Link Edition)</p>
+            <p>KlangKiste NFC V77 (Pure Link Edition)</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>
                 <a href="https://github.com/basecore/klangkiste/tree/main" target="_blank">GitHub Projekt</a> | 
@@ -1019,18 +1005,18 @@
 
         let db; let isParentMode = true; let ndef; let clickCount = 0; 
         
-        // --- NEUE LOCKING VARIABLEN ---
-        let isProcessingDatabase = false; // Verhindert Race Conditions
-        let adminListView = true;         // Standard: Listenansicht (Text) für Performance
+        // --- LOCKING VARIABLES ---
+        let isProcessingDatabase = false; 
+        let adminListView = true;         
 
-        // --- SCHATTEN-LISTE (NEU) ---
-        let hiddenTracks = new Set(); // Speichert versteckte IDs im RAM
+        // --- SHADOW LIST (Hidden Tracks) ---
+        let hiddenTracks = new Set(); 
 
         const audioPlayer = document.getElementById('audio-player');
         
         let wakeLock = null;
         let currentSessionStart = null; 
-        let currentAudioUrl = null; // <--- NEU: Speichert die aktuelle URL zum Löschen
+        let currentAudioUrl = null; 
         
         let saveInterval = null;
         
@@ -1089,7 +1075,7 @@
              restoreLastSession();
         };
         
-        // --- PROFI STATS LOGGING ENGINE ---
+        // --- STATS LOGGING ---
         function logStatEvent(type, tagId = null, duration = 0, detailText = "") {
             if(!db) return;
             const tx = db.transaction(["stats_log"], "readwrite");
@@ -1114,7 +1100,6 @@
             }
         }
 
-        // --- VOLUME LISTENER MIT DEBOUNCE ---
         let volLogTimeout = null;
         audioPlayer.addEventListener('volumechange', () => {
             if(volLogTimeout) clearTimeout(volLogTimeout);
@@ -1139,7 +1124,7 @@
             };
         }
 
-        // --- BACKGROUND & DESIGN LOGIC ---
+        // --- BACKGROUND & DESIGN ---
         function updateBgUIState() {
             const mode = document.getElementById('bg-mode-select').value;
             safeDisplay('bg-color-container', 'none');
@@ -1192,12 +1177,9 @@
                 if(req.result && req.result.data) {
                     settings = req.result.data; 
                     updateUIFromSettings();
-                    
-                    // Shadow List laden
                     if(settings.hiddenIDs && Array.isArray(settings.hiddenIDs)) {
                         hiddenTracks = new Set(settings.hiddenIDs);
                     }
-
                     if (settings.startMode === 'kids') { setTimeout(() => { goToKidsMode(); }, 100); }
                 } else { saveSettings(); }
             };
@@ -1231,7 +1213,6 @@
             settings.enableLibrary = document.getElementById('check-enable-lib').checked;
             settings.libMaxAge = parseInt(document.getElementById('lib-max-age-select').value);
             
-            // SHADOW LIST SAVE
             settings.hiddenIDs = Array.from(hiddenTracks);
 
             localStorage.setItem('klangkisteSettings_v16', JSON.stringify(settings));
@@ -1257,7 +1238,7 @@
             if(pct < 40) bar.style.backgroundColor = "var(--green-safe)"; else if (pct < 75) bar.style.backgroundColor = "var(--orange-warn)"; else bar.style.backgroundColor = "var(--red-danger)";
         }
 
-        // --- HAUPTFUNKTION: Versucht MP3, sonst Backup ---
+        // --- AUDIO HELPERS ---
         function playTestTone() {
             const path = 'assets/limit.mp3';
             const testAudio = new Audio();
@@ -1266,57 +1247,38 @@
 
             testAudio.addEventListener('error', (e) => {
                 const err = testAudio.error;
-                let errorDetails = "";
-                switch (err.code) {
-                    case 1: errorDetails = "Abbruch durch System/User"; break;
-                    case 2: errorDetails = "Netzwerk/Cache Fehler (Service Worker inaktiv?)"; break;
-                    case 3: errorDetails = "Datei beschädigt (Dekodierfehler)"; break;
-                    case 4: errorDetails = "Datei nicht gefunden (404) oder Format falsch"; break;
-                    default: errorDetails = "Unbekannter Fehler Code " + err.code;
-                }
+                let errorDetails = "Unbekannt";
+                if(err.code === 4) errorDetails = "Datei nicht gefunden/Format falsch";
                 console.warn("MP3 Fehler:", errorDetails);
-                showStatus("⚠️ " + errorDetails + " -> Spiele Backup-Ton 🚨");
+                showStatus("⚠️ Fehler -> Backup-Ton 🚨");
                 playBackupTone(targetVol);
             });
 
-            testAudio.addEventListener('canplaythrough', () => { console.log("limit.mp3 erfolgreich geladen."); });
             testAudio.src = path;
-            
-            testAudio.play().then(() => { showStatus("🔊 Test-Ton (MP3) läuft..."); })
-                .catch(e => {
-                    console.error("Play-Promise Fehler:", e);
-                    if (e.name === "NotAllowedError") { showStatus("❌ Wiedergabe vom Browser blockiert (Bitte interagieren)"); } 
-                    else { showStatus("⚠️ Startfehler -> Spiele Backup-Ton 🚨"); playBackupTone(targetVol); }
-                });
+            testAudio.play().then(() => { showStatus("🔊 Test-Ton läuft..."); })
+                .catch(e => { showStatus("⚠️ Startfehler -> Backup-Ton 🚨"); playBackupTone(targetVol); });
         }
 
-        // --- BACKUP FUNKTION (Web Audio API - funktioniert IMMER) ---
         function playBackupTone(volume) {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
-                if (!AudioContext) { alert("Kein Ton möglich: Weder MP3 noch WebAudio unterstützt."); return; }
-                
+                if (!AudioContext) return;
                 const ctx = new AudioContext();
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
-                
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(440, ctx.currentTime); 
                 gain.gain.setValueAtTime(volume, ctx.currentTime);
-                
                 osc.connect(gain);
                 gain.connect(ctx.destination);
                 osc.start();
-                
-                const stopTime = ctx.currentTime + 1;
-                gain.gain.exponentialRampToValueAtTime(0.001, stopTime);
-                osc.stop(stopTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1);
+                osc.stop(ctx.currentTime + 1);
                 setTimeout(() => { ctx.close(); }, 1200);
-
-            } catch(e) { console.error("Sogar Backup gescheitert:", e); alert("Totalausfall Audio: " + e.message); }
+            } catch(e) {}
         }
 
-        // --- WAKE LOCK & ECO (SAFE) ---
+        // --- WAKE LOCK ---
         async function requestWakeLock() {
             if (!settings.enableWakeLock) return;
             if ('wakeLock' in navigator) { 
@@ -1452,11 +1414,10 @@
             };
         }
 
-        // --- MODIFIZIERTER PLAYER: Unterstützt verknüpfte Dateien ---
+        // --- UNIVERSAL PLAYER FOR HANDLES AND FILES ---
         async function playPlaylistIndex(index, startTime = 0) {
             if (index >= currentPlaylist.length) return;
 
-            // Speicherleck-Schutz
             if (currentAudioUrl) {
                 URL.revokeObjectURL(currentAudioUrl);
                 currentAudioUrl = null;
@@ -1467,27 +1428,22 @@
             let playFile = null;
 
             try {
-                // PRÜFUNG: Ist es ein FileSystemHandle (Verknüpfung)?
+                // Check if FileSystemHandle
                 if (item.kind === 'file' && typeof item.getFile === 'function') {
-                    // Ja, es ist ein Link. Wir müssen die Erlaubnis prüfen/anfordern.
-                    // Chrome fragt hier ggf. den Nutzer: "Darf diese Seite Dateien ansehen?"
                     const opts = { mode: 'read' };
-                    
-                    // Kurzer Check ob wir noch Rechte haben (passiert nach Browser-Neustart)
+                    // Permission Check
                     if ((await item.queryPermission(opts)) !== 'granted') {
                         if ((await item.requestPermission(opts)) !== 'granted') {
                             showStatus("❌ Zugriff auf SD-Karte verweigert");
                             return;
                         }
                     }
-                    // Datei jetzt "live" von der SD-Karte holen
                     playFile = await item.getFile();
                 } else {
-                    // Nein, es ist ein normales File (alter Import)
+                    // Classic File Object
                     playFile = item;
                 }
 
-                // Ab hier alles wie gewohnt
                 currentAudioUrl = URL.createObjectURL(playFile);
                 updateInfoText();
                 
@@ -1521,15 +1477,13 @@
         }
 
         function restoreLastSession() {
-            // 1. Crash/Close Analyse vom letzten Mal
             const lastHeartbeat = parseInt(localStorage.getItem('stat_heartbeat') || 0);
             const lastSessionStart = parseInt(localStorage.getItem('stat_session_start') || 0);
             const now = Date.now();
 
             if (lastHeartbeat > 0 && lastSessionStart > 0 && (now - lastHeartbeat > 15000)) {
                 const duration = (lastHeartbeat - lastSessionStart) / 1000;
-                
-                if (duration > 5) { // Nur wenn länger als 5 Sek lief
+                if (duration > 5) { 
                     if(db) {
                           const tx = db.transaction(["stats_log"], "readwrite");
                           const store = tx.objectStore("stats_log");
@@ -1546,7 +1500,6 @@
                 localStorage.removeItem('stat_session_start');
             }
 
-            // 2. Normale Wiederherstellung (Dein alter Code)
             const lastId = localStorage.getItem('lastActiveTagId');
             if(lastId) {
                 const tx = db.transaction(["tracks"], "readonly");
@@ -1578,19 +1531,15 @@
                         }
 
                         let startIndex = track.lastTrackIndex || 0; 
-                        let startTime = track.lastTime || 0;
-                        if(startIndex >= currentPlaylist.length) startIndex = 0;
                         
                         currentTrackIndex = startIndex;
-                        // HIER RUF WIR NOCH NICHT playPlaylistIndex AUF, um nicht sofort nach Permissions zu fragen beim Laden der Seite
-                        // Wir setzen nur den UI Status auf "Wiederhergestellt"
                         showStatus("Letztes Hörbuch geladen ↩️");
                     }
                 };
             }
         }
 
-        // --- STATS VISUALIZATION LOGIC ---
+        // --- STATS VISUALIZATION ---
         let currentStatsScope = 'day';
 
         window.openStats = function() {
@@ -1637,7 +1586,7 @@
                 const timeOfDay = { 'Morgens (6-12)':0, 'Mittags (12-18)':0, 'Abends (18-24)':0, 'Nachts (0-6)':0 };
 
                 filteredLogs.forEach(l => {
-                    if(l.type === 'stop') {
+                    if(l.type === 'stop' || l.type === 'app_close') {
                         totalSeconds += (l.durationSec || 0);
                         sessions++;
                         
@@ -1713,7 +1662,7 @@
                 }
                 if(maxTime === 0) heatEl.innerHTML = "<div style='color:#777; font-style:italic;'>Keine Daten</div>";
 
-                // --- TIMELINE GENERIERUNG ---
+                // --- TIMELINE ---
                 const tlContainer = document.getElementById('stats-timeline-list');
                 tlContainer.innerHTML = "";
 
@@ -1724,7 +1673,6 @@
                     const trackMap = {};
                     allTracks.forEach(t => trackMap[t.tagId] = t.name);
 
-                    // Sortieren: Neueste zuerst
                     const sortedLogs = filteredLogs.sort((a,b) => b.timestamp - a.timestamp).slice(0, 50); 
 
                     if(sortedLogs.length === 0) {
@@ -1745,58 +1693,26 @@
                         const tName = trackMap[log.tagId] ? `<strong>${trackMap[log.tagId]}</strong>` : (log.tagId || "System");
 
                         switch(log.type) {
-                            case 'play':
-                                icon = "▶️"; color = "#2ecc71";
-                                title = "Wiedergabe gestartet";
-                                text = tName;
-                                break;
-                            case 'stop':
-                                icon = "🛑"; color = "#e74c3c";
-                                title = "Stopp / Pause";
+                            case 'play': icon = "▶️"; color = "#2ecc71"; title = "Wiedergabe gestartet"; text = tName; break;
+                            case 'stop': 
+                                icon = "🛑"; color = "#e74c3c"; title = "Stopp / Pause"; 
                                 const min = Math.floor((log.durationSec||0)/60);
                                 const sec = Math.round((log.durationSec||0)%60);
                                 text = `${tName} <br><span style="color:#fab1a0">Laufzeit: ${min}m ${sec}s</span>`;
                                 break;
-                            case 'scan':
-                                icon = "📡"; color = "#3498db";
-                                title = "NFC Scan";
-                                text = `Tag ID: ${log.details || log.tagId}`;
-                                break;
-                            case 'volume':
-                                icon = "🔊"; color = "#f1c40f";
-                                title = "Lautstärke";
-                                text = log.details || "Angepasst";
-                                break;
-                            case 'seek':
-                                icon = "⏩"; color = "#9b59b6";
-                                title = "Spulen / Skip";
-                                text = `${tName} (${log.details})`;
-                                break;
-                            case 'eco_flip':
-                                icon = "🙃"; color = "#95a5a6";
-                                title = "Umdrehen (Eco)";
-                                text = "Display gedimmt";
-                                break;
-                            case 'completed':
-                                icon = "🏆"; color = "#fdcb6e";
-                                title = "Abgeschlossen";
-                                text = `${tName} komplett gehört!`;
-                                break;
-                            case 'control':
-                                icon = "🕹️"; color = "#dfe6e9";
-                                title = "Steuerung";
-                                text = `${tName} (${log.details})`;
-                                break;
-                            case 'app_close':
-                                icon = "🚪"; color = "#7f8c8d"; // Grau
-                                title = "App beendet";
+                            case 'scan': icon = "📡"; color = "#3498db"; title = "NFC Scan"; text = `Tag ID: ${log.details || log.tagId}`; break;
+                            case 'volume': icon = "🔊"; color = "#f1c40f"; title = "Lautstärke"; text = log.details || "Angepasst"; break;
+                            case 'seek': icon = "⏩"; color = "#9b59b6"; title = "Spulen / Skip"; text = `${tName} (${log.details})`; break;
+                            case 'eco_flip': icon = "🙃"; color = "#95a5a6"; title = "Umdrehen (Eco)"; text = "Display gedimmt"; break;
+                            case 'completed': icon = "🏆"; color = "#fdcb6e"; title = "Abgeschlossen"; text = `${tName} komplett gehört!`; break;
+                            case 'control': icon = "🕹️"; color = "#dfe6e9"; title = "Steuerung"; text = `${tName} (${log.details})`; break;
+                            case 'app_close': 
+                                icon = "🚪"; color = "#7f8c8d"; title = "App beendet"; 
                                 const minC = Math.floor((log.durationSec||0)/60);
                                 const secC = Math.round((log.durationSec||0)%60);
                                 text = `${tName} <br><span style="color:#fab1a0">Lief davor: ${minC}m ${secC}s</span>`;
                                 break;
-                            default:
-                                title = log.type;
-                                text = log.details || "";
+                            default: title = log.type; text = log.details || "";
                         }
 
                         const item = document.createElement('div');
@@ -1815,21 +1731,15 @@
             };
         }
 
-        // --- REST OF APP LOGIC ---
-
+        // --- APP LOGIC ---
         function updateInfoText() {
             const infoEl = document.getElementById('playlist-info');
-            
-            // PRIORITÄT: Cues -> Dateiname -> Fallback
             if (currentCueTracks) { 
                 infoEl.innerText = "Kapitel laden..."; 
             } else {
                 if(currentPlaylist.length > 0 && currentPlaylist[currentTrackIndex]) {
-                      // Echtes File-Objekt Name holen
                       let fname = currentPlaylist[currentTrackIndex].name;
-                      // ".mp3" Endung entfernen für schönere Ansicht
                       if(fname.lastIndexOf('.') > 0) fname = fname.substring(0, fname.lastIndexOf('.'));
-                      
                       infoEl.innerText = fname;
                 } else {
                     infoEl.innerText = "";
@@ -1838,9 +1748,6 @@
         }
 
         function skipToNextCueTrack() {
-            // Dies ist jetzt der generische "NEXT" Button
-            
-            // 1. Priorität: Cue Tracks (Kapitel innerhalb einer Datei)
             if(currentCueTracks && audioPlayer.src) {
                 const now = audioPlayer.currentTime;
                 const nextTrack = currentCueTracks.find(t => t.time > (now + 2)); 
@@ -1851,8 +1758,6 @@
                 } else { showStatus("Ende erreicht"); }
                 return;
             }
-
-            // 2. Priorität: Mehrere Dateien (Ordner Import) - ZUM NÄCHSTEN TRACK SPRINGEN
             if(currentPlaylist.length > 1) {
                 if(currentTrackIndex + 1 < currentPlaylist.length) {
                     playPlaylistIndex(currentTrackIndex + 1, 0);
@@ -1865,7 +1770,6 @@
 
         audioPlayer.onended = () => {
             if(saveInterval) clearInterval(saveInterval);
-
             if(currentPlayingTagId && currentPlaylist.length > 0) {
                 if(currentTrackIndex + 1 < currentPlaylist.length) {
                     playPlaylistIndex(currentTrackIndex + 1, 0);
@@ -1880,942 +1784,10 @@
             }
         };
 
-        async function loadExamplesFromGitHub(event) {
-            if(event) {
-                event.stopPropagation();
-                event.preventDefault();
-            }
-
-            const BASE_URL = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/";
-            
-            if(!confirm("Möchtest du die Beispiel-Hörspiele (ca. 10 MB) jetzt herunterladen?")) return;
-
-            showStatus("⏳ Lade Daten von GitHub...");
-
-            try {
-                const jsonResp = await fetch(BASE_URL + "klangkiste.json");
-                if (!jsonResp.ok) throw new Error("JSON nicht gefunden");
-                const data = await jsonResp.json();
-                
-                if(!db) { alert("Datenbank noch nicht bereit. Warte kurz..."); return; }
-
-                const preparedEntries = [];
-
-                for (const entry of data) {
-                    showStatus(`📥 Lade Dateien für: ${entry.name.substring(0, 15)}...`);
-                    
-                    const audioBlobs = [];
-                    if (entry.playlistFileNames) {
-                        for (const fileName of entry.playlistFileNames) {
-                            const resp = await fetch(BASE_URL + encodeURIComponent(fileName));
-                            if (resp.ok) {
-                                const blob = await resp.blob();
-                                audioBlobs.push(new File([blob], fileName, { type: "audio/mp3" }));
-                            }
-                        }
-                    }
-                    if (audioBlobs.length === 0) continue;
-
-                    let imageBlob = null;
-                    if (entry.imageFileName) {
-                        const resp = await fetch(BASE_URL + encodeURIComponent(entry.imageFileName));
-                        if (resp.ok) {
-                            const blob = await resp.blob();
-                            imageBlob = new File([blob], entry.imageFileName, { type: "image/png" });
-                        }
-                    }
-
-                    preparedEntries.push({
-                        tagId: entry.tagId,
-                        name: entry.name,
-                        playlist: audioBlobs,
-                        playlistFileNames: entry.playlistFileNames,
-                        imageBlob: imageBlob,
-                        imageFileName: entry.imageFileName,
-                        meta: entry.meta || {},
-                        tags: entry.tags || [],
-                        filter_age: entry.filter_age || 0,
-                        lastTrackIndex: 0, 
-                        lastTime: 0,
-                        completed: false
-                    });
-                }
-
-                if(preparedEntries.length === 0) { alert("Keine Daten geladen."); return; }
-
-                showStatus("💾 Speichere in Datenbank...");
-                const tx = db.transaction(["tracks"], "readwrite");
-                const store = tx.objectStore("tracks");
-
-                preparedEntries.forEach(item => {
-                    store.put(item);
-                });
-
-                tx.oncomplete = () => {
-                    showStatus("✅ Fertig!");
-                    loadTagList(); 
-                    alert(`Erfolg! ${preparedEntries.length} Hörspiele installiert.`);
-                };
-                
-                tx.onerror = (e) => alert("DB Fehler: " + e.target.error);
-
-            } catch (e) {
-                console.error(e);
-                alert("Download Fehler: " + e.message);
-                showStatus("Fehler ❌");
-            }
-        }
-
-        async function smartRelinkFiles(input) {
-            const files = Array.from(input.files); 
-            if(files.length === 0) return;
-            
-            // 1. Erstmal alle Tracks aus der DB holen
-            showStatus("Lade Datenbank für Analyse...");
-            const allTracks = await new Promise((resolve) => {
-                const tx = db.transaction(["tracks"], "readonly");
-                tx.objectStore("tracks").getAll().onsuccess = (e) => resolve(e.target.result);
-            });
-
-            let fixedCount = 0;
-            const total = allTracks.length;
-
-            // 2. Schleife durchlaufen (asynchron, damit UI nicht einfriert)
-            for (let i = 0; i < total; i++) {
-                const record = allTracks[i];
-                
-                // UI Update: Zeige Fortschritt an
-                showStatus(`Prüfe ${i + 1} / ${total}: ${record.name.substring(0, 15)}...`);
-                
-                // WICHTIG: Kurze Pause, damit der Browser den Text zeichnen kann
-                await new Promise(r => setTimeout(r, 0));
-
-                if(record.tagId === SYSTEM_BG_ID || record.tagId === SYSTEM_SETTINGS_ID) continue;
-
-                let changed = false;
-                
-                // Audio Files suchen & verknüpfen
-                if (record.playlistFileNames && (!record.playlist || record.playlist.length === 0)) {
-                    const newPlaylist = [];
-                    record.playlistFileNames.forEach(name => {
-                        const f = files.find(x => x.name === name);
-                        if(f) newPlaylist.push(f);
-                    });
-                    if(newPlaylist.length > 0) {
-                        record.playlist = newPlaylist;
-                        changed = true;
-                    }
-                }
-                
-                // Cover Bild suchen & verknüpfen
-                if (record.imageFileName && !record.imageBlob) {
-                    const img = files.find(x => x.name === record.imageFileName);
-                    if(img) {
-                        record.imageBlob = img;
-                        changed = true;
-                    }
-                }
-
-                // Wenn etwas repariert wurde, speichern wir diesen EINEN Eintrag
-                if(changed) {
-                    await new Promise((resolve) => {
-                        const tx = db.transaction(["tracks"], "readwrite");
-                        const store = tx.objectStore("tracks");
-                        store.put(record);
-                        tx.oncomplete = () => resolve();
-                        tx.onerror = () => resolve(); // Fehler ignorieren und weitermachen
-                    });
-                    fixedCount++;
-                }
-            }
-
-            showStatus(`${fixedCount} Einträge erfolgreich repariert! 🎉`); 
-            loadTagList(); 
-            input.value = "";
-        }
-
-        function togglePlay() { 
-            if (audioPlayer.paused) { 
-                if(audioPlayer.src) { 
-                    audioPlayer.play(); setPlayButtonState(true); startSleepTimer(); requestWakeLock(); 
-                    currentSessionStart = Date.now(); 
-                    logStatEvent('play', currentPlayingTagId, 0, "Button");
-                } 
-                else { showStatus("Tag?"); } 
-            } else { 
-                if(saveInterval) clearInterval(saveInterval);
-                audioPlayer.pause(); 
-                setPlayButtonState(false); 
-                stopSleepTimer(); 
-                releaseWakeLock(); 
-                forceSaveCurrentPosition();
-                endSessionLog(); 
-            } 
-        }
-        function restartPlaylist() { 
-            if(currentPlayingTagId) { 
-                showStatus("Start..."); 
-                playPlaylistIndex(0, 0); 
-                logStatEvent('control', currentPlayingTagId, 0, "Reset");
-            } 
-        }
-        function skipForward() { 
-            if(audioPlayer.src) { 
-                audioPlayer.currentTime += 30; showStatus("+30 Sek"); 
-                logStatEvent('seek', currentPlayingTagId, 0, "⏩ +30 Sek");
-            } 
-        }
-        function skipBack() { 
-            if(audioPlayer.src) { 
-                audioPlayer.currentTime -= 30; showStatus("-30 Sek"); 
-                logStatEvent('seek', currentPlayingTagId, 0, "⏪ -30 Sek");
-            } 
-        }
-
-        function setPlayButtonState(isPlaying) {
-            const btn = document.getElementById('btn-play-main');
-            if (isPlaying) { btn.style.backgroundColor = "var(--red-danger)"; btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'; } 
-            else { btn.style.backgroundColor = "var(--green-safe)"; btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'; }
-        }
-
-        function forceSaveCurrentPosition() {
-            if(!currentPlayingTagId) return;
-            localStorage.setItem('lastActiveTagId', currentPlayingTagId);
-
-            // --- NEU: Herzschlag für Statistik (App-Crash/Close Erkennung) ---
-            localStorage.setItem('stat_heartbeat', Date.now());
-            if(currentSessionStart) localStorage.setItem('stat_session_start', currentSessionStart);
-            // -----------------------------------------------------------------
-            
-            const pos = audioPlayer.currentTime; 
-            const tx = db.transaction(["tracks"], "readwrite"); 
-            const store = tx.objectStore("tracks"); 
-            const getReq = store.get(currentPlayingTagId);
-            getReq.onsuccess = function() { 
-                const record = getReq.result; 
-                if(record) { 
-                    record.lastTrackIndex = currentTrackIndex; 
-                    record.lastTime = pos; 
-                    store.put(record); 
-                } 
-            };
-        }
-
-        function startSleepTimer() {
-            if(sleepTimerId) clearTimeout(sleepTimerId); document.getElementById('sleep-indicator').style.display = 'none';
-            if(settings.sleepTimerMinutes > 0 && !audioPlayer.paused) {
-                document.getElementById('sleep-indicator').style.display = 'block'; document.getElementById('sleep-countdown').innerText = settings.sleepTimerMinutes + " min";
-                sleepTimerId = setTimeout(() => { fadeOutAndStop(); }, settings.sleepTimerMinutes * 60 * 1000);
-            }
-        }
-        function stopSleepTimer() { if(sleepTimerId) clearTimeout(sleepTimerId); document.getElementById('sleep-indicator').style.display = 'none'; }
-        function fadeOutAndStop() { 
-            let vol = audioPlayer.volume; 
-            const fade = setInterval(() => { 
-                if(vol > 0.05) { vol -= 0.05; audioPlayer.volume = vol; } 
-                else { 
-                    clearInterval(fade); 
-                    if(saveInterval) clearInterval(saveInterval);
-                    audioPlayer.pause(); 
-                    setPlayButtonState(false); 
-                    forceSaveCurrentPosition(); 
-                    applyActualVolume(); 
-                    showStatus("Gute Nacht 😴"); 
-                    endSessionLog();
-                } 
-            }, 200); 
-        }
-        function clearDatabase() { 
-            if(confirm("Löschen?")) { 
-                db.close(); 
-                indexedDB.deleteDatabase(DB_NAME); 
-                localStorage.removeItem('lastActiveTagId');
-                location.reload(); 
-            } 
-        }
-        function showStatus(msg) { const el = document.getElementById('status-msg'); el.innerText = msg; el.style.display = 'block'; setTimeout(() => { el.style.display = 'none'; }, 3000); }
-        function formatTime(s) { const minutes = Math.floor(s / 60); const seconds = Math.floor(s % 60); return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`; }
-        function applyButtonColors() {
-            try {
-                const volDown = document.getElementById('btn-vol-down'); const volUp = document.getElementById('btn-vol-up'); const back = document.getElementById('btn-reset'); const skip = document.getElementById('btn-skip'); const next = document.getElementById('btn-next-track');
-                const rewind = document.getElementById('btn-rewind'); 
-
-                if (settings && settings.colorfulControls) { 
-                    volDown.classList.add('btn-colorful-vol-down'); volUp.classList.add('btn-colorful-vol-up'); back.classList.add('btn-colorful-back'); skip.classList.add('btn-colorful-skip'); next.classList.add('btn-colorful-next');
-                    rewind.classList.add('btn-colorful-rewind');
-                } else { 
-                    volDown.classList.remove('btn-colorful-vol-down'); volUp.classList.remove('btn-colorful-vol-up'); back.classList.remove('btn-colorful-back'); skip.classList.remove('btn-colorful-skip'); next.classList.remove('btn-colorful-next');
-                    rewind.classList.remove('btn-colorful-rewind');
-                }
-            } catch(e) {}
-        }
-
-        audioPlayer.addEventListener('timeupdate', () => {
-            if(isNaN(audioPlayer.duration)) { document.getElementById('time-text').innerText = "--:--"; return; }
-            const current = audioPlayer.currentTime; const total = audioPlayer.duration; const pct = (current/total)*100;
-            document.getElementById('time-progress').style.width = pct + "%";
-            document.getElementById('time-text').innerText = showRemainingTime ? "-" + formatTime(total-current) : formatTime(current);
-            
-            if(currentCueTracks) {
-                let currentChapterName = "";
-                for(let i=currentCueTracks.length-1; i>=0; i--) {
-                    if(current >= currentCueTracks[i].time) { currentChapterName = currentCueTracks[i].title; break; }
-                }
-                if(currentChapterName) document.getElementById('playlist-info').innerText = currentChapterName;
-            }
-        });
-
-        function toggleTimeDisplayMode() { showRemainingTime = !showRemainingTime; updateTimeDisplay(); }
-        document.body.addEventListener('click', async () => { if(!ndef && "NDEFReader" in window) { try { await startNFC(); } catch(e) {} } }, { once: true });
-
-        function goToKidsMode() {
-            if(isProcessingDatabase) {
-                showStatus("⚠️ Bitte warten! Datenbank arbeitet noch...");
-                return;
-            }
-
-            try {
-                safeDisplay('parent-mode', 'none');
-                safeDisplay('kids-mode', 'flex'); 
-
-                isParentMode = false;
-                applyKidsDesign(); 
-                applyButtonColors();
-
-                if(settings.enableLibrary !== false) {
-                       document.getElementById('btn-open-lib').style.display = 'flex';
-                } else {
-                       document.getElementById('btn-open-lib').style.display = 'none';
-                }
-
-                enterFullscreenSafe();
-
-                if(settings.enableEcoMode) updateEcoModeState(false);
-                
-                requestWakeLock();
-                startNFC().catch(err => console.log("NFC Error", err));
-
-            } catch(e) {
-                alert("Fehler beim Starten: " + e);
-                safeDisplay('kids-mode', 'none');
-                safeDisplay('parent-mode', 'flex');
-            }
-        }
-
-        function enterFullscreenSafe() {
-            const elem = document.documentElement;
-            const requestFS = () => {
-                if (elem.requestFullscreen) {
-                    elem.requestFullscreen().catch((e) => console.log("FS blocked", e));
-                } else if (elem.webkitRequestFullscreen) { 
-                    elem.webkitRequestFullscreen();
-                } else if (elem.msRequestFullscreen) { 
-                    elem.msRequestFullscreen();
-                }
-            };
-            requestFS();
-            const userInteractionHandler = () => {
-                if (!document.fullscreenElement && !document.webkitFullscreenElement) { requestFS(); }
-            };
-            document.addEventListener('click', userInteractionHandler, { once: true });
-            document.addEventListener('touchstart', userInteractionHandler, { once: true, passive: true });
-        }
-        
-        document.getElementById('kids-mode').addEventListener('touchstart', () => {
-            if(!isParentMode) requestWakeLock();
-        }, {passive: true});
-
-        function handleSecretSwitch() {
-            clickCount++; 
-            setTimeout(() => { clickCount = 0; }, 2000); 
-            
-            if (clickCount >= 5) {
-                // 1. Haupt-Modus umschalten
-                safeDisplay('kids-mode', 'none');
-                safeDisplay('parent-mode', 'flex');
-                
-                // 2. NEU: Störende Fenster zwangsweise schließen
-                // Damit die Bibliothek nicht den Admin-Bereich verdeckt
-                if(typeof closeLibrary === "function") {
-                    closeLibrary(); 
-                } else {
-                    document.getElementById('library-mode').style.display = 'none';
-                }
-                
-                // Auch andere eventuell offene Fenster schließen
-                document.getElementById('lib-info-modal').style.display = 'none';
-                document.getElementById('stats-modal').style.display = 'none';
-
-                // 3. Cleanup & System
-                isParentMode = true; 
-                clickCount = 0; 
-                releaseWakeLock(); 
-                endSessionLog();
-                
-                if (document.exitFullscreen && document.fullscreenElement) { 
-                    document.exitFullscreen().catch((e) => {}); 
-                }
-            }
-        }
-        function autoFillName() {
-            const input = document.getElementById('audio-input'); const nameField = document.getElementById('track-name');
-            if (input.files.length > 0 && nameField.value === "") {
-                let name = input.files[0].name; if(name.lastIndexOf('.') > 0) { name = name.substring(0, name.lastIndexOf('.')); } nameField.value = name;
-            }
-        }
-
-        // --- SPEICHERN ---
-        function saveTrackLink(tagId) {
-            if(isProcessingDatabase) return; 
-
-            const audioInput = document.getElementById('audio-input');
-            const imgInput = document.getElementById('img-input');
-            const cueInput = document.getElementById('cue-input');
-            const name = document.getElementById('track-name').value;
-            const metaDesc = document.getElementById('meta-desc').value;
-            const metaAge = document.getElementById('meta-age').value;
-            const metaGenre = document.getElementById('meta-genre').value;
-            const metaRuntime = document.getElementById('meta-runtime').value;
-            const isHidden = document.getElementById('track-hidden-lib').checked;
-
-            const finalize = (oldRecord = null, newCueTracks = null) => {
-                let finalAudio = audioInput.files.length > 0 ? Array.from(audioInput.files) : (oldRecord ? oldRecord.playlist : []);
-                let finalFileNames = audioInput.files.length > 0 ? Array.from(audioInput.files).map(f=>f.name) : (oldRecord ? oldRecord.playlistFileNames : []);
-                let finalImg = imgInput.files.length > 0 ? imgInput.files[0] : (oldRecord ? oldRecord.imageBlob : null);
-                let finalImgName = imgInput.files.length > 0 ? imgInput.files[0].name : (oldRecord ? oldRecord.imageFileName : null);
-                let finalCue = newCueTracks ? newCueTracks : (oldRecord ? oldRecord.cueTracks : null);
-
-                if(finalAudio.length === 0) { alert("Kein Audio vorhanden!"); return; }
-
-                const metaObj = {
-                    description: metaDesc,
-                    age_recommendation: metaAge ? parseInt(metaAge) : 0,
-                    genre: metaGenre,
-                    runtime: metaRuntime ? parseInt(metaRuntime) : 0
-                };
-
-                const record = { 
-                    tagId: tagId, 
-                    name: name, 
-                    playlist: finalAudio, 
-                    playlistFileNames: finalFileNames, 
-                    imageBlob: finalImg, 
-                    imageFileName: finalImgName, 
-                    cueTracks: finalCue, 
-                    meta: metaObj, 
-                    hiddenInLib: isHidden, // Keep in DB for backup
-                    lastTrackIndex: oldRecord ? oldRecord.lastTrackIndex : 0, 
-                    lastTime: oldRecord ? oldRecord.lastTime : 0 
-                };
-
-                const tx = db.transaction(["tracks"], "readwrite"); 
-                const store = tx.objectStore("tracks");
-                store.put(record);
-
-                if (editingOriginalTagId && editingOriginalTagId !== tagId) {
-                    store.delete(editingOriginalTagId);
-                    showStatus("Tag gewechselt & Update!");
-                } else {
-                    showStatus("Gespeichert!");
-                }
-                tx.oncomplete = () => { 
-                    // Update Shadow List for new entry
-                    if(isHidden) hiddenTracks.add(tagId);
-                    else hiddenTracks.delete(tagId);
-                    saveSettings();
-
-                    cancelEdit(); 
-                    loadTagList(); 
-                };
-            };
-
-            const cueFile = cueInput.files[0];
-            const processCueAndSave = (oldRecord) => {
-                if(cueFile) {
-                    const reader = new FileReader(); 
-                    reader.onload = (e) => { const parsedTracks = parseCueSheet(e.target.result); finalize(oldRecord, parsedTracks); }; 
-                    reader.readAsText(cueFile);
-                } else { finalize(oldRecord, null); }
-            };
-
-            if (editingOriginalTagId) {
-                const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
-                store.get(editingOriginalTagId).onsuccess = (e) => { processCueAndSave(e.target.result); };
-            } else {
-                if(audioInput.files.length === 0) { alert("Bitte Audio wählen!"); return; }
-                processCueAndSave(null);
-            }
-        }
-
-        // --- ADMIN HELPERS ---
-        function activateLinkMode() {
-            const n = document.getElementById('track-name').value;
-            const hasAudio = document.getElementById('audio-input').files.length > 0;
-            if(!editingOriginalTagId && !hasAudio) { alert("Bitte Audio wählen!"); return; }
-            if(n === "") { alert("Bitte Name eingeben!"); return; }
-            isLinkModeActive = true; document.getElementById('scan-status').innerText = ">>> FIGUR JETZT AUFLEGEN <<<";
-            if (!isNfcScanning) startNFC();
-        }
-        function saveManualTrack() {
-            const n = document.getElementById('track-name').value;
-            const hasAudio = document.getElementById('audio-input').files.length > 0;
-            if(!editingOriginalTagId && !hasAudio) { alert("Bitte Audio wählen!"); return; }
-            if(n === "") { alert("Bitte Name eingeben!"); return; }
-            const targetId = editingOriginalTagId ? editingOriginalTagId : "manual_" + Date.now();
-            saveTrackLink(targetId);
-        }
-        function loadTagForEdit(id) {
-            const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
-            store.get(id).onsuccess = (e) => {
-                const r = e.target.result;
-                if(r) {
-                    editingOriginalTagId = id;
-                    document.getElementById('track-name').value = r.name;
-                    if(r.meta) {
-                        document.getElementById('meta-desc').value = r.meta.description || "";
-                        document.getElementById('meta-age').value = r.meta.age_recommendation || "";
-                        document.getElementById('meta-genre').value = r.meta.genre || "Hörspiel";
-                        document.getElementById('meta-runtime').value = r.meta.runtime || "";
-                    } else {
-                        document.getElementById('meta-desc').value = "";
-                        document.getElementById('meta-age').value = "";
-                        document.getElementById('meta-genre').value = "Hörspiel";
-                        document.getElementById('meta-runtime').value = "";
-                    }
-                    
-                    // Check via Shadow List AND DB
-                    const isHidden = hiddenTracks.has(id) || r.hiddenInLib === true;
-                    document.getElementById('track-hidden-lib').checked = isHidden;
-                    
-                    document.getElementById('form-title').innerText = "✏️ Bearbeiten: " + r.name;
-                    document.getElementById('form-title').style.color = "#3498db";
-                    document.getElementById('btn-save-tag').innerText = "Speichern & Neuer Tag (Move)";
-                    document.getElementById('btn-save-manual').innerText = "💾 Speichern (Update)";
-                    document.getElementById('btn-cancel-edit').style.display = "inline-block";
-                    if (r.playlistFileNames && r.playlistFileNames.length > 0) {
-                        const fileListStr = r.playlistFileNames.join(', ');
-                        document.getElementById('audio-info').innerText = fileListStr;
-                        document.getElementById('audio-info').title = fileListStr;
-                    } else { document.getElementById('audio-info').innerText = "Keine Audio-Datei"; }
-                    document.getElementById('cue-info').innerText = r.cueTracks ? "Kapiteldaten vorhanden" : "Keine";
-                    document.getElementById('img-info').innerText = r.imageFileName ? r.imageFileName : "Standard";
-                    
-                    const card = document.getElementById('scan-card');
-                    const container = document.getElementById('parent-mode');
-                    card.classList.add("editing-highlight");
-                    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    setTimeout(() => { if(container) { container.scrollTo({ top: card.offsetTop - 20, behavior: 'smooth' }); } }, 100);
-                }
-            };
-        }
-        function cancelEdit() {
-            editingOriginalTagId = null;
-            document.getElementById('track-name').value = "";
-            document.getElementById('audio-input').value = "";
-            document.getElementById('cue-input').value = "";
-            document.getElementById('img-input').value = "";
-            document.getElementById('meta-desc').value = "";
-            document.getElementById('meta-age').value = "";
-            document.getElementById('meta-runtime').value = "";
-            document.getElementById('audio-info').innerText = "";
-            document.getElementById('cue-info').innerText = "";
-            document.getElementById('img-info').innerText = "";
-            document.getElementById('track-hidden-lib').checked = false;
-
-            document.getElementById('form-title').innerText = "🎵 Tag bearbeiten / anlernen";
-            document.getElementById('form-title').style.color = "#74b9ff";
-            document.getElementById('btn-save-tag').innerText = "📡 Tag scannen & speichern";
-            document.getElementById('btn-save-manual').innerText = "💾 Ohne NFC speichern";
-            document.getElementById('btn-cancel-edit').style.display = "none";
-            document.getElementById('scan-card').classList.remove("editing-highlight");
-            document.getElementById('scan-status').innerText = "";
-        }
-
-        // --- ADMIN VIEW TOGGLE (LIST/GRID) ---
-        function setAdminView(mode) {
-            if(isProcessingDatabase) return;
-            const btnGrid = document.getElementById('btn-view-grid');
-            const btnList = document.getElementById('btn-view-list');
-            
-            if(mode === 'grid') {
-                adminListView = false;
-                btnGrid.classList.add('active'); btnList.classList.remove('active');
-            } else {
-                adminListView = true;
-                btnGrid.classList.remove('active'); btnList.classList.add('active');
-            }
-            loadTagList();
-        }
-        
-        // --- MASSEN-STEUERUNG (SHADOW LIST MODE - ULTRA FAST) ---
-        function setAllLibraryVisibility(isHidden) {
-            if(isProcessingDatabase) return;
-
-            const msgHide = "Alle Hörbücher verstecken?";
-            const msgShow = "Alle Hörbücher anzeigen?";
-            if(!confirm(isHidden ? msgHide : msgShow)) return;
-
-            showStatus("Verarbeite... 🚀");
-            
-            // Nur IDs holen (sehr schnell)
-            const tx = db.transaction(["tracks"], "readonly");
-            const store = tx.objectStore("tracks");
-            
-            store.getAllKeys().onsuccess = (e) => {
-                const keys = e.target.result;
-                
-                keys.forEach(k => {
-                    if(k !== SYSTEM_BG_ID && k !== SYSTEM_SETTINGS_ID) {
-                        if(isHidden) hiddenTracks.add(k);
-                        else hiddenTracks.delete(k);
-                    }
-                });
-                
-                saveSettings(); // Speichert die neue Liste
-                loadTagList(); // UI Update
-                showStatus("Fertig! ✅");
-            };
-        }
-
-        function toggleTrackVisibility(id) {
-            if(isProcessingDatabase) return;
-            
-            // Toggle im RAM
-            if(hiddenTracks.has(id)) {
-                hiddenTracks.delete(id);
-                showStatus("Sichtbar 👁️");
-            } else {
-                hiddenTracks.add(id);
-                showStatus("Versteckt 🚫");
-            }
-            
-            saveSettings(); // Persistieren
-
-            // UI Update (DOM Manipulation)
-            const btn = document.getElementById(`btn-vis-${id}`);
-            const badge = document.getElementById(`badge-${id}`);
-            const isHidden = hiddenTracks.has(id);
-
-            if(isHidden) {
-                if(btn) { btn.innerText = "🚫"; btn.style.backgroundColor = "#555"; btn.title = "Ist versteckt (Klick zum Anzeigen)"; }
-                if(badge) { badge.style.display = "flex"; }
-            } else {
-                if(btn) { btn.innerText = "👁️"; btn.style.backgroundColor = "#f39c12"; btn.title = "Ist sichtbar (Klick zum Verstecken)"; }
-                if(badge) { badge.style.display = "none"; }
-            }
-        }
-
-        function loadTagList() {
-            const container = document.getElementById('tag-list-container'); 
-            if(!container) return; 
-            
-            if(adminListView) container.className = 'admin-list';
-            else container.className = 'admin-grid';
-
-            container.innerHTML = '<div style="text-align:center; color:#ccc; padding:20px;">Lade Einträge...</div>';
-            
-            const tx = db.transaction(["tracks"], "readonly"); 
-            const store = tx.objectStore("tracks");
-            const tracks = [];
-
-            // --- REPARATUR: Cursor statt getAll() um Speicher zu sparen ---
-            const request = store.openCursor();
-
-            request.onsuccess = (event) => {
-                const cursor = event.target.result;
-                if (cursor) {
-                    // Wir laden nur das Nötigste in das Array, NICHT die MP3s (playlist)
-                    const t = cursor.value;
-                    // Erstelle ein "leichtes" Objekt für die Anzeige
-                    const lightTrack = {
-                        tagId: t.tagId,
-                        name: t.name,
-                        imageBlob: t.imageBlob, // Bilder sind okay, MP3s sind das Problem
-                        meta: t.meta,
-                        completed: t.completed,
-                        hiddenInLib: t.hiddenInLib
-                        // Playlist lassen wir hier weg!
-                    };
-                    tracks.push(lightTrack);
-                    cursor.continue();
-                } else {
-                    // Cursor ist fertig, jetzt rendern wir
-                    renderAdminList(tracks, container);
-                }
-            };
-        }
-
-        // Neue Hilfsfunktion zum Rendern (Ausgelagert aus dem alten loadTagList)
-        function renderAdminList(tracks, container) {
-            let htmlBuffer = "";
-            tracks.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
-
-            tracks.forEach(track => {
-                if(track.tagId !== "system_bg" && track.tagId !== "system_settings") {
-                    
-                    const isHidden = hiddenTracks.has(track.tagId);
-                    const visIcon = isHidden ? "🚫" : "👁️";
-                    const visTitle = isHidden ? "Ist versteckt" : "Ist sichtbar";
-                    const visBtnColor = isHidden ? "#555" : "#f39c12";
-                    
-                    if(adminListView) {
-                        // LIST VIEW
-                        let iconHtml = `<div class="list-icon">🎵</div>`;
-                        if (track.imageBlob) {
-                            const url = URL.createObjectURL(track.imageBlob);
-                            // Hier revoken wir nicht sofort, da Admin Menü selten offen ist, 
-                            // aber besser wäre es auch hier activeCoverUrls zu nutzen.
-                            iconHtml = `<img src="${url}" class="list-img-small" loading="lazy">`;
-                        }
-
-                        htmlBuffer += `
-                            <div class="admin-list-row">
-                                ${iconHtml}
-                                <div class="list-info">
-                                    <div class="list-name">${track.name}</div>
-                                    <div class="list-meta">ID: ${track.tagId}</div>
-                                </div>
-                                <div class="admin-actions">
-                                    <button class="btn-mini edit" onclick="loadTagForEdit('${track.tagId}')">✏️</button>
-                                    <button id="btn-vis-${track.tagId}" class="btn-mini vis" style="background-color:${visBtnColor};" onclick="toggleTrackVisibility('${track.tagId}')">${visIcon}</button>
-                                    <button class="btn-mini del" onclick="deleteTrack('${track.tagId}')">🗑</button>
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        // GRID VIEW (Dein alter Code, hier nur gekürzt dargestellt)
-                        let imgHtml = `<div style="font-size:30px;">🎵</div>`;
-                        if (track.imageBlob) {
-                            const url = URL.createObjectURL(track.imageBlob);
-                            imgHtml = `<img src="${url}" class="admin-cover-img" loading="lazy">`;
-                        }
-                        
-                        let completedBadge = track.completed ? `<div class="completed-badge">✅</div>` : "";
-                        const hiddenBadgeStyle = isHidden ? "display:flex;" : "display:none;";
-                        const hiddenBadge = `<div id="badge-${track.tagId}" style="${hiddenBadgeStyle} position:absolute; top:5px; left:5px; background:rgba(255,255,255,0.95); color:black; border-radius:50%; width:28px; height:28px; justify-content:center; align-items:center; z-index:10; font-size:16px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚫</div>`;
-
-                        htmlBuffer += `
-                            <div class="admin-card">
-                                <div class="admin-cover-wrap">
-                                    ${imgHtml} ${completedBadge} ${hiddenBadge}
-                                </div>
-                                <div class="admin-card-body">
-                                    <div class="admin-card-title">${track.name}</div>
-                                    <div class="admin-actions">
-                                        <button class="btn-mini edit" onclick="loadTagForEdit('${track.tagId}')">✏️</button>
-                                        <button id="btn-vis-${track.tagId}" class="btn-mini vis" style="background-color:${visBtnColor};" onclick="toggleTrackVisibility('${track.tagId}')">${visIcon}</button>
-                                        <button class="btn-mini play" onclick="playTrackByTag('${track.tagId}')">▶</button>
-                                        <button class="btn-mini del" onclick="deleteTrack('${track.tagId}')">🗑</button>
-                                    </div>
-                                </div>
-                            </div>`;
-                    }
-                } 
-            });
-            container.innerHTML = htmlBuffer;
-        }
-        function deleteTrack(id) { 
-            if(isProcessingDatabase) return;
-            if(confirm("Wirklich löschen?")) { 
-                const tx = db.transaction(["tracks"], "readwrite"); 
-                tx.objectStore("tracks").delete(id); 
-                tx.oncomplete = () => {
-                    hiddenTracks.delete(id); // Auch aus Shadow List entfernen
-                    saveSettings();
-                    loadTagList(); 
-                };
-            } 
-        }
-
-        // --- BULK IMPORT & EXPORT ---
-        async function exportKlangkisteJson() {
-            showStatus("Erstelle Full-Backup...");
-            
-            try {
-                const tx = db.transaction(["tracks", "stats_log"], "readonly");
-                const trackStore = tx.objectStore("tracks");
-                const statsStore = tx.objectStore("stats_log");
-
-                // 1. Hole alle Tracks & Einstellungen
-                const allTracksReq = trackStore.getAll();
-                const allStatsReq = statsStore.getAll();
-
-                // Wir warten, bis beide Anfragen fertig sind
-                const [tracks, stats] = await new Promise((resolve, reject) => {
-                    let tracksResult = null;
-                    let statsResult = null;
-                    let finishedCount = 0;
-
-                    const checkDone = () => {
-                        finishedCount++;
-                        if (finishedCount === 2) resolve([tracksResult, statsResult]);
-                    };
-
-                    allTracksReq.onsuccess = (e) => { tracksResult = e.target.result; checkDone(); };
-                    allStatsReq.onsuccess = (e) => { statsResult = e.target.result; checkDone(); };
-                    
-                    allTracksReq.onerror = reject;
-                    allStatsReq.onerror = reject;
-                });
-
-                // 2. Daten sortieren und aufbereiten
-                const exportData = {
-                    type: "FULL_BACKUP_V1",
-                    timestamp: Date.now(),
-                    systemSettings: {}, // Hier landen die globalen Einstellungen
-                    tracks: [],
-                    stats: stats || []
-                };
-
-                tracks.forEach(t => {
-                    if (t.tagId === SYSTEM_SETTINGS_ID) {
-                        exportData.systemSettings = t.data;
-                    } else if (t.tagId === SYSTEM_BG_ID) {
-                        // Background ignorieren
-                    } else {
-                        // Ein echtes Hörbuch
-                        exportData.tracks.push({
-                            tagId: t.tagId,
-                            name: t.name,
-                            playlistFileNames: t.playlistFileNames || [],
-                            imageFileName: t.imageFileName || null,
-                            meta: t.meta || {},
-                            tags: t.tags || [],
-                            filter_age: t.filter_age || 0,
-                            lastTrackIndex: t.lastTrackIndex || 0,
-                            lastTime: t.lastTime || 0,            
-                            completed: t.completed || false,      
-                            hiddenInLib: t.hiddenInLib || false,  
-                            lastPlayedTimestamp: t.lastPlayedTimestamp || 0 
-                        });
-                    }
-                });
-
-                // 3. Download starten
-                const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: "application/json"});
-                const a = document.createElement('a');
-                const dateStr = new Date().toISOString().slice(0,10);
-                a.href = URL.createObjectURL(blob);
-                a.download = `klangkiste_full_backup_${dateStr}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                
-                showStatus("Full-Backup erstellt! ✅");
-
-            } catch (e) {
-                console.error(e);
-                alert("Export Fehler: " + e.message);
-            }
-        }
-        async function importKlangkisteJson(input) {
-            const file = input.files[0]; if(!file) return; 
-            showStatus("Analysiere Backup...");
-            
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const rawData = JSON.parse(e.target.result);
-                    let tracksToImport = [];
-                    let statsToImport = [];
-                    let settingsToImport = null;
-
-                    if (rawData.type && rawData.type.startsWith("FULL_BACKUP")) {
-                        console.log("Full Backup erkannt!");
-                        tracksToImport = rawData.tracks || [];
-                        statsToImport = rawData.stats || [];
-                        settingsToImport = rawData.systemSettings || null;
-                    } 
-                    else if (Array.isArray(rawData)) {
-                        console.log("Legacy Backup erkannt!");
-                        tracksToImport = rawData;
-                    } else {
-                        throw new Error("Unbekanntes Format");
-                    }
-
-                    if(!confirm(`Backup einspielen?\n\n• ${tracksToImport.length} Hörbücher\n• ${statsToImport.length} Statistik-Einträge\n• Einstellungen: ${settingsToImport ? "Ja" : "Nein"}`)) return;
-
-                    const tx = db.transaction(["tracks", "stats_log"], "readwrite");
-                    const trackStore = tx.objectStore("tracks");
-                    const statsStore = tx.objectStore("stats_log");
-
-                    let updated = 0; let newEntries = 0;
-
-                    // 1. Einstellungen wiederherstellen
-                    if (settingsToImport) {
-                        localStorage.setItem('klangkisteSettings_v16', JSON.stringify(settingsToImport));
-                        trackStore.put({ tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: settingsToImport });
-                        settings = settingsToImport;
-                        if(settings.hiddenIDs) hiddenTracks = new Set(settings.hiddenIDs);
-                        updateUIFromSettings();
-                    }
-
-                    // 2. Statistik wiederherstellen
-                    if (statsToImport.length > 0) {
-                        statsToImport.forEach(stat => {
-                            statsStore.put(stat);
-                        });
-                    }
-
-                    // 3. Tracks wiederherstellen
-                    for(const entry of tracksToImport) {
-                          await new Promise((resolve) => {
-                            const req = trackStore.get(entry.tagId);
-                            req.onsuccess = () => {
-                                const existing = req.result;
-                                
-                                const newRecord = {
-                                    tagId: entry.tagId,
-                                    name: entry.name,
-                                    playlistFileNames: entry.playlistFileNames,
-                                    imageFileName: entry.imageFileName,
-                                    meta: entry.meta,
-                                    tags: entry.tags,
-                                    filter_age: entry.filter_age,
-                                    lastTrackIndex: entry.lastTrackIndex || 0,
-                                    lastTime: entry.lastTime || 0,
-                                    completed: entry.completed || false,
-                                    hiddenInLib: entry.hiddenInLib || false,
-                                    lastPlayedTimestamp: entry.lastPlayedTimestamp || 0,
-                                    // Audio/Bild erhalten, wenn es schon da war!
-                                    playlist: existing ? existing.playlist : [],
-                                    imageBlob: existing ? existing.imageBlob : null,
-                                    cueTracks: existing ? existing.cueTracks : null 
-                                };
-                                
-                                trackStore.put(newRecord);
-                                if(existing) updated++; else newEntries++;
-                                resolve();
-                            };
-                          });
-                    }
-
-                    tx.oncomplete = () => {
-                        alert(`Wiederherstellung komplett!\n\nStatus: V76 Full Restore\n• Einstellungen geladen\n• ${statsToImport.length} Statistik-Events\n• ${updated} Tracks aktualisiert\n• ${newEntries} neue Tracks (leer)`);
-                        
-                        const btn = document.getElementById('btn-auto-repair'); 
-                        if(btn && newEntries > 0) { 
-                            btn.style.backgroundColor = "#e74c3c"; 
-                            btn.style.animation = "pulse 2s infinite"; 
-                            showStatus("Bitte 'Automatisch Reparieren' nutzen für Audio!");
-                        }
-                        
-                        loadTagList(); 
-                        input.value = "";
-                    };
-
-                } catch(e) { 
-                    alert("Import Fehler: " + e.message); 
-                    console.error(e);
-                }
-            }; 
-            reader.readAsText(file);
-        }
-        
-        // --- NEW: INTELLIGENT FOLDER LINKING (FILE SYSTEM ACCESS API) ---
-        async function importViaFileSystemAPI() {
+        // --- NEU: UNIFIED LINK IMPORTER (RECURSIVE) ---
+        async function linkAudioLibrary() {
             if (!window.showDirectoryPicker) {
-                alert("Dein Browser unterstützt diese Funktion nicht. Bitte nutze Chrome auf Android.");
+                alert("Dein Browser (wahrscheinlich Firefox/iOS) unterstützt die direkte Verknüpfung nicht.\nBitte nutze Google Chrome oder Edge auf Android/Desktop.");
                 return;
             }
 
@@ -2826,40 +1798,57 @@
                 const groups = {};
                 let count = 0;
 
-                // Rekursive Funktion zum Durchsuchen
+                // Rekursive Funktion: Findet Ordner (Struktur) und lose Dateien (Flat)
                 async function scanDirectory(directoryHandle, pathName) {
                     for await (const entry of directoryHandle.values()) {
                         if (entry.kind === 'file') {
                             const ext = entry.name.split('.').pop().toLowerCase();
                             
                             if (['mp3', 'm4a', 'ogg', 'wav', 'flac'].includes(ext)) {
-                                // Gruppieren nach Ordnername
-                                const groupName = pathName || directoryHandle.name;
+                                // Wenn pathName leer ist, sind wir im Hauptordner (Flat Mode).
+                                // Dann nutzen wir den Dateinamen (ohne Endung) als "Album Name".
+                                // Wenn pathName existiert, nutzen wir den Ordnernamen als "Album Name".
+                                
+                                let groupName = pathName;
+                                let isRootFile = false;
+
+                                if (!groupName) {
+                                    // Root File -> "Verschiedenes" oder eigener Eintrag?
+                                    // Wir machen eigene Einträge pro Datei für maximale Flexibilität
+                                    groupName = entry.name.replace(/\.[^/.]+$/, "");
+                                    isRootFile = true;
+                                }
                                 
                                 if (!groups[groupName]) {
-                                    groups[groupName] = { audio: [], img: null, name: groupName };
+                                    groups[groupName] = { audio: [], img: null, name: groupName, isRoot: isRootFile };
                                 }
-                                groups[groupName].audio.push(entry); // Wir speichern hier das HANDLE
+                                groups[groupName].audio.push(entry); 
                             }
                             else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
-                                const groupName = pathName || directoryHandle.name;
-                                if (!groups[groupName]) groups[groupName] = { audio: [], img: null, name: groupName };
+                                const groupName = pathName;
+                                // Bilder im Root ignorieren wir für Auto-Zuordnung, sonst hat jedes Root-MP3 das gleiche Cover
+                                if (groupName && !groups[groupName]) groups[groupName] = { audio: [], img: null, name: groupName };
                                 
-                                // Wichtig: Für Bilder laden wir das Blob direkt, da IndexedDB das kann 
-                                // und es für die Cover-Anzeige im UI einfacher ist.
-                                const fileData = await entry.getFile();
-                                groups[groupName].img = fileData; 
+                                if (groupName) {
+                                     // Nur echtes Blob laden, wenn nötig.
+                                     const fileData = await entry.getFile();
+                                     groups[groupName].img = fileData; 
+                                }
                             }
                         } else if (entry.kind === 'directory') {
-                            const newPath = pathName ? pathName + "/" + entry.name : entry.name;
-                            await scanDirectory(entry, newPath);
+                            // Sub-Pfad bauen. Wir nehmen nur den letzten Ordnernamen für die Anzeige,
+                            // aber für die Rekursion brauchen wir den Pfad.
+                            // Vereinfachung: Wir nutzen den aktuellen Ordnernamen als Key.
+                            // Achtung bei doppelten Ordnernamen in versch. Bäumen -> Besser Full Path Key, aber Display Name kurz.
+                            
+                            // Hier einfache Variante:
+                            await scanDirectory(entry, entry.name); 
                         }
                     }
                 }
 
                 await scanDirectory(dirHandle, "");
 
-                // In Datenbank speichern
                 const groupKeys = Object.keys(groups);
                 if(groupKeys.length === 0) { alert("Keine Audio-Dateien gefunden."); return; }
 
@@ -2867,7 +1856,7 @@
                     const g = groups[groupKeys[i]];
                     if (g.audio.length === 0) continue;
 
-                    // Sortieren (Namen der Handles vergleichen)
+                    // Sortieren
                     g.audio.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
 
                     const fileNames = g.audio.map(h => h.name);
@@ -2876,14 +1865,14 @@
                     const record = {
                         tagId: "link_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
                         name: g.name.replace(/_/g, ' '),
-                        playlist: g.audio, // HIER LIEGEN JETZT HANDLES
+                        playlist: g.audio, // HANDLES
                         playlistFileNames: fileNames,
                         imageBlob: g.img,
                         imageFileName: g.img ? g.img.name : null,
                         cueTracks: null,
                         lastTrackIndex: 0,
                         lastTime: 0,
-                        isLinked: true // Markierung für den Player
+                        isLinked: true 
                     };
 
                     const tx = db.transaction(["tracks"], "readwrite");
@@ -2903,145 +1892,263 @@
             }
         }
 
-        async function handleBulkImport(input) {
-            const files = Array.from(input.files); if(files.length === 0) return;
-            const klangkisteJsonFile = files.find(f => f.name.toLowerCase().startsWith('klangkiste') && f.name.toLowerCase().endsWith('.json'));
-            if (klangkisteJsonFile) {
-                const usedAudioFiles = await handleKlangkisteJsonImport(klangkisteJsonFile, files);
-                const audioExtensions = ['.mp3', '.m4a', '.ogg', '.wav', '.flac'];
-                const leftoverAudio = files.filter(f => {
-                    const ext = f.name.substring(f.name.lastIndexOf('.')).toLowerCase();
-                    return audioExtensions.includes(ext) && !usedAudioFiles.has(f.name);
-                });
-                if (leftoverAudio.length > 0) { if(confirm(`Smart Import fertig. Noch ${leftoverAudio.length} weitere Audio-Dateien gefunden. Auch importieren?`)) { await handleClassicBulkImport(files.filter(f => !usedAudioFiles.has(f.name))); } }
-            } else { await handleClassicBulkImport(files); }
-            input.value = ""; 
-        }
-
-        async function handleKlangkisteJsonImport(jsonFile, allFiles) {
-            const readFileAsText = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsText(file); });
-            const usedAudioSet = new Set();
+        async function loadExamplesFromGitHub(event) {
+            if(event) { event.stopPropagation(); event.preventDefault(); }
+            const BASE_URL = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/";
+            if(!confirm("Möchtest du die Beispiel-Hörspiele (ca. 10 MB) jetzt herunterladen?")) return;
+            showStatus("⏳ Lade Daten von GitHub...");
             try {
-                const jsonText = await readFileAsText(jsonFile); const metadataEntries = JSON.parse(jsonText); let count = 0; const findFile = (name) => allFiles.find(f => f.name === name);
-                for (let i = 0; i < metadataEntries.length; i++) {
-                    const entry = metadataEntries[i]; showStatus(`Smart Import ${i+1}/${metadataEntries.length}: ${entry.name}`);
-                    const audioFiles = []; if (entry.playlistFileNames) { for (const fname of entry.playlistFileNames) { const f = findFile(fname); if (f) { audioFiles.push(f); usedAudioSet.add(f.name); } } }
-                    if (audioFiles.length === 0) continue;
-                    let imageBlob = null; if (entry.imageFileName) imageBlob = findFile(entry.imageFileName);
-                    let cueTracks = null; if(entry.playlistFileNames.length > 0) { const audioBase = entry.playlistFileNames[0].replace(/\.[^/.]+$/, ""); const cueFile = findFile(audioBase + ".cue"); if (cueFile) { try { const cueText = await readFileAsText(cueFile); cueTracks = parseCueSheet(cueText); } catch(e) {} } }
-                    await new Promise((resolve) => { const tx = db.transaction(["tracks"], "readwrite"); const store = tx.objectStore("tracks"); store.put({ tagId: entry.tagId, name: entry.name, playlist: audioFiles, playlistFileNames: entry.playlistFileNames, imageBlob: imageBlob, imageFileName: entry.imageFileName, cueTracks: cueTracks, meta: entry.meta, tags: entry.tags, lastTrackIndex: 0, lastTime: 0 }); tx.oncomplete = () => { count++; resolve(); }; });
+                const jsonResp = await fetch(BASE_URL + "klangkiste.json");
+                if (!jsonResp.ok) throw new Error("JSON nicht gefunden");
+                const data = await jsonResp.json();
+                if(!db) { alert("Datenbank noch nicht bereit. Warte kurz..."); return; }
+                const preparedEntries = [];
+                for (const entry of data) {
+                    showStatus(`📥 Lade Dateien für: ${entry.name.substring(0, 15)}...`);
+                    const audioBlobs = [];
+                    if (entry.playlistFileNames) {
+                        for (const fileName of entry.playlistFileNames) {
+                            const resp = await fetch(BASE_URL + encodeURIComponent(fileName));
+                            if (resp.ok) {
+                                const blob = await resp.blob();
+                                audioBlobs.push(new File([blob], fileName, { type: "audio/mp3" }));
+                            }
+                        }
+                    }
+                    if (audioBlobs.length === 0) continue;
+                    let imageBlob = null;
+                    if (entry.imageFileName) {
+                        const resp = await fetch(BASE_URL + encodeURIComponent(entry.imageFileName));
+                        if (resp.ok) {
+                            const blob = await resp.blob();
+                            imageBlob = new File([blob], entry.imageFileName, { type: "image/png" });
+                        }
+                    }
+                    preparedEntries.push({
+                        tagId: entry.tagId, name: entry.name, playlist: audioBlobs,
+                        playlistFileNames: entry.playlistFileNames, imageBlob: imageBlob, imageFileName: entry.imageFileName,
+                        meta: entry.meta || {}, tags: entry.tags || [], filter_age: entry.filter_age || 0,
+                        lastTrackIndex: 0, lastTime: 0, completed: false
+                    });
                 }
-                showStatus(`${count} Smart-Import fertig!`); loadTagList(); return usedAudioSet;
-            } catch (e) { alert("Fehler JSON: " + e); return usedAudioSet; }
+                const tx = db.transaction(["tracks"], "readwrite");
+                const store = tx.objectStore("tracks");
+                preparedEntries.forEach(item => { store.put(item); });
+                tx.oncomplete = () => { showStatus("✅ Fertig!"); loadTagList(); alert(`Erfolg! ${preparedEntries.length} Hörspiele installiert.`); };
+            } catch (e) { alert("Download Fehler: " + e.message); showStatus("Fehler ❌"); }
         }
 
-        async function handleFolderAlbumImport(input) {
-            const files = Array.from(input.files); 
-            if(files.length === 0) return;
+        async function importKlangkisteJson(input) {
+            const file = input.files[0]; if(!file) return; 
+            showStatus("Analysiere Backup...");
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const rawData = JSON.parse(e.target.result);
+                    let tracksToImport = [];
+                    let statsToImport = [];
+                    let settingsToImport = null;
 
-            showStatus("Analysiere Ordner-Struktur...");
-            const groups = {};
-            files.forEach(f => {
-                const pathParts = f.webkitRelativePath ? f.webkitRelativePath.split('/') : [f.name];
-                let groupKey = "";
-                let folderName = "";
+                    if (rawData.type && rawData.type.startsWith("FULL_BACKUP")) {
+                        tracksToImport = rawData.tracks || [];
+                        statsToImport = rawData.stats || [];
+                        settingsToImport = rawData.systemSettings || null;
+                    } else if (Array.isArray(rawData)) {
+                        tracksToImport = rawData;
+                    }
 
-                if (pathParts.length > 1) {
-                    pathParts.pop(); 
-                    groupKey = pathParts.join('/'); 
-                    folderName = pathParts[pathParts.length - 1]; 
-                } else {
-                    groupKey = "root_" + f.name;
-                    folderName = f.name.replace(/\.[^/.]+$/, "");
-                }
+                    if(!confirm(`Backup einspielen?\n\n• ${tracksToImport.length} Hörbücher\n• ${statsToImport.length} Statistik-Einträge`)) return;
 
-                if (!groups[groupKey]) {
-                    groups[groupKey] = { audio: [], img: null, name: folderName };
-                }
+                    const tx = db.transaction(["tracks", "stats_log"], "readwrite");
+                    const trackStore = tx.objectStore("tracks");
+                    const statsStore = tx.objectStore("stats_log");
 
-                const ext = f.name.split('.').pop().toLowerCase();
-                if(['mp3', 'm4a', 'ogg', 'wav', 'flac'].includes(ext)) {
-                    groups[groupKey].audio.push(f);
-                } else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
-                    if(!groups[groupKey].img) groups[groupKey].img = f;
-                }
-            });
+                    if (settingsToImport) {
+                        localStorage.setItem('klangkisteSettings_v16', JSON.stringify(settingsToImport));
+                        trackStore.put({ tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: settingsToImport });
+                        settings = settingsToImport;
+                        if(settings.hiddenIDs) hiddenTracks = new Set(settings.hiddenIDs);
+                        updateUIFromSettings();
+                    }
 
-            let count = 0;
-            const groupKeys = Object.keys(groups);
+                    if (statsToImport.length > 0) {
+                        statsToImport.forEach(stat => { statsStore.put(stat); });
+                    }
+
+                    for(const entry of tracksToImport) {
+                          await new Promise((resolve) => {
+                            const req = trackStore.get(entry.tagId);
+                            req.onsuccess = () => {
+                                const existing = req.result;
+                                const newRecord = {
+                                    tagId: entry.tagId, name: entry.name, playlistFileNames: entry.playlistFileNames,
+                                    imageFileName: entry.imageFileName, meta: entry.meta, tags: entry.tags, filter_age: entry.filter_age,
+                                    lastTrackIndex: entry.lastTrackIndex || 0, lastTime: entry.lastTime || 0,
+                                    completed: entry.completed || false, hiddenInLib: entry.hiddenInLib || false,
+                                    lastPlayedTimestamp: entry.lastPlayedTimestamp || 0,
+                                    playlist: existing ? existing.playlist : [],
+                                    imageBlob: existing ? existing.imageBlob : null,
+                                    cueTracks: existing ? existing.cueTracks : null 
+                                };
+                                trackStore.put(newRecord);
+                                resolve();
+                            };
+                          });
+                    }
+                    tx.oncomplete = () => { alert("Wiederherstellung komplett!"); loadTagList(); input.value = ""; };
+                } catch(e) { alert("Fehler: " + e.message); }
+            }; 
+            reader.readAsText(file);
+        }
+
+        // --- EXPORT ---
+        async function exportKlangkisteJson() {
+            showStatus("Erstelle Backup...");
+            const tx = db.transaction(["tracks", "stats_log"], "readonly");
+            const trackStore = tx.objectStore("tracks");
+            const statsStore = tx.objectStore("stats_log");
             
-            for (let i = 0; i < groupKeys.length; i++) {
-                const g = groups[groupKeys[i]];
-                if(g.audio.length === 0) continue;
-                g.audio.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
-                showStatus(`Importiere ${i+1}/${groupKeys.length}: ${g.name}`);
-                
-                await new Promise((resolve) => {
-                    const tx = db.transaction(["tracks"], "readwrite");
-                    const store = tx.objectStore("tracks");
-                    
-                    const record = {
-                        tagId: "folder_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
-                        name: g.name.replace(/_/g, ' '), 
-                        playlist: g.audio,
-                        playlistFileNames: g.audio.map(f => f.name),
-                        imageBlob: g.img,
-                        imageFileName: g.img ? g.img.name : null,
-                        cueTracks: null,
-                        lastTrackIndex: 0,
-                        lastTime: 0
-                    };
-                    store.put(record);
-                    tx.oncomplete = () => { count++; resolve(); };
-                    tx.onerror = () => resolve(); 
-                });
-            }
-
-            showStatus(`${count} Hörbücher importiert! 🎉`);
-            loadTagList();
-            input.value = "";
-        }
-
-        async function handleClassicBulkImport(files) {
-            const groups = {};
-            files.forEach(f => {
-                const path = f.webkitRelativePath || f.name; const lastDot = path.lastIndexOf('.'); const basePath = lastDot > 0 ? path.substring(0, lastDot) : path;
-                if (!groups[basePath]) groups[basePath] = { audio: [], img: null, cue: null, name: "" };
-                const ext = f.name.split('.').pop().toLowerCase(); const fileNameOnly = f.name.substring(0, f.name.lastIndexOf('.'));
-                if (!groups[basePath].name) groups[basePath].name = fileNameOnly;
-                if(['mp3', 'm4a', 'ogg', 'wav', 'flac'].includes(ext)) { groups[basePath].audio.push(f); } else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) { groups[basePath].img = f; } else if (ext === 'cue') { groups[basePath].cue = f; }
+            const [tracks, stats] = await new Promise((resolve) => {
+                let t = null, s = null, c = 0;
+                const check = () => { c++; if(c===2) resolve([t,s]); };
+                trackStore.getAll().onsuccess = e => { t = e.target.result; check(); };
+                statsStore.getAll().onsuccess = e => { s = e.target.result; check(); };
             });
-            let count = 0; const groupKeys = Object.keys(groups);
-            const readFileAsText = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsText(file); });
-            for (let i = 0; i < groupKeys.length; i++) {
-                const g = groups[groupKeys[i]]; if(g.audio.length === 0) continue;
-                showStatus(`Classic Import ${i+1}/${groupKeys.length}: ${g.name}`);
-                let cueTracks = null; if(g.cue) { try { const text = await readFileAsText(g.cue); cueTracks = parseCueSheet(text); } catch(e) {} }
-                await new Promise((resolve) => { const tx = db.transaction(["tracks"], "readwrite"); const store = tx.objectStore("tracks"); store.put({ tagId: "manual_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5), name: g.name.replace(/_/g, ' '), playlist: g.audio, playlistFileNames: g.audio.map(f => f.name), imageBlob: g.img, imageFileName: g.img ? g.img.name : null, cueTracks: cueTracks, lastTrackIndex: 0, lastTime: 0 }); tx.oncomplete = () => { count++; resolve(); }; });
-            }
-            showStatus(`${count} Importiert! 🎉`); loadTagList();
-        }
-        function parseCueSheet(cueText) {
-            const tracks = []; const lines = cueText.split('\n'); let currentTrack = null;
-            lines.forEach(line => {
-                line = line.trim();
-                if (line.startsWith('TRACK')) { currentTrack = {}; }
-                if (line.startsWith('TITLE') && currentTrack) { const match = line.match(/"([^"]+)"/); if (match) currentTrack.title = match[1]; }
-                if (line.startsWith('INDEX 01') && currentTrack) {
-                    const parts = line.split(' '); const timeStr = parts[parts.length - 1]; const timeParts = timeStr.split(':');
-                    const min = parseInt(timeParts[0], 10); const sec = parseInt(timeParts[1], 10); const frames = parseInt(timeParts[2], 10);
-                    currentTrack.time = (min * 60) + sec + (frames / 75); tracks.push(currentTrack); currentTrack = null;
+
+            const exportData = {
+                type: "FULL_BACKUP_V1", timestamp: Date.now(), systemSettings: {}, tracks: [], stats: stats || []
+            };
+
+            tracks.forEach(t => {
+                if (t.tagId === SYSTEM_SETTINGS_ID) exportData.systemSettings = t.data;
+                else if (t.tagId !== SYSTEM_BG_ID) {
+                    exportData.tracks.push({
+                        tagId: t.tagId, name: t.name, playlistFileNames: t.playlistFileNames || [],
+                        imageFileName: t.imageFileName || null, meta: t.meta || {}, tags: t.tags || [],
+                        filter_age: t.filter_age || 0, lastTrackIndex: t.lastTrackIndex || 0, lastTime: t.lastTime || 0,
+                        completed: t.completed || false, hiddenInLib: t.hiddenInLib || false,
+                        lastPlayedTimestamp: t.lastPlayedTimestamp || 0
+                    });
                 }
-            }); return tracks;
+            });
+
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: "application/json"});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `klangkiste_backup_${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            showStatus("Backup erstellt! ✅");
+        }
+
+        // --- MANUAL SAVE ---
+        function saveManualTrack() {
+            const n = document.getElementById('track-name').value;
+            const hasAudio = document.getElementById('audio-input').files.length > 0;
+            if(!editingOriginalTagId && !hasAudio) { alert("Bitte Audio wählen!"); return; }
+            if(n === "") { alert("Bitte Name eingeben!"); return; }
+            const targetId = editingOriginalTagId ? editingOriginalTagId : "manual_" + Date.now();
+            saveTrackLink(targetId);
+        }
+        
+        function saveTrackLink(tagId) {
+            const audioInput = document.getElementById('audio-input');
+            const imgInput = document.getElementById('img-input');
+            const cueInput = document.getElementById('cue-input');
+            const name = document.getElementById('track-name').value;
+            
+            // Collect Meta
+            const metaObj = {
+                description: document.getElementById('meta-desc').value,
+                age_recommendation: document.getElementById('meta-age').value,
+                genre: document.getElementById('meta-genre').value,
+                runtime: document.getElementById('meta-runtime').value
+            };
+            const isHidden = document.getElementById('track-hidden-lib').checked;
+
+            const finalize = (oldRecord, newCue) => {
+                let finalAudio = audioInput.files.length > 0 ? Array.from(audioInput.files) : (oldRecord ? oldRecord.playlist : []);
+                let finalImg = imgInput.files.length > 0 ? imgInput.files[0] : (oldRecord ? oldRecord.imageBlob : null);
+                
+                const record = { 
+                    tagId: tagId, name: name, playlist: finalAudio, 
+                    playlistFileNames: finalAudio.map(f=>f.name), imageBlob: finalImg, 
+                    cueTracks: newCue || (oldRecord ? oldRecord.cueTracks : null),
+                    meta: metaObj, hiddenInLib: isHidden,
+                    lastTrackIndex: oldRecord ? oldRecord.lastTrackIndex : 0, lastTime: oldRecord ? oldRecord.lastTime : 0 
+                };
+                
+                const tx = db.transaction(["tracks"], "readwrite");
+                tx.objectStore("tracks").put(record);
+                tx.oncomplete = () => { 
+                    if(isHidden) hiddenTracks.add(tagId); else hiddenTracks.delete(tagId);
+                    saveSettings(); cancelEdit(); loadTagList(); showStatus("Gespeichert!");
+                };
+            };
+
+            // Handling Cues & Updates
+            if (editingOriginalTagId) {
+                const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
+                store.get(editingOriginalTagId).onsuccess = (e) => { finalize(e.target.result, null); };
+            } else {
+                if(audioInput.files.length === 0) { alert("Kein Audio!"); return; }
+                finalize(null, null);
+            }
+        }
+
+        // --- COMMON UI ---
+        function activateLinkMode() {
+            const n = document.getElementById('track-name').value;
+            const hasAudio = document.getElementById('audio-input').files.length > 0;
+            if(!editingOriginalTagId && !hasAudio) { alert("Bitte Audio wählen!"); return; }
+            if(n === "") { alert("Bitte Name eingeben!"); return; }
+            isLinkModeActive = true; document.getElementById('scan-status').innerText = ">>> FIGUR JETZT AUFLEGEN <<<";
+            if (!isNfcScanning) startNFC();
+        }
+
+        function loadTagForEdit(id) {
+            const store = db.transaction(["tracks"], "readonly").objectStore("tracks");
+            store.get(id).onsuccess = (e) => {
+                const r = e.target.result;
+                if(r) {
+                    editingOriginalTagId = id;
+                    document.getElementById('track-name').value = r.name;
+                    document.getElementById('form-title').innerText = "✏️ Bearbeiten: " + r.name;
+                    document.getElementById('btn-cancel-edit').style.display = "inline-block";
+                    document.getElementById('scan-card').classList.add("editing-highlight");
+                    
+                    if(r.meta) {
+                        document.getElementById('meta-desc').value = r.meta.description || "";
+                        document.getElementById('meta-age').value = r.meta.age_recommendation || "";
+                        document.getElementById('meta-genre').value = r.meta.genre || "Hörspiel";
+                        document.getElementById('meta-runtime').value = r.meta.runtime || "";
+                    }
+                    document.getElementById('audio-info').innerText = r.playlistFileNames ? r.playlistFileNames.length + " Tracks" : "Keine";
+                    
+                    const isHidden = hiddenTracks.has(id) || r.hiddenInLib === true;
+                    document.getElementById('track-hidden-lib').checked = isHidden;
+                    
+                    document.getElementById('scan-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            };
+        }
+
+        function cancelEdit() {
+            editingOriginalTagId = null;
+            document.getElementById('track-name').value = "";
+            document.getElementById('audio-input').value = "";
+            document.getElementById('cue-input').value = "";
+            document.getElementById('img-input').value = "";
+            document.getElementById('meta-desc').value = "";
+            document.getElementById('audio-info').innerText = "";
+            document.getElementById('form-title').innerText = "🎵 Tag bearbeiten / anlernen";
+            document.getElementById('btn-cancel-edit').style.display = "none";
+            document.getElementById('scan-card').classList.remove("editing-highlight");
         }
 
         function createLibCard(track, isSmall = false) {
             const div = document.createElement('div');
             div.className = isSmall ? 'recent-card' : 'lib-card';
-            div.onclick = () => {
-                closeLibrary();
-                playTrackByTag(track.tagId);
-            };
+            div.onclick = () => { closeLibrary(); playTrackByTag(track.tagId); };
 
             let imgHtml = `<div class="lib-placeholder">🎵</div>`;
             if (track.imageBlob) {
@@ -3050,32 +2157,17 @@
                 imgHtml = `<img src="${url}" class="lib-cover-img" loading="lazy">`;
             }
             
-            let infoBtnHtml = "";
-            if(!isSmall) { 
-                 infoBtnHtml = `<button class="lib-card-info-btn" onclick="showAlbumInfo(event, '${track.tagId}')">i</button>`;
-            }
-
+            let infoBtnHtml = !isSmall ? `<button class="lib-card-info-btn" onclick="showAlbumInfo(event, '${track.tagId}')">i</button>` : "";
             let metaInfo = "";
-            if(!isSmall && track.meta) {
-                 if(track.meta.runtime) metaInfo += `⏱️ ${track.meta.runtime} min`;
-            }
+            if(!isSmall && track.meta && track.meta.runtime) metaInfo += `⏱️ ${track.meta.runtime} min`;
             
-            let completedBadge = "";
-            if(track.completed) {
-                completedBadge = `<div class="completed-badge">✅</div>`;
-            }
+            let completedBadge = track.completed ? `<div class="completed-badge">✅</div>` : "";
 
             div.innerHTML = `
                 <div class="lib-cover-wrap" style="${isSmall ? 'border-radius:10px;' : ''}">
-                    ${imgHtml}
-                    ${infoBtnHtml}
-                    ${completedBadge}
+                    ${imgHtml} ${infoBtnHtml} ${completedBadge}
                 </div>
-                ${!isSmall ? `
-                <div class="lib-card-body">
-                    <div class="lib-card-title">${track.name}</div>
-                    <span class="lib-meta-tag">${metaInfo}</span>
-                </div>` : ''}
+                ${!isSmall ? `<div class="lib-card-body"><div class="lib-card-title">${track.name}</div><span class="lib-meta-tag">${metaInfo}</span></div>` : ''}
             `;
             return div;
         }
@@ -3086,16 +2178,13 @@
             store.get(tagId).onsuccess = (e) => {
                 const track = e.target.result;
                 if(!track) return;
-
                 const modal = document.getElementById('lib-info-modal');
                 const imgEl = document.getElementById('info-modal-img');
                 const titleEl = document.getElementById('info-modal-title');
                 const metaEl = document.getElementById('info-modal-meta');
                 const descEl = document.getElementById('info-modal-desc');
 
-                if(track.imageBlob) imgEl.src = URL.createObjectURL(track.imageBlob);
-                else imgEl.src = "";
-
+                if(track.imageBlob) imgEl.src = URL.createObjectURL(track.imageBlob); else imgEl.src = "";
                 titleEl.innerText = track.name;
                 
                 let metaText = [];
@@ -3105,38 +2194,21 @@
                     if(track.meta.runtime) metaText.push(`${track.meta.runtime} min`);
                 }
                 metaEl.innerText = metaText.join(" • ");
-
-                if(track.meta && track.meta.description) {
-                    descEl.innerText = track.meta.description;
-                    descEl.style.display = 'block';
-                } else {
-                    descEl.style.display = 'none';
-                }
+                descEl.innerText = (track.meta && track.meta.description) ? track.meta.description : "";
                 modal.style.display = 'flex';
             };
         }
+        function closeAlbumInfo() { document.getElementById('lib-info-modal').style.display = 'none'; }
 
-        function closeAlbumInfo() {
-            document.getElementById('lib-info-modal').style.display = 'none';
-        }
-
-        // --- LIBRARY MODE LOGIC ---
-        let currentLibFilter = 'all';
-        let activeCoverUrls = []; 
-
+        // --- LIBRARY LIST / GRID RENDERERS ---
         function openLibrary() {
             if(!db) { showStatus("Datenbank lädt..."); return; }
             document.getElementById('library-mode').style.setProperty('display', 'block', 'important');
             renderLibrary();
         }
-
         function closeLibrary() {
             document.getElementById('library-mode').style.display = 'none';
-            // --- REPARATUR: Bilder aus Speicher entfernen wenn Lib zugeht ---
-            if(activeCoverUrls.length > 0) {
-                activeCoverUrls.forEach(url => URL.revokeObjectURL(url));
-                activeCoverUrls = [];
-            }
+            if(activeCoverUrls.length > 0) { activeCoverUrls.forEach(url => URL.revokeObjectURL(url)); activeCoverUrls = []; }
         }
 
         function renderLibrary() {
@@ -3144,45 +2216,27 @@
             const filterContainer = document.getElementById('lib-filters');
             contentArea.innerHTML = "";
             
-            if(!db) return; 
-
             const tx = db.transaction(["tracks"], "readonly");
             const store = tx.objectStore("tracks");
             const request = store.getAll();
 
             request.onsuccess = (e) => {
                 let tracks = e.target.result;
-                
                 tracks = tracks.filter(t => t.tagId !== "system_bg" && t.tagId !== "system_settings");
-
-                // SORTING FIX: SOFORT SORTIEREN
                 tracks.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
 
                 const ageLimit = (settings.libMaxAge !== undefined) ? settings.libMaxAge : 99;
-
                 tracks = tracks.filter(t => {
-                    // SHADOW LIST CHECK
                     if (hiddenTracks.has(t.tagId)) return false; 
-                    
                     const trackAge = (t.meta && t.meta.age_recommendation) ? parseInt(t.meta.age_recommendation) : 0;
-                    if (trackAge > ageLimit) return false; 
-                    return true;
+                    return trackAge <= ageLimit;
                 });
 
-
                 if(filterContainer.children.length <= 2) { 
-                    const genres = new Set();
-                    const ages = new Set();
-                    tracks.forEach(t => {
-                        if(t.meta && t.meta.genre) genres.add(t.meta.genre);
-                        if(t.meta && t.meta.age_recommendation) ages.add(t.meta.age_recommendation);
-                    });
-                    Array.from(ages).sort((a,b) => a-b).forEach(age => {
-                        addFilterChip(`Ab ${age} Jahren`, `age_${age}`);
-                    });
-                    Array.from(genres).sort().forEach(genre => {
-                          addFilterChip(genre, `genre_${genre}`);
-                    });
+                    const genres = new Set(); const ages = new Set();
+                    tracks.forEach(t => { if(t.meta) { if(t.meta.genre) genres.add(t.meta.genre); if(t.meta.age_recommendation) ages.add(t.meta.age_recommendation); } });
+                    Array.from(ages).sort((a,b)=>a-b).forEach(age => addFilterChip(`Ab ${age} Jahren`, `age_${age}`));
+                    Array.from(genres).sort().forEach(genre => addFilterChip(genre, `genre_${genre}`));
                 }
 
                 if (currentLibFilter === 'all' || currentLibFilter === 'recent') {
@@ -3192,9 +2246,7 @@
                         recentDiv.innerHTML = `<div class="section-title">Zuletzt gehört 🕒</div><div class="recent-grid" id="recent-grid-target"></div>`;
                         contentArea.appendChild(recentDiv);
                         const target = recentDiv.querySelector('#recent-grid-target');
-                        recentTracks.forEach(t => {
-                            target.appendChild(createLibCard(t, true));
-                        });
+                        recentTracks.forEach(t => target.appendChild(createLibCard(t, true)));
                     }
                 }
 
@@ -3213,10 +2265,7 @@
                     filteredTracks = tracks.filter(t => t.meta && t.meta.genre === g);
                 }
 
-                filteredTracks.forEach(t => {
-                    gridDiv.appendChild(createLibCard(t));
-                });
-                
+                filteredTracks.forEach(t => gridDiv.appendChild(createLibCard(t)));
                 contentArea.appendChild(gridDiv);
             };
         }
@@ -3225,9 +2274,7 @@
             const container = document.getElementById('lib-filters');
             if(container.querySelector(`[data-val="${value}"]`)) return;
             const chip = document.createElement('div');
-            chip.className = 'filter-chip';
-            chip.innerText = label;
-            chip.dataset.val = value;
+            chip.className = 'filter-chip'; chip.innerText = label; chip.dataset.val = value;
             chip.onclick = function() { applyLibFilter(value, this); };
             container.appendChild(chip);
         }
@@ -3237,6 +2284,188 @@
             document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
             if(el) el.classList.add('active');
             renderLibrary();
+        }
+
+        function setAdminView(mode) {
+            const btnGrid = document.getElementById('btn-view-grid');
+            const btnList = document.getElementById('btn-view-list');
+            if(mode === 'grid') { adminListView = false; btnGrid.classList.add('active'); btnList.classList.remove('active'); } 
+            else { adminListView = true; btnGrid.classList.remove('active'); btnList.classList.add('active'); }
+            loadTagList();
+        }
+
+        function loadTagList() {
+            const container = document.getElementById('tag-list-container'); 
+            if(!container) return; 
+            container.className = adminListView ? 'admin-list' : 'admin-grid';
+            container.innerHTML = '<div style="text-align:center; color:#ccc; padding:20px;">Lade Einträge...</div>';
+            
+            const tx = db.transaction(["tracks"], "readonly"); 
+            const store = tx.objectStore("tracks");
+            const tracks = [];
+            const request = store.openCursor();
+
+            request.onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    const t = cursor.value;
+                    tracks.push({ tagId: t.tagId, name: t.name, imageBlob: t.imageBlob, meta: t.meta, completed: t.completed, hiddenInLib: t.hiddenInLib });
+                    cursor.continue();
+                } else {
+                    let htmlBuffer = "";
+                    tracks.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
+                    tracks.forEach(track => {
+                        if(track.tagId !== "system_bg" && track.tagId !== "system_settings") {
+                            const isHidden = hiddenTracks.has(track.tagId);
+                            const visIcon = isHidden ? "🚫" : "👁️";
+                            const visBtnColor = isHidden ? "#555" : "#f39c12";
+                            
+                            if(adminListView) {
+                                let iconHtml = `<div class="list-icon">🎵</div>`;
+                                if (track.imageBlob) { const url = URL.createObjectURL(track.imageBlob); iconHtml = `<img src="${url}" class="list-img-small" loading="lazy">`; }
+                                htmlBuffer += `
+                                    <div class="admin-list-row">
+                                        ${iconHtml}
+                                        <div class="list-info"><div class="list-name">${track.name}</div><div class="list-meta">ID: ${track.tagId}</div></div>
+                                        <div class="admin-actions">
+                                            <button class="btn-mini edit" onclick="loadTagForEdit('${track.tagId}')">✏️</button>
+                                            <button id="btn-vis-${track.tagId}" class="btn-mini vis" style="background-color:${visBtnColor};" onclick="toggleTrackVisibility('${track.tagId}')">${visIcon}</button>
+                                            <button class="btn-mini del" onclick="deleteTrack('${track.tagId}')">🗑</button>
+                                        </div>
+                                    </div>`;
+                            } else {
+                                let imgHtml = `<div style="font-size:30px;">🎵</div>`;
+                                if (track.imageBlob) { const url = URL.createObjectURL(track.imageBlob); imgHtml = `<img src="${url}" class="admin-cover-img" loading="lazy">`; }
+                                let completedBadge = track.completed ? `<div class="completed-badge">✅</div>` : "";
+                                const hiddenBadgeStyle = isHidden ? "display:flex;" : "display:none;";
+                                const hiddenBadge = `<div id="badge-${track.tagId}" style="${hiddenBadgeStyle} position:absolute; top:5px; left:5px; background:rgba(255,255,255,0.95); color:black; border-radius:50%; width:28px; height:28px; justify-content:center; align-items:center; z-index:10; font-size:16px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚫</div>`;
+                                htmlBuffer += `
+                                    <div class="admin-card">
+                                        <div class="admin-cover-wrap">${imgHtml} ${completedBadge} ${hiddenBadge}</div>
+                                        <div class="admin-card-body">
+                                            <div class="admin-card-title">${track.name}</div>
+                                            <div class="admin-actions">
+                                                <button class="btn-mini edit" onclick="loadTagForEdit('${track.tagId}')">✏️</button>
+                                                <button id="btn-vis-${track.tagId}" class="btn-mini vis" style="background-color:${visBtnColor};" onclick="toggleTrackVisibility('${track.tagId}')">${visIcon}</button>
+                                                <button class="btn-mini play" onclick="playTrackByTag('${track.tagId}')">▶</button>
+                                                <button class="btn-mini del" onclick="deleteTrack('${track.tagId}')">🗑</button>
+                                            </div>
+                                        </div>
+                                    </div>`;
+                            }
+                        } 
+                    });
+                    container.innerHTML = htmlBuffer;
+                }
+            };
+        }
+
+        function toggleTrackVisibility(id) {
+            if(hiddenTracks.has(id)) { hiddenTracks.delete(id); showStatus("Sichtbar 👁️"); } 
+            else { hiddenTracks.add(id); showStatus("Versteckt 🚫"); }
+            saveSettings(); 
+            const btn = document.getElementById(`btn-vis-${id}`);
+            const badge = document.getElementById(`badge-${id}`);
+            const isHidden = hiddenTracks.has(id);
+            if(isHidden) { if(btn) { btn.innerText = "🚫"; btn.style.backgroundColor = "#555"; } if(badge) badge.style.display = "flex"; } 
+            else { if(btn) { btn.innerText = "👁️"; btn.style.backgroundColor = "#f39c12"; } if(badge) badge.style.display = "none"; }
+        }
+
+        function setAllLibraryVisibility(isHidden) {
+            if(!confirm(isHidden ? "Alle verstecken?" : "Alle anzeigen?")) return;
+            showStatus("Verarbeite...");
+            const tx = db.transaction(["tracks"], "readonly");
+            const store = tx.objectStore("tracks");
+            store.getAllKeys().onsuccess = (e) => {
+                const keys = e.target.result;
+                keys.forEach(k => { if(k !== SYSTEM_BG_ID && k !== SYSTEM_SETTINGS_ID) { if(isHidden) hiddenTracks.add(k); else hiddenTracks.delete(k); } });
+                saveSettings(); loadTagList(); showStatus("Fertig! ✅");
+            };
+        }
+
+        function deleteTrack(id) { if(confirm("Löschen?")) { const tx = db.transaction(["tracks"], "readwrite"); tx.objectStore("tracks").delete(id); tx.oncomplete = () => { hiddenTracks.delete(id); saveSettings(); loadTagList(); }; } }
+        function clearDatabase() { if(confirm("Löschen?")) { db.close(); indexedDB.deleteDatabase(DB_NAME); localStorage.removeItem('lastActiveTagId'); location.reload(); } }
+
+        function autoFillName() {
+            const input = document.getElementById('audio-input'); const nameField = document.getElementById('track-name');
+            if (input.files.length > 0 && nameField.value === "") {
+                let name = input.files[0].name; if(name.lastIndexOf('.') > 0) { name = name.substring(0, name.lastIndexOf('.')); } nameField.value = name;
+            }
+        }
+
+        function handleSecretSwitch() {
+            clickCount++; 
+            setTimeout(() => { clickCount = 0; }, 2000); 
+            if (clickCount >= 5) {
+                safeDisplay('kids-mode', 'none');
+                safeDisplay('parent-mode', 'flex');
+                if(typeof closeLibrary === "function") { closeLibrary(); } else { document.getElementById('library-mode').style.display = 'none'; }
+                document.getElementById('lib-info-modal').style.display = 'none';
+                document.getElementById('stats-modal').style.display = 'none';
+                isParentMode = true; 
+                clickCount = 0; 
+                releaseWakeLock(); 
+                endSessionLog();
+                if (document.exitFullscreen && document.fullscreenElement) { document.exitFullscreen().catch((e) => {}); }
+            }
+        }
+
+        function goToKidsMode() {
+            if(isProcessingDatabase) { showStatus("⚠️ Bitte warten! Datenbank arbeitet noch..."); return; }
+            try {
+                safeDisplay('parent-mode', 'none');
+                safeDisplay('kids-mode', 'flex'); 
+                isParentMode = false;
+                applyKidsDesign(); 
+                applyButtonColors();
+                if(settings.enableLibrary !== false) { document.getElementById('btn-open-lib').style.display = 'flex'; } else { document.getElementById('btn-open-lib').style.display = 'none'; }
+                enterFullscreenSafe();
+                if(settings.enableEcoMode) updateEcoModeState(false);
+                requestWakeLock();
+                startNFC().catch(err => console.log("NFC Error", err));
+            } catch(e) {
+                alert("Fehler beim Starten: " + e);
+                safeDisplay('kids-mode', 'none');
+                safeDisplay('parent-mode', 'flex');
+            }
+        }
+
+        function enterFullscreenSafe() {
+            const elem = document.documentElement;
+            const requestFS = () => {
+                if (elem.requestFullscreen) { elem.requestFullscreen().catch((e) => console.log("FS blocked", e)); } 
+                else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); } 
+                else if (elem.msRequestFullscreen) { elem.msRequestFullscreen(); }
+            };
+            requestFS();
+            const userInteractionHandler = () => { if (!document.fullscreenElement && !document.webkitFullscreenElement) { requestFS(); } };
+            document.addEventListener('click', userInteractionHandler, { once: true });
+            document.addEventListener('touchstart', userInteractionHandler, { once: true, passive: true });
+        }
+        
+        function applyButtonColors() {
+            try {
+                const volDown = document.getElementById('btn-vol-down'); const volUp = document.getElementById('btn-vol-up'); const back = document.getElementById('btn-reset'); const skip = document.getElementById('btn-skip'); const next = document.getElementById('btn-next-track'); const rewind = document.getElementById('btn-rewind'); 
+                if (settings && settings.colorfulControls) { 
+                    volDown.classList.add('btn-colorful-vol-down'); volUp.classList.add('btn-colorful-vol-up'); back.classList.add('btn-colorful-back'); skip.classList.add('btn-colorful-skip'); next.classList.add('btn-colorful-next'); rewind.classList.add('btn-colorful-rewind');
+                } else { 
+                    volDown.classList.remove('btn-colorful-vol-down'); volUp.classList.remove('btn-colorful-vol-up'); back.classList.remove('btn-colorful-back'); skip.classList.remove('btn-colorful-skip'); next.classList.remove('btn-colorful-next'); rewind.classList.remove('btn-colorful-rewind');
+                }
+            } catch(e) {}
+        }
+
+        function parseCueSheet(cueText) {
+            const tracks = []; const lines = cueText.split('\n'); let currentTrack = null;
+            lines.forEach(line => {
+                line = line.trim();
+                if (line.startsWith('TRACK')) { currentTrack = {}; }
+                if (line.startsWith('TITLE') && currentTrack) { const match = line.match(/"([^"]+)"/); if (match) currentTrack.title = match[1]; }
+                if (line.startsWith('INDEX 01') && currentTrack) {
+                    const parts = line.split(' '); const timeStr = parts[parts.length - 1]; const timeParts = timeStr.split(':');
+                    const min = parseInt(timeParts[0], 10); const sec = parseInt(timeParts[1], 10); const frames = parseInt(timeParts[2], 10);
+                    currentTrack.time = (min * 60) + sec + (frames / 75); tracks.push(currentTrack); currentTrack = null;
+                }
+            }); return tracks;
         }
 
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
