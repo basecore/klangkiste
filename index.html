@@ -684,9 +684,9 @@
                 <input type="number" id="import-max-age" placeholder="Bis J." onkeyup="filterImportList()" onchange="filterImportList()" style="margin-bottom:0; flex:1; padding:10px; min-width:0; box-sizing: border-box;">
             </div>
             
-            <div class="import-controls" style="margin-top:5px;">
-                <button class="btn-modal-action btn-filter" onclick="toggleImportCheckboxes(true)">Sichtbare AN</button>
-                <button class="btn-modal-action btn-filter" style="background:#e67e22" onclick="toggleImportCheckboxes(false)">Sichtbare AUS</button>
+            <div class="import-controls" style="margin-top:5px; display:flex; gap:5px;">
+                <button class="btn-modal-action btn-filter" style="background:#27ae60;" onclick="handleSelection('exclusive')">✅ Nur diese (Rest aus)</button>
+                <button class="btn-modal-action btn-filter" style="background:#e67e22;" onclick="handleSelection('clear_visible')">⬜ Sichtbare abwählen</button>
             </div>
         </div>
         <div id="import-list-container" class="import-list">
@@ -1259,13 +1259,27 @@
             });
         }
 
-        function toggleImportCheckboxes(state) {
+        // --- NEUE LOGIK FÜR DIE BUTTONS ---
+        function handleSelection(mode) {
             const items = document.querySelectorAll('.import-item');
+            
             items.forEach(item => {
-                // Nur sichtbare Items togglen (respektiert Filter)
-                if(item.style.display !== 'none') {
-                    const chk = item.querySelector('.import-checkbox');
-                    if(chk) chk.checked = state;
+                const chk = item.querySelector('.import-checkbox');
+                if(!chk) return;
+
+                // Prüfen, ob das Element gerade durch den Filter sichtbar ist
+                const isVisible = item.style.display !== 'none';
+
+                if (mode === 'exclusive') {
+                    // Dein Wunsch: 
+                    // Wenn sichtbar -> HAKEN REIN
+                    // Wenn unsichtbar -> HAKEN RAUS (damit alter "Müll" weg ist)
+                    chk.checked = isVisible;
+                } 
+                else if (mode === 'clear_visible') {
+                    // Nur die abwählen, die ich gerade sehe (z.B. um einzelne auszuschließen)
+                    // Versteckte bleiben unberührt (falls man vorher schon was ausgewählt hat)
+                    if(isVisible) chk.checked = false;
                 }
             });
         }
