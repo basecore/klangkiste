@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V79 (Pro Import) </title>
+    <title>KlangKiste V80 (Mobile Fix) </title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -622,8 +622,8 @@
         /* --- IMPORT SELECTION MODAL --- */
         #import-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 30000;
-            flex-direction: column; padding: 20px; box-sizing: border-box;
+            background: rgba(0,0,0,0.95); z-index: 30000;
+            flex-direction: column; padding: 15px; box-sizing: border-box;
         }
 
         .import-header {
@@ -670,30 +670,30 @@
 
     <div id="import-modal">
         <div class="import-header">
-            <h2 style="margin:0; color:white;">📥 Import Auswahl</h2>
-            <div style="font-size:0.9em; color:#ccc;">Wähle aus, was gespeichert werden soll.</div>
-            <div style="font-size:0.85em; color:#f1c40f; font-weight:bold; background:rgba(241, 196, 15, 0.2); padding:5px; border-radius:5px;">⚠️ Achtung: Daten landen im internen Browser-Speicher. Große Mengen können den Browser verlangsamen oder füllen.</div>
+            <h2 style="margin:0; color:white; font-size:1.2em;">📥 Import Auswahl</h2>
+            <div style="font-size:0.85em; color:#f1c40f; font-weight:bold; background:rgba(241, 196, 15, 0.2); padding:5px; border-radius:5px;">⚠️ Achtung: Speichert im Browser-Cache.</div>
             
-            <div style="font-size:0.8em; color:#aaa; margin-bottom:5px;">
-                💡 Tipp: Nutze <b>-text</b> um Titel auszuschließen (z.B. <i>-paw</i>).
+            <div style="font-size:0.75em; color:#aaa; margin-bottom:2px;">
+                💡 Tipp: <b>-text</b> zum Ausschließen. (z.B. <i>conni -kater</i>)
             </div>
             
-            <div style="display:flex; gap:10px; margin-bottom:5px;">
-                <input type="text" id="import-search" placeholder="Suche..." onkeyup="filterImportList()" style="margin-bottom:0; flex:2;">
-                <input type="number" id="import-min-age" placeholder="Ab J." onkeyup="filterImportList()" onchange="filterImportList()" style="margin-bottom:0; flex:0.5;">
-                <input type="number" id="import-max-age" placeholder="Bis J." onkeyup="filterImportList()" onchange="filterImportList()" style="margin-bottom:0; flex:0.5;">
+            <input type="text" id="import-search" placeholder="🔍 Suche (z.B. 'conni -pixi')..." onkeyup="filterImportList()" style="width:100%; margin-bottom:5px; padding:12px;">
+            
+            <div style="display:flex; gap:10px; width:100%;">
+                <input type="number" id="import-min-age" placeholder="Ab J." onkeyup="filterImportList()" onchange="filterImportList()" style="margin-bottom:0; flex:1; padding:10px;">
+                <input type="number" id="import-max-age" placeholder="Bis J." onkeyup="filterImportList()" onchange="filterImportList()" style="margin-bottom:0; flex:1; padding:10px;">
             </div>
             
-            <div class="import-controls">
-                <button class="btn-modal-action btn-filter" onclick="toggleImportCheckboxes(true)">Alle sichtbaren an</button>
-                <button class="btn-modal-action btn-filter" style="background:#e67e22" onclick="toggleImportCheckboxes(false)">Alle sichtbaren aus</button>
+            <div class="import-controls" style="margin-top:5px;">
+                <button class="btn-modal-action btn-filter" onclick="toggleImportCheckboxes(true)">Sichtbare AN</button>
+                <button class="btn-modal-action btn-filter" style="background:#e67e22" onclick="toggleImportCheckboxes(false)">Sichtbare AUS</button>
             </div>
         </div>
         <div id="import-list-container" class="import-list">
             </div>
         <div style="display:flex; gap:10px; margin-top:10px;">
-            <button class="btn-modal-action btn-cancel" onclick="closeImportModal()">Abbrechen</button>
-            <button class="btn-modal-action btn-confirm" onclick="executeImport()">✅ IMPORTIEREN</button>
+            <button class="btn-modal-action btn-cancel" onclick="closeImportModal()">Abbruch</button>
+            <button class="btn-modal-action btn-confirm" onclick="executeImport()">✅ START</button>
         </div>
     </div>
 
@@ -935,7 +935,7 @@
         </div>
 
         <div class="footer-info">
-            <p>KlangKiste NFC V79</p>
+            <p>KlangKiste NFC V80</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>
                 <a href="https://github.com/basecore/klangkiste/tree/main" target="_blank">GitHub Projekt</a> | 
@@ -1209,20 +1209,15 @@
         }
 
         function filterImportList() {
-            const rawTerm = document.getElementById('import-search').value.toLowerCase().trim();
+            // Hole alle Begriffe, getrennt durch Leerzeichen
+            const inputVal = document.getElementById('import-search').value.toLowerCase().trim();
+            const terms = inputVal.split(/\s+/).filter(t => t.length > 0);
+
             const minAgeInput = document.getElementById('import-min-age').value;
             const maxAgeInput = document.getElementById('import-max-age').value;
 
             const minAge = minAgeInput ? parseInt(minAgeInput) : 0;
             const maxAge = maxAgeInput ? parseInt(maxAgeInput) : 99;
-
-            // Detect Negative Filter
-            let isNegative = false;
-            let term = rawTerm;
-            if(term.startsWith('-') && term.length > 1) {
-                isNegative = true;
-                term = term.substring(1); // Remove the minus
-            }
 
             const items = document.querySelectorAll('.import-item');
             
@@ -1230,21 +1225,29 @@
                 const searchData = item.dataset.search || "";
                 const itemAge = parseInt(item.dataset.age) || 0; // 0 = Unbekannt
 
-                // 1. Text Check
+                // 1. Text Check (Multi-Term Logik)
                 let matchesText = true;
-                if (term) {
-                    if (isNegative) {
-                        // EXCLUDE mode: If it contains the term, hide it.
-                        if (searchData.includes(term)) matchesText = false;
-                    } else {
-                        // INCLUDE mode: Must contain term
-                        if (!searchData.includes(term)) matchesText = false;
+                
+                if (terms.length > 0) {
+                    for (let term of terms) {
+                        if (term.startsWith('-') && term.length > 1) {
+                            // NEGATIV FILTER: Wenn Begriff enthalten, dann raus!
+                            const cleanTerm = term.substring(1);
+                            if (searchData.includes(cleanTerm)) {
+                                matchesText = false;
+                                break; // Ein Ausschluss reicht
+                            }
+                        } else {
+                            // POSITIV FILTER: Muss enthalten sein
+                            if (!searchData.includes(term)) {
+                                matchesText = false;
+                                break; // Ein fehlender Begriff reicht
+                            }
+                        }
                     }
                 }
 
                 // 2. Age Check
-                // Unbekannt (0) wird meistens durchgelassen, es sei denn man ist streng.
-                // Hier: Wenn Alter bekannt ( > 0), dann muss es im Bereich liegen.
                 let matchesAge = true;
                 if (itemAge > 0) {
                     if (itemAge < minAge) matchesAge = false; // Zu jung
@@ -3291,7 +3294,7 @@
                     }
 
                     tx.oncomplete = () => {
-                        alert(`Wiederherstellung komplett!\n\nStatus: V79 Full Restore\n• Einstellungen geladen\n• ${statsToImport.length} Statistik-Events\n• ${updated} Tracks aktualisiert\n• ${newEntries} neue Tracks (leer)`);
+                        alert(`Wiederherstellung komplett!\n\nStatus: V80 Full Restore\n• Einstellungen geladen\n• ${statsToImport.length} Statistik-Events\n• ${updated} Tracks aktualisiert\n• ${newEntries} neue Tracks (leer)`);
                         
                         // Wichtig: Da Audio-Blobs im JSON fehlen, leuchten die Buttons evtl. rot (Repair nötig)
                         const btn = document.getElementById('btn-auto-repair'); 
