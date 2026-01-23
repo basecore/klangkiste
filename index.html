@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V76 (Tracknames & Links) </title>
+    <title>KlangKiste V77 (SD-Card Link Edition)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -833,9 +833,12 @@
             
             <div class="info-box-blue">
                 <strong>ℹ️ Import-Info:</strong><br>
-                Nutze <strong>"Ordner-Struktur"</strong> für sortierte Alben (1 Ordner = 1 Hörbuch).<br>
-                Nutze <strong>"Massen-Import"</strong> für lose Dateien oder wenn du eine <code>klangkiste.json</code> hast.
+                Nutze <strong>"SD-Karte / Ordner verknüpfen"</strong>, um Speicher zu sparen (empfohlen).<br>
             </div>
+
+            <button class="btn-admin" style="background-color: #8e44ad; position:relative; margin-bottom:10px;" onclick="importViaFileSystemAPI()">
+                🔗 SD-Karte / Ordner verknüpfen (Spart Speicher!)
+            </button>
 
             <button class="btn-admin" style="background-color: #0984e3; margin-top:10px;" onclick="loadExamplesFromGitHub(event)">
                 ☁️ Beispiele direkt laden (Online)
@@ -843,12 +846,12 @@
 
             <button class="btn-admin" style="background-color: #16a085; position:relative; margin-bottom:5px;">
                 📂 Ordner-Struktur importieren (Smart)
-                <div style="font-size:0.7em; opacity:0.8;">1 Ordner = 1 Hörbuch | Bild im Ordner = Cover</div>
+                <div style="font-size:0.7em; opacity:0.8;">Kopiert Dateien in den Browser-Speicher</div>
                 <input type="file" id="bulk-folder-struct-input" webkitdirectory directory multiple onchange="handleFolderAlbumImport(this)">
             </button>
             <button class="btn-admin" style="background-color: #e67e22; position:relative; margin-bottom:10px;">
                 📂 Massen-Import (Dateien/Flat)
-                <div style="font-size:0.7em; opacity:0.8;">1 MP3 = 1 Hörbuch | Unterstützt klangkiste.json</div>
+                <div style="font-size:0.7em; opacity:0.8;">Kopiert Dateien in den Browser-Speicher</div>
                 <input type="file" id="bulk-folder-input" webkitdirectory directory multiple onchange="handleBulkImport(this)">
             </button>
             
@@ -868,7 +871,7 @@
         </div>
 
         <div class="footer-info">
-            <p>KlangKiste NFC V76</p>
+            <p>KlangKiste NFC V77 (SD-Link Edition)</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>
                 <a href="https://github.com/basecore/klangkiste/tree/main" target="_blank">GitHub Projekt</a> | 
@@ -1257,69 +1260,33 @@
         // --- HAUPTFUNKTION: Versucht MP3, sonst Backup ---
         function playTestTone() {
             const path = 'assets/limit.mp3';
-            
-            // Audio-Objekt erstellen
             const testAudio = new Audio();
-            
-            // Lautstärke berechnen (Quadratisch für natürlicheres Gefühl)
             const targetVol = Math.pow(settings.maxVolume, 2);
             testAudio.volume = targetVol;
 
-            // --- FEHLER-MANAGER ---
             testAudio.addEventListener('error', (e) => {
                 const err = testAudio.error;
                 let errorDetails = "";
-
-                // Genaue Diagnose für dich
                 switch (err.code) {
-                    case 1: // MEDIA_ERR_ABORTED
-                        errorDetails = "Abbruch durch System/User";
-                        break;
-                    case 2: // MEDIA_ERR_NETWORK
-                        errorDetails = "Netzwerk/Cache Fehler (Service Worker inaktiv?)";
-                        break;
-                    case 3: // MEDIA_ERR_DECODE
-                        errorDetails = "Datei beschädigt (Dekodierfehler)";
-                        break;
-                    case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
-                        errorDetails = "Datei nicht gefunden (404) oder Format falsch";
-                        break;
-                    default:
-                        errorDetails = "Unbekannter Fehler Code " + err.code;
+                    case 1: errorDetails = "Abbruch durch System/User"; break;
+                    case 2: errorDetails = "Netzwerk/Cache Fehler (Service Worker inaktiv?)"; break;
+                    case 3: errorDetails = "Datei beschädigt (Dekodierfehler)"; break;
+                    case 4: errorDetails = "Datei nicht gefunden (404) oder Format falsch"; break;
+                    default: errorDetails = "Unbekannter Fehler Code " + err.code;
                 }
-
                 console.warn("MP3 Fehler:", errorDetails);
-                
-                // Meldung an User und Backup starten
                 showStatus("⚠️ " + errorDetails + " -> Spiele Backup-Ton 🚨");
                 playBackupTone(targetVol);
             });
 
-            // --- ERFOLGS-FALL ---
-            testAudio.addEventListener('canplaythrough', () => {
-                // Nur zur Info, dass MP3 geklappt hat
-                console.log("limit.mp3 erfolgreich geladen.");
-            });
-
-            // Setze Pfad und starte
+            testAudio.addEventListener('canplaythrough', () => { console.log("limit.mp3 erfolgreich geladen."); });
             testAudio.src = path;
             
-            testAudio.play()
-                .then(() => {
-                    showStatus("🔊 Test-Ton (MP3) läuft...");
-                })
+            testAudio.play().then(() => { showStatus("🔊 Test-Ton (MP3) läuft..."); })
                 .catch(e => {
-                    // Dieser Block fängt Fehler ab, die SOFORT beim Aufruf passieren
-                    // (z.B. wenn der Browser Autoplay blockiert oder der Pfad komplett ungültig ist)
                     console.error("Play-Promise Fehler:", e);
-                    
-                    if (e.name === "NotAllowedError") {
-                        showStatus("❌ Wiedergabe vom Browser blockiert (Bitte interagieren)");
-                    } else {
-                        // Bei allen anderen Fehlern: Backup versuchen!
-                        showStatus("⚠️ Startfehler -> Spiele Backup-Ton 🚨");
-                        playBackupTone(targetVol);
-                    }
+                    if (e.name === "NotAllowedError") { showStatus("❌ Wiedergabe vom Browser blockiert (Bitte interagieren)"); } 
+                    else { showStatus("⚠️ Startfehler -> Spiele Backup-Ton 🚨"); playBackupTone(targetVol); }
                 });
         }
 
@@ -1327,43 +1294,26 @@
         function playBackupTone(volume) {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
-                if (!AudioContext) {
-                    alert("Kein Ton möglich: Weder MP3 noch WebAudio unterstützt.");
-                    return;
-                }
+                if (!AudioContext) { alert("Kein Ton möglich: Weder MP3 noch WebAudio unterstützt."); return; }
                 
                 const ctx = new AudioContext();
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 
-                // Ein angenehmer Sinus-Ton (ähnlich wie ein Testbild-Piepen)
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(440, ctx.currentTime); // 440 Hz (Standard Kammerton A)
-                
-                // Lautstärke setzen
+                osc.frequency.setValueAtTime(440, ctx.currentTime); 
                 gain.gain.setValueAtTime(volume, ctx.currentTime);
                 
-                // Verkabeln: Oszillator -> Lautstärke -> Ausgang
                 osc.connect(gain);
                 gain.connect(ctx.destination);
-                
-                // Abspielen
                 osc.start();
                 
-                // Nach 1 Sekunde sanft ausblenden und stoppen
                 const stopTime = ctx.currentTime + 1;
                 gain.gain.exponentialRampToValueAtTime(0.001, stopTime);
                 osc.stop(stopTime);
-                
-                // Aufräumen nach dem Ton
-                setTimeout(() => {
-                    ctx.close();
-                }, 1200);
+                setTimeout(() => { ctx.close(); }, 1200);
 
-            } catch(e) {
-                console.error("Sogar Backup gescheitert:", e);
-                alert("Totalausfall Audio: " + e.message);
-            }
+            } catch(e) { console.error("Sogar Backup gescheitert:", e); alert("Totalausfall Audio: " + e.message); }
         }
 
         // --- WAKE LOCK & ECO (SAFE) ---
@@ -1487,7 +1437,6 @@
                     currentCueTracks = track.cueTracks || null;
                     
                     const nextBtn = document.getElementById('btn-next-track');
-                    // UPDATE: Zeige Button wenn Cues ODER wenn Playlist > 1
                     if((currentCueTracks && currentCueTracks.length > 0) || (currentPlaylist && currentPlaylist.length > 1)) { 
                         nextBtn.style.display = "flex"; 
                     } else { 
@@ -1503,39 +1452,72 @@
             };
         }
 
-        function playPlaylistIndex(index, startTime = 0) {
-            if(index >= currentPlaylist.length) return;
-            
-            // --- REPARATUR START: Speicherleck beheben ---
-            // Wenn schon eine URL existiert, diese aus dem Speicher entfernen!
+        // --- MODIFIZIERTER PLAYER: Unterstützt verknüpfte Dateien ---
+        async function playPlaylistIndex(index, startTime = 0) {
+            if (index >= currentPlaylist.length) return;
+
+            // Speicherleck-Schutz
             if (currentAudioUrl) {
                 URL.revokeObjectURL(currentAudioUrl);
                 currentAudioUrl = null;
             }
-            // --- REPARATUR ENDE ---
 
             currentTrackIndex = index;
-            const file = currentPlaylist[index];
-            
-            // Neue URL erstellen und merken
-            currentAudioUrl = URL.createObjectURL(file);
-            
-            updateInfoText();
-            audioPlayer.src = currentAudioUrl; // Benutze die globale Variable
-            
-            audioPlayer.onloadedmetadata = () => {
-                if(startTime > 0 && startTime < audioPlayer.duration - 2) audioPlayer.currentTime = startTime;
-                applyActualVolume(); updateVolumeUI();
-                audioPlayer.play().then(() => { 
-                    setPlayButtonState(true); startSleepTimer(); requestWakeLock(); 
-                    currentSessionStart = Date.now(); 
-                    
-                    if(saveInterval) clearInterval(saveInterval);
-                    saveInterval = setInterval(forceSaveCurrentPosition, 5000);
+            let item = currentPlaylist[index];
+            let playFile = null;
 
-                }).catch(e => showStatus("Bereit"));
-                audioPlayer.onloadedmetadata = null;
-            };
+            try {
+                // PRÜFUNG: Ist es ein FileSystemHandle (Verknüpfung)?
+                if (item.kind === 'file' && typeof item.getFile === 'function') {
+                    // Ja, es ist ein Link. Wir müssen die Erlaubnis prüfen/anfordern.
+                    // Chrome fragt hier ggf. den Nutzer: "Darf diese Seite Dateien ansehen?"
+                    const opts = { mode: 'read' };
+                    
+                    // Kurzer Check ob wir noch Rechte haben (passiert nach Browser-Neustart)
+                    if ((await item.queryPermission(opts)) !== 'granted') {
+                        if ((await item.requestPermission(opts)) !== 'granted') {
+                            showStatus("❌ Zugriff auf SD-Karte verweigert");
+                            return;
+                        }
+                    }
+                    // Datei jetzt "live" von der SD-Karte holen
+                    playFile = await item.getFile();
+                } else {
+                    // Nein, es ist ein normales File (alter Import)
+                    playFile = item;
+                }
+
+                // Ab hier alles wie gewohnt
+                currentAudioUrl = URL.createObjectURL(playFile);
+                updateInfoText();
+                
+                audioPlayer.src = currentAudioUrl;
+
+                audioPlayer.onloadedmetadata = () => {
+                    if (startTime > 0 && startTime < audioPlayer.duration - 2) {
+                        audioPlayer.currentTime = startTime;
+                    }
+                    applyActualVolume();
+                    updateVolumeUI();
+                    
+                    audioPlayer.play().then(() => {
+                        setPlayButtonState(true);
+                        startSleepTimer();
+                        requestWakeLock();
+                        currentSessionStart = Date.now();
+                        if (saveInterval) clearInterval(saveInterval);
+                        saveInterval = setInterval(forceSaveCurrentPosition, 5000);
+                    }).catch(e => {
+                        console.error(e);
+                        showStatus("Autoplay blockiert oder Fehler");
+                    });
+                    audioPlayer.onloadedmetadata = null;
+                };
+
+            } catch (err) {
+                console.error("Fehler beim Laden der Datei:", err);
+                showStatus("⚠️ Datei nicht lesbar (SD-Karte entfernt?)");
+            }
         }
 
         function restoreLastSession() {
@@ -1548,14 +1530,13 @@
                 const duration = (lastHeartbeat - lastSessionStart) / 1000;
                 
                 if (duration > 5) { // Nur wenn länger als 5 Sek lief
-                    // Wir mogeln diesen Eintrag nachträglich in die DB mit dem ALTEN Zeitstempel
                     if(db) {
                           const tx = db.transaction(["stats_log"], "readwrite");
                           const store = tx.objectStore("stats_log");
                           store.add({
-                            timestamp: lastHeartbeat, // Zeitstempel des Schließens
-                            type: 'app_close',        // Neuer Typ
-                            tagId: localStorage.getItem('lastActiveTagId'), // Tag ID von damals
+                            timestamp: lastHeartbeat, 
+                            type: 'app_close',        
+                            tagId: localStorage.getItem('lastActiveTagId'), 
                             durationSec: duration,
                             details: `App beendet / geschlossen`
                         });
@@ -1590,7 +1571,6 @@
                         currentCueTracks = track.cueTracks || null;
                         
                         const nextBtn = document.getElementById('btn-next-track');
-                        // UPDATE: Zeige Button wenn Cues ODER wenn Playlist > 1
                         if((currentCueTracks && currentCueTracks.length > 0) || (currentPlaylist && currentPlaylist.length > 1)) { 
                             nextBtn.style.display = "flex"; 
                         } else { 
@@ -1602,12 +1582,9 @@
                         if(startIndex >= currentPlaylist.length) startIndex = 0;
                         
                         currentTrackIndex = startIndex;
-                        const file = currentPlaylist[startIndex];
-                        const audioUrl = URL.createObjectURL(file);
-                        updateInfoText();
-                        audioPlayer.src = audioUrl;
-                        audioPlayer.currentTime = startTime;
-                        showStatus("Wiederhergestellt ↩️");
+                        // HIER RUF WIR NOCH NICHT playPlaylistIndex AUF, um nicht sofort nach Permissions zu fragen beim Laden der Seite
+                        // Wir setzen nur den UI Status auf "Wiederhergestellt"
+                        showStatus("Letztes Hörbuch geladen ↩️");
                     }
                 };
             }
@@ -1848,12 +1825,12 @@
                 infoEl.innerText = "Kapitel laden..."; 
             } else {
                 if(currentPlaylist.length > 0 && currentPlaylist[currentTrackIndex]) {
-                     // Echtes File-Objekt Name holen
-                     let fname = currentPlaylist[currentTrackIndex].name;
-                     // ".mp3" Endung entfernen für schönere Ansicht
-                     if(fname.lastIndexOf('.') > 0) fname = fname.substring(0, fname.lastIndexOf('.'));
-                     
-                     infoEl.innerText = fname;
+                      // Echtes File-Objekt Name holen
+                      let fname = currentPlaylist[currentTrackIndex].name;
+                      // ".mp3" Endung entfernen für schönere Ansicht
+                      if(fname.lastIndexOf('.') > 0) fname = fname.substring(0, fname.lastIndexOf('.'));
+                      
+                      infoEl.innerText = fname;
                 } else {
                     infoEl.innerText = "";
                 }
@@ -2206,9 +2183,9 @@
                 applyButtonColors();
 
                 if(settings.enableLibrary !== false) {
-                      document.getElementById('btn-open-lib').style.display = 'flex';
+                       document.getElementById('btn-open-lib').style.display = 'flex';
                 } else {
-                      document.getElementById('btn-open-lib').style.display = 'none';
+                       document.getElementById('btn-open-lib').style.display = 'none';
                 }
 
                 enterFullscreenSafe();
@@ -2692,14 +2669,11 @@
 
                 tracks.forEach(t => {
                     if (t.tagId === SYSTEM_SETTINGS_ID) {
-                        // Globale Einstellungen (Alter, Filter, Volume etc.)
                         exportData.systemSettings = t.data;
                     } else if (t.tagId === SYSTEM_BG_ID) {
-                        // Hintergrundbild ignorieren wir im JSON (zu groß), 
-                        // oder wir müssten es Base64 codieren (komplex).
-                        // Besser: Ignorieren.
+                        // Background ignorieren
                     } else {
-                        // Ein echtes Hörbuch - ALLES speichern
+                        // Ein echtes Hörbuch
                         exportData.tracks.push({
                             tagId: t.tagId,
                             name: t.name,
@@ -2708,12 +2682,11 @@
                             meta: t.meta || {},
                             tags: t.tags || [],
                             filter_age: t.filter_age || 0,
-                            // --- NEUE FELDER ---
                             lastTrackIndex: t.lastTrackIndex || 0,
-                            lastTime: t.lastTime || 0,            // Zeitstempel
-                            completed: t.completed || false,      // Fertig gehört?
-                            hiddenInLib: t.hiddenInLib || false,  // Versteckt?
-                            lastPlayedTimestamp: t.lastPlayedTimestamp || 0 // Zuletzt gehört Sortierung
+                            lastTime: t.lastTime || 0,            
+                            completed: t.completed || false,      
+                            hiddenInLib: t.hiddenInLib || false,  
+                            lastPlayedTimestamp: t.lastPlayedTimestamp || 0 
                         });
                     }
                 });
@@ -2747,14 +2720,12 @@
                     let statsToImport = [];
                     let settingsToImport = null;
 
-                    // A) Ist es das neue FULL BACKUP?
                     if (rawData.type && rawData.type.startsWith("FULL_BACKUP")) {
                         console.log("Full Backup erkannt!");
                         tracksToImport = rawData.tracks || [];
                         statsToImport = rawData.stats || [];
                         settingsToImport = rawData.systemSettings || null;
                     } 
-                    // B) Ist es das alte Format (einfaches Array)?
                     else if (Array.isArray(rawData)) {
                         console.log("Legacy Backup erkannt!");
                         tracksToImport = rawData;
@@ -2772,11 +2743,8 @@
 
                     // 1. Einstellungen wiederherstellen
                     if (settingsToImport) {
-                        // Auch in LocalStorage schreiben für sofortigen Zugriff
                         localStorage.setItem('klangkisteSettings_v16', JSON.stringify(settingsToImport));
                         trackStore.put({ tagId: SYSTEM_SETTINGS_ID, name: "System Settings", data: settingsToImport });
-                        
-                        // Settings Variable sofort aktualisieren
                         settings = settingsToImport;
                         if(settings.hiddenIDs) hiddenTracks = new Set(settings.hiddenIDs);
                         updateUIFromSettings();
@@ -2784,22 +2752,18 @@
 
                     // 2. Statistik wiederherstellen
                     if (statsToImport.length > 0) {
-                        // Optional: Alte Statistik vorher löschen? 
-                        // statsStore.clear(); // Falls gewünscht, Kommentar entfernen
                         statsToImport.forEach(stat => {
-                            // Wir nutzen put statt add, damit keine doppelten IDs Fehler werfen (falls IDs im Backup sind)
                             statsStore.put(stat);
                         });
                     }
 
-                    // 3. Tracks wiederherstellen (mit Erhalt der Audio-Blobs wenn möglich)
+                    // 3. Tracks wiederherstellen
                     for(const entry of tracksToImport) {
                           await new Promise((resolve) => {
                             const req = trackStore.get(entry.tagId);
                             req.onsuccess = () => {
                                 const existing = req.result;
                                 
-                                // Wir bauen das neue Objekt
                                 const newRecord = {
                                     tagId: entry.tagId,
                                     name: entry.name,
@@ -2808,7 +2772,6 @@
                                     meta: entry.meta,
                                     tags: entry.tags,
                                     filter_age: entry.filter_age,
-                                    // Die neuen wichtigen Infos:
                                     lastTrackIndex: entry.lastTrackIndex || 0,
                                     lastTime: entry.lastTime || 0,
                                     completed: entry.completed || false,
@@ -2817,7 +2780,7 @@
                                     // Audio/Bild erhalten, wenn es schon da war!
                                     playlist: existing ? existing.playlist : [],
                                     imageBlob: existing ? existing.imageBlob : null,
-                                    cueTracks: existing ? existing.cueTracks : null // Oder aus Import wenn erweitert
+                                    cueTracks: existing ? existing.cueTracks : null 
                                 };
                                 
                                 trackStore.put(newRecord);
@@ -2830,7 +2793,6 @@
                     tx.oncomplete = () => {
                         alert(`Wiederherstellung komplett!\n\nStatus: V76 Full Restore\n• Einstellungen geladen\n• ${statsToImport.length} Statistik-Events\n• ${updated} Tracks aktualisiert\n• ${newEntries} neue Tracks (leer)`);
                         
-                        // Wichtig: Da Audio-Blobs im JSON fehlen, leuchten die Buttons evtl. rot (Repair nötig)
                         const btn = document.getElementById('btn-auto-repair'); 
                         if(btn && newEntries > 0) { 
                             btn.style.backgroundColor = "#e74c3c"; 
@@ -2850,6 +2812,97 @@
             reader.readAsText(file);
         }
         
+        // --- NEW: INTELLIGENT FOLDER LINKING (FILE SYSTEM ACCESS API) ---
+        async function importViaFileSystemAPI() {
+            if (!window.showDirectoryPicker) {
+                alert("Dein Browser unterstützt diese Funktion nicht. Bitte nutze Chrome auf Android.");
+                return;
+            }
+
+            try {
+                const dirHandle = await window.showDirectoryPicker();
+                showStatus("Scanne SD-Karte/Ordner...");
+
+                const groups = {};
+                let count = 0;
+
+                // Rekursive Funktion zum Durchsuchen
+                async function scanDirectory(directoryHandle, pathName) {
+                    for await (const entry of directoryHandle.values()) {
+                        if (entry.kind === 'file') {
+                            const ext = entry.name.split('.').pop().toLowerCase();
+                            
+                            if (['mp3', 'm4a', 'ogg', 'wav', 'flac'].includes(ext)) {
+                                // Gruppieren nach Ordnername
+                                const groupName = pathName || directoryHandle.name;
+                                
+                                if (!groups[groupName]) {
+                                    groups[groupName] = { audio: [], img: null, name: groupName };
+                                }
+                                groups[groupName].audio.push(entry); // Wir speichern hier das HANDLE
+                            }
+                            else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+                                const groupName = pathName || directoryHandle.name;
+                                if (!groups[groupName]) groups[groupName] = { audio: [], img: null, name: groupName };
+                                
+                                // Wichtig: Für Bilder laden wir das Blob direkt, da IndexedDB das kann 
+                                // und es für die Cover-Anzeige im UI einfacher ist.
+                                const fileData = await entry.getFile();
+                                groups[groupName].img = fileData; 
+                            }
+                        } else if (entry.kind === 'directory') {
+                            const newPath = pathName ? pathName + "/" + entry.name : entry.name;
+                            await scanDirectory(entry, newPath);
+                        }
+                    }
+                }
+
+                await scanDirectory(dirHandle, "");
+
+                // In Datenbank speichern
+                const groupKeys = Object.keys(groups);
+                if(groupKeys.length === 0) { alert("Keine Audio-Dateien gefunden."); return; }
+
+                for (let i = 0; i < groupKeys.length; i++) {
+                    const g = groups[groupKeys[i]];
+                    if (g.audio.length === 0) continue;
+
+                    // Sortieren (Namen der Handles vergleichen)
+                    g.audio.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
+
+                    const fileNames = g.audio.map(h => h.name);
+
+                    // Eintrag erstellen
+                    const record = {
+                        tagId: "link_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+                        name: g.name.replace(/_/g, ' '),
+                        playlist: g.audio, // HIER LIEGEN JETZT HANDLES
+                        playlistFileNames: fileNames,
+                        imageBlob: g.img,
+                        imageFileName: g.img ? g.img.name : null,
+                        cueTracks: null,
+                        lastTrackIndex: 0,
+                        lastTime: 0,
+                        isLinked: true // Markierung für den Player
+                    };
+
+                    const tx = db.transaction(["tracks"], "readwrite");
+                    tx.objectStore("tracks").put(record);
+                    await new Promise(resolve => tx.oncomplete = resolve);
+                    
+                    count++;
+                    showStatus(`Verknüpft: ${g.name}`);
+                }
+
+                showStatus(`${count} Hörbücher erfolgreich verknüpft! 🎉`);
+                loadTagList();
+
+            } catch (e) {
+                console.error(e);
+                alert("Abbruch oder Fehler: " + e.message);
+            }
+        }
+
         async function handleBulkImport(input) {
             const files = Array.from(input.files); if(files.length === 0) return;
             const klangkisteJsonFile = files.find(f => f.name.toLowerCase().startsWith('klangkiste') && f.name.toLowerCase().endsWith('.json'));
@@ -2882,63 +2935,45 @@
             } catch (e) { alert("Fehler JSON: " + e); return usedAudioSet; }
         }
 
-        // --- NEW: INTELLIGENT FOLDER IMPORT ---
         async function handleFolderAlbumImport(input) {
             const files = Array.from(input.files); 
             if(files.length === 0) return;
 
             showStatus("Analysiere Ordner-Struktur...");
-            
-            // 1. Gruppieren nach Ordnerpfad
             const groups = {};
             files.forEach(f => {
-                // webkitRelativePath ist z.B. "Hörspiele/Benjamin Blümchen/01 - Zoo.mp3"
-                // Wir wollen nach "Hörspiele/Benjamin Blümchen" gruppieren.
                 const pathParts = f.webkitRelativePath ? f.webkitRelativePath.split('/') : [f.name];
-                
                 let groupKey = "";
                 let folderName = "";
 
                 if (pathParts.length > 1) {
-                    pathParts.pop(); // Dateiname entfernen
-                    groupKey = pathParts.join('/'); // Pfad als Schlüssel
-                    folderName = pathParts[pathParts.length - 1]; // Letzter Ordnername als Titel
+                    pathParts.pop(); 
+                    groupKey = pathParts.join('/'); 
+                    folderName = pathParts[pathParts.length - 1]; 
                 } else {
-                    // Datei liegt direkt im Root -> Einzeldatei-Logik oder überspringen?
-                    // Wir behandeln sie als eigenen Eintrag
                     groupKey = "root_" + f.name;
                     folderName = f.name.replace(/\.[^/.]+$/, "");
                 }
 
                 if (!groups[groupKey]) {
-                    groups[groupKey] = { 
-                        audio: [], 
-                        img: null, 
-                        name: folderName 
-                    };
+                    groups[groupKey] = { audio: [], img: null, name: folderName };
                 }
 
                 const ext = f.name.split('.').pop().toLowerCase();
-                
                 if(['mp3', 'm4a', 'ogg', 'wav', 'flac'].includes(ext)) {
                     groups[groupKey].audio.push(f);
                 } else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
-                    // Nimm das erste Bild im Ordner als Cover
                     if(!groups[groupKey].img) groups[groupKey].img = f;
                 }
             });
 
-            // 2. Datenbank speichern
             let count = 0;
             const groupKeys = Object.keys(groups);
             
             for (let i = 0; i < groupKeys.length; i++) {
                 const g = groups[groupKeys[i]];
                 if(g.audio.length === 0) continue;
-
-                // Sortiere Audio-Dateien alphabetisch (wichtig für 01, 02...)
                 g.audio.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
-
                 showStatus(`Importiere ${i+1}/${groupKeys.length}: ${g.name}`);
                 
                 await new Promise((resolve) => {
@@ -2947,7 +2982,7 @@
                     
                     const record = {
                         tagId: "folder_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
-                        name: g.name.replace(/_/g, ' '), // Unterstriche durch Leerzeichen ersetzen
+                        name: g.name.replace(/_/g, ' '), 
                         playlist: g.audio,
                         playlistFileNames: g.audio.map(f => f.name),
                         imageBlob: g.img,
@@ -2956,10 +2991,9 @@
                         lastTrackIndex: 0,
                         lastTime: 0
                     };
-                    
                     store.put(record);
                     tx.oncomplete = () => { count++; resolve(); };
-                    tx.onerror = () => resolve(); // Fehler ignorieren
+                    tx.onerror = () => resolve(); 
                 });
             }
 
@@ -2968,7 +3002,6 @@
             input.value = "";
         }
 
-        // --- OLD: CLASSIC IMPORT (FLAT / FILE BASED) ---
         async function handleClassicBulkImport(files) {
             const groups = {};
             files.forEach(f => {
@@ -3013,7 +3046,7 @@
             let imgHtml = `<div class="lib-placeholder">🎵</div>`;
             if (track.imageBlob) {
                 const url = URL.createObjectURL(track.imageBlob);
-                activeCoverUrls.push(url); // <--- NEU: Zur Lösch-Liste hinzufügen
+                activeCoverUrls.push(url); 
                 imgHtml = `<img src="${url}" class="lib-cover-img" loading="lazy">`;
             }
             
@@ -3089,7 +3122,7 @@
 
         // --- LIBRARY MODE LOGIC ---
         let currentLibFilter = 'all';
-        let activeCoverUrls = []; // <--- NEU: Liste für Bild-Speicher
+        let activeCoverUrls = []; 
 
         function openLibrary() {
             if(!db) { showStatus("Datenbank lädt..."); return; }
@@ -3129,7 +3162,7 @@
 
                 tracks = tracks.filter(t => {
                     // SHADOW LIST CHECK
-                    if (hiddenTracks.has(t.tagId)) return false; // Wenn in Liste, dann ausblenden
+                    if (hiddenTracks.has(t.tagId)) return false; 
                     
                     const trackAge = (t.meta && t.meta.age_recommendation) ? parseInt(t.meta.age_recommendation) : 0;
                     if (trackAge > ageLimit) return false; 
