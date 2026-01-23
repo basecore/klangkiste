@@ -1,4 +1,4 @@
-# 🎵 KlangKiste PWA (V76 Smart Folder Edition)
+# 🎵 KlangKiste PWA (V79 Safe Import Edition)
 
 **Die smarte DIY "Toniebox" fürs Handy – 100% AI-Generated Code.**
 
@@ -8,43 +8,40 @@ Dieses Projekt ist eine kinderfreundliche Musik-Player-App, die alte Smartphones
 
 ---
 
-## ✨ Neu in v76: Der Smart Folder Import
+## ✨ Neu in v79: Safe-Import & Filter
 
-Das Highlight dieser Version ist die intelligente Erkennung von Ordnerstrukturen. Das mühsame manuelle Anlegen von Alben entfällt!
+Das Highlight dieser Version ist die volle Kontrolle darüber, was auf dem Gerät landet. Nie wieder überfüllter Speicher oder unpassende Inhalte!
 
-### 📂 1. "Smart Folder" Struktur-Import (Neu in v76)
+### 🛡️ 1. Safe-Import Vorschau (Neu)
+Wenn du einen Ordner mit hunderten Hörspielen auswählst, schreibt die App diese nicht mehr blind in den Speicher (was oft zu Abstürzen führte).
+* **Vorschau-Fenster:** Stattdessen öffnet sich eine Liste aller gefundenen Alben.
+* **Selektiver Import:** Du kannst genau anhaken, welche Hörbücher importiert werden sollen.
+* **Speicher-Schutz:** Der Browser wird nicht mehr überlastet, da der Import seriell (nacheinander) und kontrolliert abläuft.
+
+### 🔍 2. Intelligente Filter & Alters-Schutz (Neu)
+Im Import-Fenster stehen dir nun mächtige Werkzeuge zur Verfügung:
+* **Alters-Filter (Min/Max):** Gib z.B. "Bis 4 Jahre" ein. Die App filtert die Liste sofort und zeigt nur noch altersgerechte Inhalte an (basiert auf Daten aus der `klangkiste.json` oder Metadaten).
+* **Negativ-Suche (-):** Willst du eine bestimmte Serie *nicht* importieren? Schreibe einfach ein Minus vor den Begriff.
+    * *Beispiel:* `-paw` -> Entfernt sofort alle "Paw Patrol" Folgen aus der Auswahl.
+    * *Beispiel:* `-grusel` -> Entfernt alles mit "Grusel" im Titel.
+* **Massen-Steuerung:** Die Buttons "Alle sichtbaren an/aus" reagieren auf deine Filter. So kannst du z.B. erst nach "Conni" filtern und dann mit einem Klick nur alle Conni-Folgen auswählen.
+
+---
+
+## 🚀 Weitere Highlights (Smart Folder & Performance)
+
+### 📂 Smart Folder Struktur-Import
 Du hast deine Hörspiele am PC bereits in Ordnern sortiert? Perfekt!
 * **Wie es funktioniert:** Wähle einen Oberordner (z.B. "Meine Hörspiele") aus.
 * **Die Magie:** Die App erkennt automatisch jeden Unterordner als **eigenes Album**.
 * **Beispiel:**
     * `Hörspiele/Benjamin Blümchen/01 - Zoo.mp3` -> Wird Album "Benjamin Blümchen"
-    * `Hörspiele/Leo Lausemaus/Titel.mp3` -> Wird Album "Leo Lausemaus"
 * **Automatische Cover:** Wenn in einem Ordner ein Bild (jpg/png) liegt, wird es automatisch als Cover für dieses Album gesetzt.
-* **Sortierung:** Dateien innerhalb des Ordners werden automatisch alphabetisch sortiert (01, 02, 03...).
 
-### ⚡ 2. Admin Listen-Ansicht (Neu in v76)
+### ⚡ Admin Listen-Ansicht
 Für Eltern mit großen Sammlungen (500+ Alben):
 * **Umschaltbar:** Im Eltern-Modus kannst du nun zwischen **Raster (Grid)** und **Liste** umschalten.
 * **Performance:** Die Listen-Ansicht benötigt kaum Rechenleistung und lädt sofort, auch auf sehr alten Handys.
-
----
-
-## 🚀 Wichtige Funktionen aus v74/v75
-
-Diese Funktionen sorgen für Datensicherheit und Performance auf älteren Geräten.
-
-### 📦 Full System Backup & Restore
-Der Export ist mächtiger denn je. Die `klangkiste_full_backup.json` speichert **den kompletten Zustand der App**:
-* **Fortschritt:** Speichert für jedes Hörbuch die exakte Sekunde und das Kapitel.
-* **Status:** Merkt sich, welche Hörbücher **versteckt** (Shadow-List) oder **abgeschlossen (✅)** sind.
-* **Statistik:** Die gesamte Hör-Historie und Timeline bleibt erhalten.
-* **Einstellungen:** Anpassungen (Lautstärke-Limit, Sleep-Timer, Filter) werden mitgesichert.
-
-### 🧠 Smart RAM Management
-Speziell für Geräte mit wenig Arbeitsspeicher (z.B. Galaxy S8). Beim Wechseln von Hörbüchern oder Schließen der Bibliothek wird der RAM sofort aggressiv bereinigt. Ergebnis: Kein Stottern mehr.
-
-### 🔊 Hybride Audio-Engine
-Die App ist extrem robust. Sollte eine MP3-Datei beschädigt sein oder fehlen, wechselt die App automatisch auf die **Web Audio API** und erzeugt einen synthetischen Ton, statt abzustürzen.
 
 ---
 
@@ -114,10 +111,10 @@ Die App muss nicht über den Play Store geladen werden, sondern wird direkt übe
 
 ### 1. Musik importieren (4 Wege)
 
-* **A) Ordner-Struktur Import (Smart - Neu in v76):**
-    Der beste Weg für sortierte Sammlungen. Wähle deinen Haupt-Ordner. Die App erstellt für jeden Unterordner automatisch ein Album und nutzt enthaltene Bilder als Cover.
+* **A) Ordner-Struktur Import (Smart - Empfohlen):**
+    Der beste Weg für sortierte Sammlungen. Wähle deinen Haupt-Ordner. Es öffnet sich das neue **Import-Fenster**, in dem du nach Alter filtern oder unerwünschte Serien ausschließen kannst, bevor sie importiert werden.
 * **B) Massen-Import (Dateien):**
-    Für lose MP3s oder wenn du unser Python-Tool nutzt. Wähle Dateien und die `klangkiste.json` aus – dann sind alle Titel, Cover und Texte sofort perfekt gesetzt!
+    Für lose MP3s oder wenn du unser Python-Tool nutzt. Wähle Dateien und die `klangkiste.json` aus. Auch hier greift der neue **Safe-Filter**.
 * **C) Online-Beispiele:**
     Lade mit einem Klick vorbereitete KI-generierte Hörspiele direkt vom Server (zum Testen).
 * **D) Manuell anlernen:**
@@ -182,7 +179,7 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
     * Kopiere das Script `taf_klangkiste_final.py` und deine `.taf`-Dateien in einen gemeinsamen Ordner
 
 3. **Abhängigkeiten installieren:**
-    Öffne ein Terminal in dem Ordner und führe aus:
+    * Öffne ein Terminal in dem Ordner und führe aus:
     ```bash
     pip install requests beautifulsoup4 playwright
     playwright install
@@ -194,14 +191,16 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
     ```
 
 5. **Ergebnis:**
-    Es entsteht ein Ordner `klangkiste_output`. Diesen Ordner kannst du nun direkt über **„📂 Massen-Import"** in die App laden!
+    * Es entsteht ein Ordner `klangkiste_output`.
+    * Diesen Ordner lädst du über **„📂 Massen-Import"** in die App.
+    * Die App erkennt dank der `klangkiste.json` automatisch das Alter und du kannst beim Import filtern (z.B. "Nur bis 6 Jahre").
 
 ---
 
 ## 📂 Dateistruktur
 
-* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v76)
-* `sw.js` – Der Service Worker für die Offline-Funktionalität (Cache v76)
+* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v79)
+* `sw.js` – Der Service Worker für die Offline-Funktionalität (Cache v76+)
 * `manifest.json` – Konfiguration für das App-Icon und den Vollbild-Modus
 * `assets/` – Ordner für Icons und Test-Sounds
 * `example/` – Beispieldateien (MP3s, PNGs, `klangkiste.json`) für schnellen Start
@@ -231,4 +230,4 @@ Wir haben ein DIY-Diagnose-Tool auf Basis eines ESP32 und PN5180 entwickelt.
 ## 👨‍💻 Credits
 
 Entwickelt von Sebastian Rößer mit Unterstützung von **Google Gemini 3 Pro**.
-Version 76 „Smart Folder Edition".
+Version 79 „Safe Import Edition".
