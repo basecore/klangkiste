@@ -1348,11 +1348,11 @@
         async function handleFolderAlbumImport(input) {
             const files = Array.from(input.files); 
             if(files.length === 0) return;
-
-            showStatus("Analysiere Ordner... (Bitte warten)");
+        
+            // Das 'true' sorgt dafür, dass die Nachricht NICHT nach 3 Sek verschwindet
+            showStatus("Analysiere Ordner... bitte warten...", true); 
             
-            // Kurz warten, damit UI rendert
-            await new Promise(r => setTimeout(r, 50));
+            await new Promise(r => setTimeout(r, 100)); // Etwas mehr Zeit für den Browser zum Zeichnen                
 
             // Suche nach globaler klangkiste.json im Root oder Unterordnern für Metadaten
             let globalMetadata = [];
@@ -1462,9 +1462,11 @@
         async function handleBulkImport(input) {
             const files = Array.from(input.files); 
             if(files.length === 0) return;
-
-            showStatus("Analysiere Dateien...");
-            await new Promise(r => setTimeout(r, 50));
+        
+            // Auch hier: 'true' für dauerhafte Anzeige während der Analyse
+            showStatus("Analysiere Dateien... bitte warten...", true);
+            
+            await new Promise(r => setTimeout(r, 100));
 
             const klangkisteJsonFile = files.find(f => f.name.toLowerCase().startsWith('klangkiste') && f.name.toLowerCase().endsWith('.json'));
             
@@ -2669,7 +2671,20 @@
                 location.reload(); 
             } 
         }
-        function showStatus(msg) { const el = document.getElementById('status-msg'); el.innerText = msg; el.style.display = 'block'; setTimeout(() => { el.style.display = 'none'; }, 3000); }
+        function showStatus(msg, keepVisible = false) { 
+            const el = document.getElementById('status-msg'); 
+            if(!el) return;
+            el.innerText = msg; 
+            el.style.display = 'block'; 
+            
+            // Lösche alte Timeouts, falls vorhanden
+            if(window.statusTimeout) clearTimeout(window.statusTimeout);
+            
+            // Nur ausblenden, wenn nicht explizit 'keepVisible' verlangt wird
+            if(!keepVisible) {
+                window.statusTimeout = setTimeout(() => { el.style.display = 'none'; }, 3500); 
+            }
+        }
         function formatTime(s) { const minutes = Math.floor(s / 60); const seconds = Math.floor(s % 60); return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`; }
         function applyButtonColors() {
             try {
