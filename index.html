@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V80 (Mobile Fix) </title>
+    <title>KlangKiste V81 (Search Update) </title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -190,7 +190,7 @@
 
         .lib-header {
             display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 20px; margin-top: 10px;
+            margin-bottom: 10px; margin-top: 10px;
         }
 
         .lib-title {
@@ -656,6 +656,17 @@
         .btn-confirm { background: #2ecc71; color: white; }
         .btn-cancel { background: #e74c3c; color: white; }
         .btn-filter { background: #3498db; color: white; font-size: 0.8em; }
+
+        /* NEUE SUCHE STYLES */
+        .search-bar {
+            width: 100%; padding: 12px; border-radius: 10px;
+            border: none; background: rgba(255,255,255,0.15);
+            color: white; font-size: 1rem; outline: none;
+            margin-bottom: 15px; box-sizing: border-box;
+        }
+        .search-bar::placeholder { color: rgba(255,255,255,0.5); }
+        .search-bar:focus { background: rgba(255,255,255,0.25); }
+
     </style>
 </head>
 <body>
@@ -690,7 +701,7 @@
             </div>
         </div>
         <div id="import-list-container" class="import-list">
-            </div>
+        </div>
         <div style="display:flex; gap:10px; margin-top:10px;">
             <button class="btn-modal-action btn-cancel" onclick="closeImportModal()">Abbruch</button>
             <button class="btn-modal-action btn-confirm" onclick="executeImport()">✅ START</button>
@@ -891,8 +902,11 @@
                     <button class="view-toggle-btn" id="btn-view-grid" onclick="setAdminView('grid')">▦</button>
                 </div>
             </div>
+            
+            <input type="text" id="admin-search-input" class="search-bar" placeholder="🔍 Tags durchsuchen..." onkeyup="handleAdminSearch(this)">
+            
             <div id="tag-list-container" class="admin-list">
-                </div>
+            </div>
         </div>
 
         <div class="card">
@@ -935,7 +949,7 @@
         </div>
 
         <div class="footer-info">
-            <p>KlangKiste NFC V80</p>
+            <p>KlangKiste NFC V81</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>
                 <a href="https://github.com/basecore/klangkiste/tree/main" target="_blank">GitHub Projekt</a> | 
@@ -1050,14 +1064,16 @@
         <div class="lib-header">
             <div class="lib-title">Meine KlangKiste 📚</div>
         </div>
+        
+        <input type="text" id="lib-search-input" class="search-bar" style="background:rgba(255,255,255,0.9); color:#333; margin-top:10px;" placeholder="🔍 Hörbuch suchen..." onkeyup="handleLibSearch(this)">
 
         <div class="filter-scroll-container" id="lib-filters">
             <div class="filter-chip active" onclick="applyLibFilter('all', this)">Alle</div>
             <div class="filter-chip" onclick="applyLibFilter('recent', this)">Zuletzt gehört</div>
-            </div>
+        </div>
 
         <div id="lib-content-area">
-            </div>
+        </div>
 
         <button id="btn-close-lib" onclick="closeLibrary()">Zurück zum Player</button>
     </div>
@@ -1089,6 +1105,10 @@
 
         // --- SCHATTEN-LISTE (NEU) ---
         let hiddenTracks = new Set(); // Speichert versteckte IDs im RAM
+        
+        // --- SUCHE VARIABLEN (NEU) ---
+        let adminSearchTerm = "";
+        let libSearchTerm = "";
 
         const audioPlayer = document.getElementById('audio-player');
         
@@ -1156,6 +1176,17 @@
              syncSettingsFromDB(); 
              restoreLastSession();
         };
+        
+        // --- NEW SEARCH LOGIC ---
+        function handleAdminSearch(el) {
+            adminSearchTerm = el.value.toLowerCase().trim();
+            loadTagList();
+        }
+
+        function handleLibSearch(el) {
+            libSearchTerm = el.value.toLowerCase().trim();
+            renderLibrary();
+        }
         
         // --- IMPORT MODAL LOGIC START ---
         function showImportModal(candidates, callback) {
@@ -3051,6 +3082,12 @@
         // Neue Hilfsfunktion zum Rendern (Ausgelagert aus dem alten loadTagList)
         function renderAdminList(tracks, container) {
             let htmlBuffer = "";
+            
+            // --- NEU: Hier filtern wir die Admin Liste ---
+            if(adminSearchTerm.length > 0) {
+                 tracks = tracks.filter(t => t.name.toLowerCase().includes(adminSearchTerm));
+            }
+            
             tracks.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
 
             tracks.forEach(track => {
@@ -3464,6 +3501,11 @@
                 
                 tracks = tracks.filter(t => t.tagId !== "system_bg" && t.tagId !== "system_settings");
 
+                // --- NEU: Hier filtern wir die Bibliothek ---
+                if(libSearchTerm.length > 0) {
+                     tracks = tracks.filter(t => t.name.toLowerCase().includes(libSearchTerm));
+                }
+
                 // SORTING FIX: SOFORT SORTIEREN
                 tracks.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
 
@@ -3495,15 +3537,18 @@
                 }
 
                 if (currentLibFilter === 'all' || currentLibFilter === 'recent') {
-                    const recentTracks = [...tracks].filter(t => t.lastPlayedTimestamp).sort((a, b) => b.lastPlayedTimestamp - a.lastPlayedTimestamp).slice(0, 3);
-                    if (recentTracks.length > 0) {
-                        const recentDiv = document.createElement('div');
-                        recentDiv.innerHTML = `<div class="section-title">Zuletzt gehört 🕒</div><div class="recent-grid" id="recent-grid-target"></div>`;
-                        contentArea.appendChild(recentDiv);
-                        const target = recentDiv.querySelector('#recent-grid-target');
-                        recentTracks.forEach(t => {
-                            target.appendChild(createLibCard(t, true));
-                        });
+                    // "Zuletzt gehört" nur anzeigen, wenn NICHT gesucht wird
+                    if(libSearchTerm.length === 0) {
+                        const recentTracks = [...tracks].filter(t => t.lastPlayedTimestamp).sort((a, b) => b.lastPlayedTimestamp - a.lastPlayedTimestamp).slice(0, 3);
+                        if (recentTracks.length > 0) {
+                            const recentDiv = document.createElement('div');
+                            recentDiv.innerHTML = `<div class="section-title">Zuletzt gehört 🕒</div><div class="recent-grid" id="recent-grid-target"></div>`;
+                            contentArea.appendChild(recentDiv);
+                            const target = recentDiv.querySelector('#recent-grid-target');
+                            recentTracks.forEach(t => {
+                                target.appendChild(createLibCard(t, true));
+                            });
+                        }
                     }
                 }
 
