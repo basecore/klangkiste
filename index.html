@@ -657,15 +657,17 @@
         .btn-cancel { background: #e74c3c; color: white; }
         .btn-filter { background: #3498db; color: white; font-size: 0.8em; }
 
-        /* NEUE SUCHE STYLES */
+        /* NEUE SUCHE STYLES (Angepasst: Weißer Kasten, dunkle Schrift) */
         .search-bar {
             width: 100%; padding: 12px; border-radius: 10px;
-            border: none; background: rgba(255,255,255,0.15);
-            color: white; font-size: 1rem; outline: none;
+            border: none; 
+            background: #ffffff; /* Hintergrund jetzt Weiß */
+            color: #333333;      /* Schrift jetzt Dunkelgrau/Schwarz */
+            font-size: 1rem; outline: none;
             margin-bottom: 15px; box-sizing: border-box;
         }
-        .search-bar::placeholder { color: rgba(255,255,255,0.5); }
-        .search-bar:focus { background: rgba(255,255,255,0.25); }
+        .search-bar::placeholder { color: #888888; } /* Platzhaltertext mittelgrau */
+        .search-bar:focus { background: #ffffff; box-shadow: 0 0 8px rgba(255,255,255,0.3); }
 
     </style>
 </head>
