@@ -1,4 +1,4 @@
-# 🎵 KlangKiste PWA (V80 Safe Import Edition)
+# 🎵 KlangKiste PWA (V81 Search & Safe Import)
 
 **Die smarte DIY "Toniebox" fürs Handy – 100% AI-Generated Code.**
 
@@ -8,17 +8,29 @@ Dieses Projekt ist eine kinderfreundliche Musik-Player-App, die alte Smartphones
 
 ---
 
-## ✨ Neu in v80: Safe-Import & Filter
+## ✨ Neu in v81: Die Live-Suche
 
-Das Highlight dieser Version ist die volle Kontrolle darüber, was auf dem Gerät landet. Nie wieder überfüllter Speicher oder unpassende Inhalte!
+Auf vielfachen Wunsch wurde die Navigation in großen Bibliotheken massiv beschleunigt.
 
-### 🛡️ 1. Safe-Import Vorschau (Neu)
+### 🔎 Blitzschnelle Live-Suche
+Im Eltern-Modus findest du nun ganz oben eine prominente Suchleiste.
+* **Echtzeit-Filter:** Tippe einfach drauf los – die Liste filtert sich sofort, noch während du schreibst.
+* **Intelligent:** Die Suche durchforstet Titel, Seriennamen und Beschreibungen.
+* **Kombinierbar:** Funktioniert perfekt zusammen mit der neuen **Listen-Ansicht**, um auch bei 500+ Hörspielen sofort das Richtige zu finden.
+
+---
+
+## 🛡️ Safe-Import & Filter (V80 Highlights)
+
+Weiterhin enthalten sind die mächtigen Import-Funktionen der V80, die dir die volle Kontrolle darüber geben, was auf dem Gerät landet. Nie wieder überfüllter Speicher oder unpassende Inhalte!
+
+### 1. Safe-Import Vorschau
 Wenn du einen Ordner mit hunderten Hörspielen auswählst, schreibt die App diese nicht mehr blind in den Speicher (was oft zu Abstürzen führte).
 * **Vorschau-Fenster:** Stattdessen öffnet sich eine Liste aller gefundenen Alben.
 * **Selektiver Import:** Du kannst genau anhaken, welche Hörbücher importiert werden sollen.
 * **Speicher-Schutz:** Der Browser wird nicht mehr überlastet, da der Import seriell (nacheinander) und kontrolliert abläuft.
 
-### 🔍 2. Intelligente Filter & Alters-Schutz (Neu)
+### 2. Intelligente Filter & Alters-Schutz
 Im Import-Fenster stehen dir nun mächtige Werkzeuge zur Verfügung:
 * **Alters-Filter (Min/Max):** Gib z.B. "Bis 4 Jahre" ein. Die App filtert die Liste sofort und zeigt nur noch altersgerechte Inhalte an (basiert auf Daten aus der `klangkiste.json` oder Metadaten).
 * **Negativ-Suche (-):** Willst du eine bestimmte Serie *nicht* importieren? Schreibe einfach ein Minus vor den Begriff.
@@ -28,7 +40,7 @@ Im Import-Fenster stehen dir nun mächtige Werkzeuge zur Verfügung:
 
 ---
 
-## 🚀 Weitere Highlights (Smart Folder & Performance)
+## 🚀 Weitere Features (Smart Folder & Performance)
 
 ### 📂 Smart Folder Struktur-Import
 Du hast deine Hörspiele am PC bereits in Ordnern sortiert? Perfekt!
@@ -70,7 +82,7 @@ Verwaltung der Inhalte und Einsicht in das Nutzungsverhalten.
 | **Verwaltung** | **Statistik** |
 |:---:|:---:|
 | <img src="docs/screenshots/parent-mode.png" width="200"> | <img src="docs/screenshots/stats_view.png" width="200"> |
-| *Smart Folder & Tags* | *Timeline & Fortschritt (✅)* |
+| *Suche, Smart Folder & Tags* | *Timeline & Fortschritt (✅)* |
 
 ---
 
@@ -199,7 +211,7 @@ Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Sk
 
 ## 📂 Dateistruktur
 
-* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v80)
+* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v81)
 * `sw.js` – Der Service Worker für die Offline-Funktionalität (Cache v76+)
 * `manifest.json` – Konfiguration für das App-Icon und den Vollbild-Modus
 * `assets/` – Ordner für Icons und Test-Sounds
@@ -230,4 +242,4 @@ Wir haben ein DIY-Diagnose-Tool auf Basis eines ESP32 und PN5180 entwickelt.
 ## 👨‍💻 Credits
 
 Entwickelt von Sebastian Rößer mit Unterstützung von **Google Gemini 3 Pro**.
-Version 79 „Safe Import Edition".
+Version 81 „Search & Safe Import Edition".
