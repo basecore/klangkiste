@@ -920,6 +920,10 @@
                 Nutze <strong>"Massen-Import"</strong> für lose Dateien oder wenn du eine <code>klangkiste.json</code> hast.
             </div>
 
+            <button class="btn-admin" style="background-color: #27ae60; margin-top:10px; border: 2px solid white;" onclick="loadOhrkaFromGitHub(event)">
+                🎧 OHRKA Hörbücher laden (Offline)
+            </button>
+            
             <button class="btn-admin" style="background-color: #0984e3; margin-top:10px;" onclick="loadExamplesFromGitHub(event)">
                 ☁️ Beispiele direkt laden (Online)
             </button>
@@ -3610,6 +3614,147 @@
             renderLibrary();
         }
 
+// --- START NEUE OHRKA FUNKTION (OFFLINE DOWNLOAD) ---
+        async function loadOhrkaFromGitHub(event) {
+            if(event) { event.stopPropagation(); event.preventDefault(); }
+
+            // Konfiguration
+            const BASE_URL = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/ohrka/";
+            const AUDIO_BASE_URL = BASE_URL + "audio/";
+            const CORS_PROXY = "https://api.allorigins.win/raw?url="; // Hilft beim MP3 Download
+
+            showStatus("⏳ Lade OHRKA Liste...");
+
+            try {
+                // 1. JSON Liste laden
+                const jsonResp = await fetch(BASE_URL + "klangkiste.json");
+                if (!jsonResp.ok) throw new Error("Liste nicht gefunden");
+                const data = await jsonResp.json();
+                
+                if(!db) { alert("Datenbank noch nicht bereit."); return; }
+
+                // 2. Daten für das Auswahl-Fenster vorbereiten
+                const candidates = [];
+                for (const entry of data) {
+                    // Wir bauen ein leeres Gerüst, die Dateien kommen erst nach dem Klick
+                    const record = {
+                        tagId: entry.tagId,
+                        name: entry.name,
+                        playlist: [], 
+                        playlistFileNames: [], 
+                        imageBlob: null, 
+                        imageFileName: entry.imageFileName,
+                        cueTracks: null, 
+                        meta: entry.meta || {},
+                        tags: entry.tags || [],
+                        filter_age: entry.filter_age || 0,
+                        lastTrackIndex: 0,
+                        lastTime: 0,
+                        completed: false,
+                        
+                        // Temporäre Speicherorte für die URLs
+                        _downloadUrl: entry.downloadUrl,
+                        _coverUrl: entry.imageFileName ? (AUDIO_BASE_URL + encodeURIComponent(entry.imageFileName)) : null,
+                        _cueUrl: (entry.playlistFileNames && entry.playlistFileNames.length > 0) ? (AUDIO_BASE_URL + encodeURIComponent(entry.playlistFileNames[0].replace('.mp3', '.cue'))) : null
+                    };
+
+                    candidates.push({
+                        name: entry.name,
+                        fileCount: 1, // Ohrka ist meist 1 große MP3
+                        data: record,
+                        meta: entry.meta
+                    });
+                }
+
+                // 3. Modal anzeigen und Auswahl abwarten
+                showImportModal(candidates, async (selectedItems) => {
+                     let count = 0;
+                     
+                     // Helper: Versucht Download direkt, sonst über Proxy (für MP3s wichtig)
+                     const downloadFile = async (url) => {
+                         try {
+                             // Versuch 1: Direkt
+                             const r = await fetch(url);
+                             if(r.ok) return await r.blob();
+                             throw new Error("Direct fail");
+                         } catch(e) {
+                             console.log("Nutze Proxy für: " + url);
+                             // Versuch 2: Über Proxy
+                             const r2 = await fetch(CORS_PROXY + encodeURIComponent(url));
+                             if(!r2.ok) throw new Error("Download fehlgeschlagen");
+                             return await r2.blob();
+                         }
+                     };
+                     
+                     // 4. Die ausgewählten Sachen wirklich herunterladen
+                     for (let i = 0; i < selectedItems.length; i++) {
+                        const rec = selectedItems[i];
+                        showStatus(`Lade ${i+1}/${selectedItems.length}: ${rec.name} (bitte warten)...`, true);
+                        
+                        // A) Cover laden
+                        if(rec._coverUrl) {
+                            try {
+                                const b = await downloadFile(rec._coverUrl);
+                                rec.imageBlob = new File([b], rec.imageFileName, { type: "image/jpeg" });
+                            } catch(e) { console.warn("Kein Cover", e); }
+                        }
+
+                        // B) Cue laden (Kapitel)
+                        if(rec._cueUrl) {
+                            try {
+                                const r = await fetch(CORS_PROXY + encodeURIComponent(rec._cueUrl));
+                                if(r.ok) {
+                                    const txt = await r.text();
+                                    // Manchmal liefert Proxy HTML Fehler zurück, prüfen:
+                                    if(!txt.includes("<html")) {
+                                        rec.cueTracks = parseCueSheet(txt);
+                                    }
+                                }
+                            } catch(e) { console.warn("Keine Kapitel", e); }
+                        }
+                        
+                        // C) MP3 laden (Das Wichtigste!)
+                        if(rec._downloadUrl) {
+                           try {
+                               const b = await downloadFile(rec._downloadUrl);
+                               const audioFile = new File([b], "audio.mp3", { type: "audio/mp3" });
+                               rec.playlist = [audioFile]; // Jetzt ist es wirklich offline da!
+                               rec.playlistFileNames = ["audio.mp3"];
+                           } catch(e) {
+                               console.error("MP3 Download gescheitert", e);
+                               alert("Fehler beim Laden von: " + rec.name + "\nDie Datei konnte nicht gespeichert werden.");
+                               continue; // Diesen Eintrag überspringen
+                           }
+                        }
+
+                        // Aufräumen der Hilfs-Felder
+                        delete rec._downloadUrl;
+                        delete rec._coverUrl;
+                        delete rec._cueUrl;
+                        
+                        // Speichern in DB
+                        await new Promise((resolve) => {
+                           const tx = db.transaction(["tracks"], "readwrite");
+                           tx.objectStore("tracks").put(rec);
+                           tx.oncomplete = () => resolve();
+                           tx.onerror = () => resolve(); 
+                        });
+                        
+                        count++;
+                     }
+                     
+                     showStatus(`${count} Hörbücher installiert! 🎉`);
+                     loadTagList(); // Liste aktualisieren
+                });
+
+            } catch (e) {
+                console.error(e);
+                alert("Verbindungsfehler: " + e.message);
+                showStatus("Fehler ❌");
+            }
+        }
+        // --- ENDE NEUE OHRKA FUNKTION ---
+        
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
     </script>
 </body>
