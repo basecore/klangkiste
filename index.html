@@ -3632,15 +3632,20 @@
             renderLibrary();
         }
 
-// --- NEU: OHRKA DOWNLOAD (OFFLINE FIX) ---
+        // --- NEU: OHRKA DOWNLOAD (OFFLINE FORCE V2) ---
         async function loadOhrkaFromGitHub(event) {
             if(event) { event.stopPropagation(); event.preventDefault(); }
 
             const BASE_URL = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/ohrka/";
             const AUDIO_BASE_URL = BASE_URL + "audio/";
-            // Dieser Proxy hilft uns, die MP3s trotz Browsersperre herunterzuladen:
-            const PROXY_URL = "https://corsproxy.io/?"; 
             
+            // Wir probieren verschiedene Proxies, falls einer blockiert
+            const PROXIES = [
+                "https://api.allorigins.win/raw?url=",
+                "https://corsproxy.io/?",
+                "https://thingproxy.freeboard.io/fetch/"
+            ];
+
             showStatus("⏳ Lade OHRKA Liste...");
 
             try {
@@ -3652,7 +3657,6 @@
 
                 const candidates = [];
                 for (const entry of data) {
-                    // Wir bauen das Speicher-Objekt
                     const record = {
                         tagId: entry.tagId,
                         name: entry.name,
@@ -3663,7 +3667,6 @@
                         filter_age: entry.filter_age || 0,
                         lastTrackIndex: 0, lastTime: 0, completed: false,
                         
-                        // Temporäre Speicherorte für die URLs
                         _downloadUrl: entry.downloadUrl,
                         _coverUrl: entry.imageFileName ? (AUDIO_BASE_URL + encodeURIComponent(entry.imageFileName)) : null,
                         _cueUrl: (entry.playlistFileNames && entry.playlistFileNames.length > 0) ? (AUDIO_BASE_URL + encodeURIComponent(entry.playlistFileNames[0].replace('.mp3', '.cue'))) : null
@@ -3673,18 +3676,25 @@
 
                 showImportModal(candidates, async (selectedItems) => {
                      let count = 0;
-                     // Helfer zum Herunterladen über Proxy
+                     
+                     // Helper: Versuche Download über mehrere Wege
                      const fetchBlob = async (url) => {
+                         // 1. Versuch: Direkt (klappt selten bei Cross-Origin)
                          try {
-                             const r = await fetch(url); // Versuch direkt
+                             const r = await fetch(url);
                              if(r.ok) return await r.blob();
-                             throw new Error("Direct fail");
-                         } catch(e) {
-                             console.log("Nutze Proxy für: " + url);
-                             const r2 = await fetch(PROXY_URL + encodeURIComponent(url));
-                             if(!r2.ok) throw new Error("Download fehlgeschlagen");
-                             return await r2.blob();
+                         } catch(e) {}
+
+                         // 2. Versuch: Proxies durchprobieren
+                         for (let proxy of PROXIES) {
+                             try {
+                                 console.log("Versuche Proxy: " + proxy);
+                                 const r = await fetch(proxy + encodeURIComponent(url));
+                                 if(r.ok) return await r.blob();
+                             } catch(e) { console.warn("Proxy failed", proxy); }
                          }
+                         
+                         throw new Error("Alle Download-Wege gescheitert");
                      };
                      
                      for (let i = 0; i < selectedItems.length; i++) {
@@ -3696,12 +3706,13 @@
                             try {
                                 const b = await fetchBlob(rec._coverUrl);
                                 rec.imageBlob = new File([b], rec.imageFileName, { type: "image/jpeg" });
-                            } catch(e) { console.warn("Kein Cover", e); }
+                            } catch(e) {}
                         }
                         // 2. Cue
                         if(rec._cueUrl) {
                             try {
-                                const r = await fetch(PROXY_URL + encodeURIComponent(rec._cueUrl));
+                                // Cue Files sind Text, das geht meist einfacher
+                                const r = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(rec._cueUrl));
                                 if(r.ok) {
                                     const txt = await r.text();
                                     if(!txt.includes("<html")) rec.cueTracks = parseCueSheet(txt);
@@ -3713,11 +3724,14 @@
                            try {
                                const b = await fetchBlob(rec._downloadUrl);
                                const audioFile = new File([b], "audio.mp3", { type: "audio/mp3" });
-                               rec.playlist = [audioFile]; // Als Datei speichern -> Offline verfügbar!
+                               rec.playlist = [audioFile]; 
                                rec.playlistFileNames = ["audio.mp3"];
                            } catch(e) {
-                               console.warn("Download fehlgeschlagen, speichere als Stream", e);
-                               rec.meta.streamingUrl = rec._downloadUrl; // Fallback
+                               console.error("MP3 Download gescheitert", e);
+                               // WICHTIG: Wenn Download fehlschlägt, KEIN Streaming-Fallback speichern!
+                               // Stattdessen Fehler anzeigen, damit du weißt, dass es nicht offline geht.
+                               alert("Fehler bei: " + rec.name + "\nKonnte MP3 nicht herunterladen (CORS/Proxy Block).");
+                               continue; // Nächsten Eintrag versuchen
                            }
                         }
                         
@@ -3739,8 +3753,7 @@
                 alert("Fehler: " + e.message);
                 showStatus("Fehler ❌");
             }
-        }
-        // --- ENDE NEUE OHRKA FUNKTION ---
+        }-
         
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
     </script>
