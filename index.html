@@ -1462,118 +1462,106 @@
             });
         }
 
-        // 2. Massen Import (Flat / JSON) - UPDATED
+        // 2. Massen Import (Flat / JSON) - MULTI-JSON SUPPORT
         async function handleBulkImport(input) {
             const files = Array.from(input.files); 
             if(files.length === 0) return;
         
-            // Auch hier: 'true' für dauerhafte Anzeige während der Analyse
             showStatus("Analysiere Dateien... bitte warten...", true);
-            
             await new Promise(r => setTimeout(r, 100));
 
-            const klangkisteJsonFile = files.find(f => f.name.toLowerCase().startsWith('klangkiste') && f.name.toLowerCase().endsWith('.json'));
+            // FINDET JETZT ALLE DATEIEN, DIE MIT 'klangkiste' STARTEN (z.B. ohrka und tonie)
+            const klangkisteJsonFiles = files.filter(f => f.name.toLowerCase().startsWith('klangkiste') && f.name.toLowerCase().endsWith('.json'));
             
             let candidates = [];
+            const readFileAsText = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsText(file); });
+            const findFile = (name) => files.find(f => f.name === name);
 
-            // A) JSON Import Logik
-            if (klangkisteJsonFile) {
+            // A) JSON Import Logik (unterstützt nun mehrere JSON-Dateien gleichzeitig)
+            if (klangkisteJsonFiles.length > 0) {
                 try {
-                    const readFileAsText = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsText(file); });
-                    const jsonText = await readFileAsText(klangkisteJsonFile);
-                    const metadataEntries = JSON.parse(jsonText);
-                    const findFile = (name) => files.find(f => f.name === name);
-
-                    for (const entry of metadataEntries) {
-                        const audioFiles = [];
-                        if (entry.playlistFileNames) { 
-                            for (const fname of entry.playlistFileNames) { 
-                                const f = findFile(fname); 
-                                if (f) audioFiles.push(f); 
-                            } 
-                        }
+                    for (const jsonFile of klangkisteJsonFiles) {
+                        const jsonText = await readFileAsText(jsonFile);
+                        const metadataEntries = JSON.parse(jsonText);
                         
-                        if (audioFiles.length > 0) {
-                            let imageBlob = null; 
-                            if (entry.imageFileName) imageBlob = findFile(entry.imageFileName);
-                            
-                            // Cue Check
-                            let cueTracks = null;
-                            if(entry.playlistFileNames.length > 0) {
-                                const audioBase = entry.playlistFileNames[0].replace(/\.[^/.]+$/, "");
-                                const cueFile = findFile(audioBase + ".cue");
-                                if (cueFile) {
-                                    try { const cueText = await readFileAsText(cueFile); cueTracks = parseCueSheet(cueText); } catch(e){}
-                                }
+                        for (const entry of metadataEntries) {
+                            const audioFiles = [];
+                            if (entry.playlistFileNames) { 
+                                for (const fname of entry.playlistFileNames) { 
+                                    const f = findFile(fname); 
+                                    if (f) audioFiles.push(f); 
+                                } 
                             }
+                            
+                            if (audioFiles.length > 0) {
+                                let imageBlob = null; 
+                                if (entry.imageFileName) imageBlob = findFile(entry.imageFileName);
+                                
+                                let cueTracks = null;
+                                if(entry.playlistFileNames.length > 0) {
+                                    const audioBase = entry.playlistFileNames[0].replace(/\.[^/.]+$/, "");
+                                    const cueFile = findFile(audioBase + ".cue");
+                                    if (cueFile) {
+                                        try { const cueText = await readFileAsText(cueFile); cueTracks = parseCueSheet(cueText); } catch(e){}
+                                    }
+                                }
 
-                            const record = { 
-                                tagId: entry.tagId, 
-                                name: entry.name, 
-                                playlist: audioFiles, 
-                                playlistFileNames: entry.playlistFileNames, 
-                                imageBlob: imageBlob, 
-                                imageFileName: entry.imageFileName, 
-                                cueTracks: cueTracks, 
-                                meta: entry.meta, 
-                                tags: entry.tags, 
-                                lastTrackIndex: 0, 
-                                lastTime: 0 
-                            };
-
-                            candidates.push({
-                                name: entry.name,
-                                fileCount: audioFiles.length,
-                                data: record,
-                                meta: entry.meta || {} // Metadata für Filter nutzen
-                            });
+                                candidates.push({
+                                    name: entry.name,
+                                    fileCount: audioFiles.length,
+                                    data: { 
+                                        tagId: entry.tagId, 
+                                        name: entry.name, 
+                                        playlist: audioFiles, 
+                                        playlistFileNames: entry.playlistFileNames, 
+                                        imageBlob: imageBlob, 
+                                        imageFileName: entry.imageFileName, 
+                                        cueTracks: cueTracks, 
+                                        meta: entry.meta || {}, 
+                                        tags: entry.tags, 
+                                        lastTrackIndex: 0, 
+                                        lastTime: 0 
+                                    },
+                                    meta: entry.meta || {}
+                                });
+                            }
                         }
                     }
                 } catch(e) {
-                    alert("Fehler beim Lesen der JSON: " + e);
+                    alert("Fehler beim Lesen der JSON-Dateien: " + e);
                     return;
                 }
             } 
-            // B) Normaler Flat Import (ohne JSON)
+            // B) Normaler Flat Import (wenn gar keine JSON gefunden wurde)
             else {
                 const groups = {};
                 files.forEach(f => {
                     const path = f.webkitRelativePath || f.name; 
                     const lastDot = path.lastIndexOf('.'); 
                     const basePath = lastDot > 0 ? path.substring(0, lastDot) : path;
-                    
                     if (!groups[basePath]) groups[basePath] = { audio: [], img: null, cue: null, name: "" };
-                    
                     const ext = f.name.split('.').pop().toLowerCase(); 
                     const fileNameOnly = f.name.substring(0, f.name.lastIndexOf('.'));
-                    
                     if (!groups[basePath].name) groups[basePath].name = fileNameOnly;
-                    
-                    if(['mp3', 'm4a', 'ogg', 'wav', 'flac'].includes(ext)) { 
-                        groups[basePath].audio.push(f); 
-                    } else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) { 
-                        groups[basePath].img = f; 
-                    }
+                    if(['mp3', 'm4a', 'ogg', 'wav', 'flac'].includes(ext)) groups[basePath].audio.push(f); 
+                    else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) groups[basePath].img = f; 
                 });
 
                 Object.keys(groups).forEach(key => {
                     const g = groups[key];
                     if(g.audio.length > 0) {
-                        const record = { 
-                            tagId: "manual_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5), 
-                            name: g.name.replace(/_/g, ' '), 
-                            playlist: g.audio, 
-                            playlistFileNames: g.audio.map(f => f.name), 
-                            imageBlob: g.img, 
-                            imageFileName: g.img ? g.img.name : null, 
-                            cueTracks: null, 
-                            lastTrackIndex: 0, 
-                            lastTime: 0 
-                        };
                         candidates.push({
-                            name: record.name,
+                            name: g.name.replace(/_/g, ' '),
                             fileCount: g.audio.length,
-                            data: record,
+                            data: { 
+                                tagId: "manual_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5), 
+                                name: g.name.replace(/_/g, ' '), 
+                                playlist: g.audio, 
+                                playlistFileNames: g.audio.map(f => f.name), 
+                                imageBlob: g.img, 
+                                imageFileName: g.img ? g.img.name : null, 
+                                cueTracks: null, lastTrackIndex: 0, lastTime: 0 
+                            },
                             meta: {}
                         });
                     }
@@ -1582,11 +1570,8 @@
 
             if(candidates.length === 0) { alert("Keine passenden Audio-Gruppen gefunden."); return; }
 
-            // ZEIGE MODAL
             showImportModal(candidates, async (selectedItems) => {
                 let count = 0;
-                showStatus(`Importiere 1/${selectedItems.length}...`);
-                
                 for (let i = 0; i < selectedItems.length; i++) {
                     const record = selectedItems[i];
                     await new Promise((resolve) => {
@@ -1602,8 +1587,6 @@
                 loadTagList();
             });
         }
-
-        // --- ENDE NEUE IMPORT LOGIK ---
 
         // --- PROFI STATS LOGGING ENGINE ---
         function logStatEvent(type, tagId = null, duration = 0, detailText = "") {
