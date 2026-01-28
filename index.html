@@ -2412,7 +2412,7 @@
                 event.preventDefault();
             }
 
-            const BASE_URL = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/";
+            const BASE_URL = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/ki_generiert/";
             
             if(!confirm("Möchtest du die Beispiel-Hörspiele (ca. 10 MB) jetzt herunterladen?")) return;
 
@@ -3599,10 +3599,11 @@
             renderLibrary();
         }
 
-        // --- OHRKA INSTALLATION V7 (FIX: FENSTER SCHLIESSEN) ---
+        // --- OHRKA INSTALLATION V8 (FIX: NEUE STRUKTUR OHNE /AUDIO/ ORDNER) ---
         async function loadOhrkaSetup(event) {
             if(event) { event.stopPropagation(); event.preventDefault(); }
             
+            // Der Basis-Pfad auf deinem GitHub
             const BASE = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/ohrka/";
             
             if(!confirm("Schritt 1: Metadaten (Cover, Titel) werden installiert.\nSchritt 2: Du erhältst Links zum manuellen Download der MP3s.\n\nStarten?")) return;
@@ -3610,7 +3611,7 @@
             showStatus("⏳ Lade OHRKA Katalog...");
             
             try {
-                // 1. Liste laden
+                // 1. klangkiste.json aus dem ohrka-Ordner laden
                 const r = await fetch(BASE + "klangkiste.json");
                 if(!r.ok) throw new Error("Konnte Liste nicht laden");
                 const data = await r.json();
@@ -3620,13 +3621,13 @@
                 const candidates = [];
                 
                 for(const entry of data) {
-                    // Dateinamen berechnen
+                    // Dateiname für den späteren Download berechnen
                     let expectedFileName = "audio.mp3";
                     if(entry.downloadUrl) {
                         expectedFileName = decodeURIComponent(entry.downloadUrl.substring(entry.downloadUrl.lastIndexOf('/') + 1));
                     }
 
-                    // Leeres Objekt bauen
+                    // Datensatz vorbereiten (Pfade jetzt direkt in BASE)
                     const record = {
                         tagId: entry.tagId,
                         name: entry.name,
@@ -3640,10 +3641,10 @@
                         lastTrackIndex: 0, lastTime: 0, completed: false,
                         hiddenInLib: false,
                         
-                        // Hilfs-URLs
+                        // Temporäre URLs für den Fetch-Prozess (OHNE /audio/)
                         _downloadUrl: entry.downloadUrl,
-                        _coverUrl: entry.imageFileName ? (BASE + "audio/" + entry.imageFileName) : null,
-                        _cueUrl: (entry.playlistFileNames && entry.playlistFileNames[0]) ? (BASE + "audio/" + entry.playlistFileNames[0].replace('.mp3', '.cue')) : null
+                        _coverUrl: entry.imageFileName ? (BASE + entry.imageFileName) : null,
+                        _cueUrl: (entry.playlistFileNames && entry.playlistFileNames[0]) ? (BASE + entry.playlistFileNames[0].replace('.mp3', '.cue')) : null
                     };
 
                     if(!record.meta.streamingUrl) record.meta.streamingUrl = entry.downloadUrl;
@@ -3656,7 +3657,7 @@
                     });
                 }
 
-                // 3. Auswahl anzeigen
+                // 2. Auswahl-Modal anzeigen
                 showImportModal(candidates, async (selectedItems) => {
                      let installedCount = 0;
                      let downloadLinks = [];
@@ -3665,30 +3666,26 @@
                         const rec = selectedItems[i];
                         showStatus(`Installiere ${i+1}/${selectedItems.length}: ${rec.name}...`);
                         
-                        // A) Cover laden (DIREKT)
+                        // A) Cover direkt laden
                         if(rec._coverUrl) {
                             try {
-                               const urlParts = rec._coverUrl.split('/audio/');
-                               const safeUrl = urlParts[0] + '/audio/' + encodeURIComponent(urlParts[1]);
-                               const ir = await fetch(safeUrl);
+                               const ir = await fetch(rec._coverUrl);
                                if(ir.ok) rec.imageBlob = await ir.blob();
-                            } catch(e){ console.log("Cover Fehler (ignoriert):", e); }
+                            } catch(e){ console.log("Cover Fehler:", e); }
                         }
 
-                        // B) Cue laden (DIREKT)
+                        // B) Cue-Datei direkt laden
                         if(rec._cueUrl) {
                             try {
-                                const urlParts = rec._cueUrl.split('/audio/');
-                                const safeUrl = urlParts[0] + '/audio/' + encodeURIComponent(urlParts[1]);
-                                const cr = await fetch(safeUrl);
+                                const cr = await fetch(rec._cueUrl);
                                 if(cr.ok) {
                                     const txt = await cr.text();
                                     if(!txt.includes("404")) rec.cueTracks = parseCueSheet(txt);
                                 }
-                            } catch(e){ console.log("Cue Fehler (ignoriert):", e); }
+                            } catch(e){ console.log("Cue Fehler:", e); }
                         }
                         
-                        // Link merken
+                        // Download-Link für Schritt 2 generieren
                         if(rec._downloadUrl) {
                             const fName = rec.playlistFileNames[0];
                             downloadLinks.push(`
@@ -3701,54 +3698,38 @@
                                 </li>`);
                         }
 
-                        // Cleanup
+                        // Hilfs-URLs entfernen vor dem Speichern
                         delete rec._downloadUrl; delete rec._coverUrl; delete rec._cueUrl;
 
-                        // C) Speichern
-                        try {
-                            await new Promise((resolve, reject) => {
-                                const tx = db.transaction(["tracks"], "readwrite");
-                                const store = tx.objectStore("tracks");
-                                const req = store.put(rec);
-                                req.onsuccess = resolve;
-                                req.onerror = (e) => reject(e.target.error);
-                            });
-                            installedCount++;
-                        } catch(dbErr) {
-                            console.error("DB Save Error:", dbErr);
-                        }
+                        // C) In IndexedDB speichern
+                        await new Promise((resolve) => {
+                            const tx = db.transaction(["tracks"], "readwrite");
+                            const store = tx.objectStore("tracks");
+                            store.put(rec).onsuccess = resolve;
+                        });
+                        installedCount++;
                      }
 
                      showStatus("✅ Fertig!");
                      loadTagList();
 
-                     // 5. Download Fenster anzeigen (FIX: MIT ID ZUM SCHLIESSEN)
+                     // 3. Download-Liste anzeigen
                      if(downloadLinks.length > 0) {
                          const dlHtml = `
                             <div id="ohrka-download-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:99999; color:white; padding:20px; box-sizing:border-box; overflow:auto; display:flex; flex-direction:column;">
                                 <h2 style="color:#2ecc71; margin-top:0;">Schritt 2: Offline Dateien</h2>
                                 <p><strong>${installedCount} Hörbücher</strong> installiert.</p>
-                                
                                 <div style="background:rgba(243, 156, 18, 0.2); border-left:4px solid #f39c12; padding:10px; margin-bottom:15px; font-size:0.9em;">
-                                    ⚠️ <strong>WICHTIGE DOWNLOAD TIPPS:</strong><br>
-                                    1. Tippe <b>LANGE</b> auf den Link -> "Link herunterladen" (sonst spielt es nur ab).<br>
-                                    2. <b>Verschiebe</b> die Dateien im Dateimanager in einen <b>Unterordner</b> (z.B. "Downloads/Hörspiele"), falls Android den Zugriff verweigert.
+                                    ⚠️ <strong>DOWNLOAD-TIPPS:</strong><br>
+                                    1. <b>LANGE</b> drücken -> "Link herunterladen".<br>
+                                    2. Danach Dateien in der App über <b>"Reparieren"</b> verknüpfen.
                                 </div>
-                                
                                 <ul style="background:#2d3436; padding:15px; border-radius:10px; list-style:none; border:1px solid #555; margin:0;">
                                     ${downloadLinks.join('')}
                                 </ul>
-                                
-                                <div style="margin-top:auto; pt:20px;">
-                                    <p>Alles heruntergeladen?</p>
-                                    <button onclick="document.getElementById('btn-auto-repair').style.backgroundColor='#e67e22'; document.getElementById('btn-auto-repair').scrollIntoView({behavior:'smooth'}); document.getElementById('ohrka-download-modal').remove();" 
-                                        style="background:#3498db; color:white; padding:15px; border:none; border-radius:10px; font-size:1.1em; width:100%; font-weight:bold; cursor:pointer; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
-                                        Verstanden & Schließen
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                        document.body.insertAdjacentHTML('beforeend', dlHtml);
+                                <button onclick="this.parentElement.remove();" style="margin-top:20px; background:#3498db; color:white; padding:15px; border:none; border-radius:10px; width:100%; font-weight:bold;">Schließen</button>
+                            </div>`;
+                         document.body.insertAdjacentHTML('beforeend', dlHtml);
                      }
                 });
 
