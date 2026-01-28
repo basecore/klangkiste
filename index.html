@@ -3616,40 +3616,39 @@
             renderLibrary();
         }
 
-        // --- OHRKA INSTALLATION V4 (MIT AUSWAHL-FENSTER) ---
+        // --- OHRKA INSTALLATION V5 (DIRECT GITHUB + SELECTION) ---
         async function loadOhrkaSetup(event) {
             if(event) { event.stopPropagation(); event.preventDefault(); }
             
+            // Wir laden direkt von GitHub (CORS ist dort meist erlaubt für GET)
             const BASE = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/ohrka/";
-            const PROXY = "https://api.allorigins.win/raw?url="; 
-
+            
             showStatus("⏳ Lade OHRKA Katalog...");
             
             try {
                 // 1. Liste laden
                 const r = await fetch(BASE + "klangkiste.json");
-                if(!r.ok) throw new Error("Liste nicht geladen");
+                if(!r.ok) throw new Error("Konnte Liste nicht laden");
                 const data = await r.json();
                 
                 if(!db) { alert("Datenbank nicht bereit."); return; }
 
-                // 2. Kandidaten für das Auswahl-Fenster vorbereiten
+                // 2. Kandidaten vorbereiten
                 const candidates = [];
                 
                 for(const entry of data) {
-                    // Wir ermitteln den Dateinamen aus der URL schon jetzt, 
-                    // speichern ihn aber erst nach der Auswahl.
+                    // Dateinamen berechnen
                     let expectedFileName = "audio.mp3";
                     if(entry.downloadUrl) {
                         expectedFileName = decodeURIComponent(entry.downloadUrl.substring(entry.downloadUrl.lastIndexOf('/') + 1));
                     }
 
-                    // Das Daten-Objekt (noch nicht speichern!)
+                    // Leeres Objekt bauen
                     const record = {
                         tagId: entry.tagId,
                         name: entry.name,
                         playlist: [], 
-                        playlistFileNames: [expectedFileName], // Wichtig für Repair!
+                        playlistFileNames: [expectedFileName], 
                         imageBlob: null,
                         imageFileName: entry.imageFileName,
                         cueTracks: null,
@@ -3658,13 +3657,14 @@
                         lastTrackIndex: 0, lastTime: 0, completed: false,
                         hiddenInLib: false,
                         
-                        // Hilfsdaten für den Installations-Prozess
+                        // Hilfs-URLs für den nächsten Schritt
                         _downloadUrl: entry.downloadUrl,
+                        // WICHTIG: Hier bauen wir die direkte GitHub URL zusammen, OHNE Proxy
                         _coverUrl: entry.imageFileName ? (BASE + "audio/" + entry.imageFileName) : null,
                         _cueUrl: (entry.playlistFileNames && entry.playlistFileNames[0]) ? (BASE + "audio/" + entry.playlistFileNames[0].replace('.mp3', '.cue')) : null
                     };
 
-                    // Streaming Fallback
+                    // Fallback Stream Link setzen
                     if(!record.meta.streamingUrl) record.meta.streamingUrl = entry.downloadUrl;
 
                     candidates.push({
@@ -3675,77 +3675,87 @@
                     });
                 }
 
-                // 3. Zeige das Auswahl-Fenster (Checkboxen)
+                // 3. Auswahl anzeigen
                 showImportModal(candidates, async (selectedItems) => {
                      let installedCount = 0;
                      let downloadLinks = [];
 
-                     // 4. Nur die AUSGEWÄHLTEN verarbeiten
+                     // 4. Verarbeitung
                      for (let i = 0; i < selectedItems.length; i++) {
                         const rec = selectedItems[i];
                         showStatus(`Installiere ${i+1}/${selectedItems.length}: ${rec.name}...`);
                         
-                        // A) Cover laden (Versuch ohne Proxy zuerst, da github pages oft cors erlaubt für images)
+                        // A) Cover laden (DIREKT)
                         if(rec._coverUrl) {
                             try {
-                               // Encode nur den Dateinamen-Teil, falls nötig. Hier nehmen wir die URL direkt.
-                               // Wir versuchen es via Proxy für maximale Kompatibilität bei Bildern
-                               const ir = await fetch(PROXY + encodeURIComponent(rec._coverUrl));
+                               // encodeURIComponent ist wichtig für Leerzeichen im Dateinamen auf GitHub
+                               // Wir splitten die URL auf, um nur den Dateinamen zu encodieren, 
+                               // oder nutzen die bereits saubere URLLogik von oben, aber fetch braucht encoding bei Sonderzeichen
+                               const urlParts = rec._coverUrl.split('/audio/');
+                               const safeUrl = urlParts[0] + '/audio/' + encodeURIComponent(urlParts[1]);
+                               
+                               const ir = await fetch(safeUrl);
                                if(ir.ok) rec.imageBlob = await ir.blob();
-                            } catch(e){}
+                            } catch(e){ console.log("Cover Fehler (ignoriert):", e); }
                         }
 
-                        // B) Cue laden
+                        // B) Cue laden (DIREKT)
                         if(rec._cueUrl) {
                             try {
-                                const cr = await fetch(PROXY + encodeURIComponent(rec._cueUrl));
+                                const urlParts = rec._cueUrl.split('/audio/');
+                                const safeUrl = urlParts[0] + '/audio/' + encodeURIComponent(urlParts[1]);
+                                
+                                const cr = await fetch(safeUrl);
                                 if(cr.ok) {
                                     const txt = await cr.text();
                                     if(!txt.includes("404")) rec.cueTracks = parseCueSheet(txt);
                                 }
-                            } catch(e){}
+                            } catch(e){ console.log("Cue Fehler (ignoriert):", e); }
                         }
                         
-                        // Link für die Liste merken
+                        // Link merken
                         if(rec._downloadUrl) {
-                            // Dateiname für Anzeige
                             const fName = rec.playlistFileNames[0];
                             downloadLinks.push(`<li style="margin-bottom:8px;"><a href="${rec._downloadUrl}" download="${fName}" target="_blank" style="color:#74b9ff; text-decoration:none; font-weight:bold;">📥 ${rec.name}</a><br><span style="font-size:0.75em; color:#aaa; font-family:monospace;">Datei: ${fName}</span></li>`);
                         }
 
-                        // Aufräumen (interne Felder nicht speichern)
+                        // Cleanup interne Felder
                         delete rec._downloadUrl; delete rec._coverUrl; delete rec._cueUrl;
 
-                        // C) Speichern in DB
-                        await new Promise(resolve => {
-                            const tx = db.transaction(["tracks"], "readwrite");
-                            tx.objectStore("tracks").put(rec);
-                            tx.oncomplete = resolve;
-                        });
-                        
-                        installedCount++;
+                        // C) Speichern (Neue Transaktion für jeden Eintrag verhindert Timeouts)
+                        try {
+                            await new Promise((resolve, reject) => {
+                                const tx = db.transaction(["tracks"], "readwrite");
+                                const store = tx.objectStore("tracks");
+                                const req = store.put(rec);
+                                req.onsuccess = resolve;
+                                req.onerror = reject;
+                            });
+                            installedCount++;
+                        } catch(dbErr) {
+                            console.error("DB Save Error:", dbErr);
+                            alert("Fehler beim Speichern von: " + rec.name);
+                        }
                      }
 
-                     showStatus("✅ Installation fertig!");
+                     showStatus("✅ Fertig!");
                      loadTagList();
 
-                     // 5. Fenster mit Download-Links anzeigen
+                     // 5. Download Fenster
                      if(downloadLinks.length > 0) {
                          const dlHtml = `
                             <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:99999; color:white; padding:20px; box-sizing:border-box; overflow:auto; display:flex; flex-direction:column;">
                                 <h2 style="color:#2ecc71; margin-top:0;">Schritt 2: Offline Dateien</h2>
-                                <p>Du hast <b>${installedCount} Hörbücher</b> installiert.</p>
+                                <p><strong>${installedCount} Hörbücher</strong> installiert (Texte & Bilder).</p>
                                 <p style="background:rgba(231, 76, 60, 0.2); border-left:3px solid #e74c3c; padding:10px;">
-                                    ⚠️ <strong>WICHTIG:</strong> Damit sie offline laufen, musst du die MP3s jetzt herunterladen und verknüpfen.
+                                    ⚠️ <strong>DAMIT ES OFFLINE GEHT:</strong>
                                 </p>
                                 
-                                <strong style="color:#f1c40f;">Deine To-Do Liste:</strong>
                                 <ol style="line-height:1.6; padding-left:20px; margin-bottom:20px;">
                                     <li>Klicke auf die blauen Links unten (MP3s werden geladen).</li>
-                                    <li>Merke dir den Speicherort (meist "Downloads").</li>
                                     <li>Schließe dieses Fenster.</li>
-                                    <li>Drücke in der App auf <strong>"🪄 Automatisch reparieren"</strong>.</li>
-                                    <li>Wähle alle eben geladenen MP3s aus.</li>
+                                    <li>Klicke auf <strong>"🪄 Automatisch reparieren"</strong> (orangener Button).</li>
+                                    <li>Wähle die geladenen Dateien aus.</li>
                                 </ol>
 
                                 <ul style="background:#2d3436; padding:15px; border-radius:10px; list-style:none; border:1px solid #555;">${downloadLinks.join('')}</ul>
@@ -3754,13 +3764,11 @@
                             </div>
                         `;
                         document.body.insertAdjacentHTML('beforeend', dlHtml);
-                     } else {
-                         alert("Fertig! Keine Downloads notwendig (nur Metadaten?).");
                      }
                 });
 
             } catch(e) {
-                alert("Fehler beim Laden der Liste: " + e.message);
+                alert("Fehler: " + e.message);
             }
         }
         
