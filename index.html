@@ -920,8 +920,8 @@
                 Nutze <strong>"Massen-Import"</strong> für lose Dateien oder wenn du eine <code>klangkiste.json</code> hast.
             </div>
 
-            <button class="btn-admin" style="background-color: #27ae60; margin-top:10px; border: 2px solid white;" onclick="loadOhrkaFromGitHub(event)">
-                🎧 OHRKA Hörbücher laden (Offline)
+            <button class="btn-admin" style="background-color: #27ae60; margin-top:10px; border: 2px solid white;" onclick="loadOhrkaSetup(event)">
+                🎧 OHRKA Installation (2 Schritte)
             </button>
             
             <button class="btn-admin" style="background-color: #0984e3; margin-top:10px;" onclick="loadExamplesFromGitHub(event)">
@@ -1988,15 +1988,21 @@
                     track.lastPlayedTimestamp = Date.now();
                     store.put(track);
 
-                    // CHECK: Playlist ODER Stream muss da sein
-                    if((!track.playlist || track.playlist.length === 0) && (!track.meta || !track.meta.streamingUrl)) { 
-                        showStatus("⚠️ Audio fehlt!"); return; 
+                    // --- CHECK: Ist Audio da? ---
+                    if(!track.playlist || track.playlist.length === 0) { 
+                        // Falls Streaming URL als Notlösung da wäre (hier aber Fokus auf Offline)
+                        showStatus("⚠️ Audio fehlt! Bitte 'Reparieren' nutzen."); 
+                        alert("Die Audio-Datei fehlt noch.\n\nBitte nutze den orangenen 'Automatisch reparieren' Button und wähle die heruntergeladene MP3 aus.");
+                        return; 
                     }
                     
                     document.getElementById('track-title-display').innerText = track.name;
                     const imgEl = document.getElementById('album-img'); const placeEl = document.getElementById('album-placeholder');
-                    if(track.imageBlob) { imgEl.src = URL.createObjectURL(track.imageBlob); imgEl.style.display="block"; placeEl.style.display="none"; } 
-                    else { imgEl.style.display="none"; placeEl.style.display="block"; }
+                    
+                    if(track.imageBlob) { 
+                        imgEl.src = URL.createObjectURL(track.imageBlob); 
+                        imgEl.style.display="block"; placeEl.style.display="none"; 
+                    } else { imgEl.style.display="none"; placeEl.style.display="block"; }
                     
                     currentPlayingTagId = tagId; 
                     currentPlaylist = track.playlist;
@@ -2010,33 +2016,10 @@
                     let startIndex = track.lastTrackIndex || 0; let startTime = track.lastTime || 0;
                     if(startIndex >= currentPlaylist.length) startIndex = 0;
                     
-                    // ENTSCHEIDUNG: Stream oder Download?
-                    if(track.playlist && track.playlist.length > 0) {
-                        playPlaylistIndex(startIndex, startTime); // Offline Datei
-                    } else if(track.meta && track.meta.streamingUrl) {
-                        playStreamingUrl(track.meta.streamingUrl, startTime); // Fallback Stream
-                    }
+                    playPlaylistIndex(startIndex, startTime);
 
                     if (isParentMode) { goToKidsMode(); }
                 } else { showStatus("Tag unbekannt"); }
-            };
-        }
-
-        function playStreamingUrl(url, startTime = 0) {
-            if (currentAudioUrl) { URL.revokeObjectURL(currentAudioUrl); currentAudioUrl = null; }
-            currentTrackIndex = 0;
-            updateInfoText();
-            audioPlayer.src = url; 
-            audioPlayer.onloadedmetadata = () => {
-                if(startTime > 0 && startTime < audioPlayer.duration - 2) audioPlayer.currentTime = startTime;
-                applyActualVolume(); updateVolumeUI();
-                audioPlayer.play().then(() => { 
-                    setPlayButtonState(true); startSleepTimer(); requestWakeLock(); 
-                    currentSessionStart = Date.now(); 
-                    if(saveInterval) clearInterval(saveInterval);
-                    saveInterval = setInterval(forceSaveCurrentPosition, 5000);
-                }).catch(e => showStatus("Bereit"));
-                audioPlayer.onloadedmetadata = null;
             };
         }
         
@@ -3632,126 +3615,108 @@
             renderLibrary();
         }
 
-        // --- NEU: OHRKA DOWNLOAD (OFFLINE FORCE V2) ---
-        async function loadOhrkaFromGitHub(event) {
+        // --- OHRKA INSTALLATION (2-SCHRITTE) ---
+        async function loadOhrkaSetup(event) {
             if(event) { event.stopPropagation(); event.preventDefault(); }
-
-            const BASE_URL = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/ohrka/";
-            const AUDIO_BASE_URL = BASE_URL + "audio/";
             
-            // Wir probieren verschiedene Proxies, falls einer blockiert
-            const PROXIES = [
-                "https://api.allorigins.win/raw?url=",
-                "https://corsproxy.io/?",
-                "https://thingproxy.freeboard.io/fetch/"
-            ];
+            const BASE = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/ohrka/";
+            // Proxy nur für kleine Bilder/Text nutzen, da ist die Erfolgschance höher
+            const PROXY = "https://api.allorigins.win/raw?url="; 
 
-            showStatus("⏳ Lade OHRKA Liste...");
+            if(!confirm("Schritt 1: Metadaten (Cover, Titel) werden installiert.\nSchritt 2: Du erhältst Links zum manuellen Download der MP3s.\n\nStarten?")) return;
 
+            showStatus("⏳ Lade Liste...");
+            
             try {
-                const jsonResp = await fetch(BASE_URL + "klangkiste.json");
-                if (!jsonResp.ok) throw new Error("JSON nicht gefunden");
-                const data = await jsonResp.json();
+                const r = await fetch(BASE + "klangkiste.json");
+                if(!r.ok) throw new Error("Liste nicht geladen");
+                const data = await r.json();
                 
-                if(!db) { alert("Datenbank noch nicht bereit."); return; }
+                let installed = 0;
+                let downloadLinks = [];
 
-                const candidates = [];
-                for (const entry of data) {
+                for(const entry of data) {
+                    showStatus("Installiere Infos: " + entry.name + "...");
+                    
+                    // 1. Versuche Cover zu laden (Best Effort)
+                    let imgBlob = null;
+                    if(entry.imageFileName) {
+                        try {
+                           const ir = await fetch(PROXY + encodeURIComponent(BASE + "audio/" + entry.imageFileName));
+                           if(ir.ok) imgBlob = await ir.blob();
+                        } catch(e){}
+                    }
+
+                    // 2. Versuche Cue zu laden (Best Effort)
+                    let cues = null;
+                    if(entry.playlistFileNames && entry.playlistFileNames[0]) {
+                        try {
+                            const cueUrl = BASE + "audio/" + entry.playlistFileNames[0].replace('.mp3', '.cue');
+                            const cr = await fetch(PROXY + encodeURIComponent(cueUrl));
+                            if(cr.ok) {
+                                const txt = await cr.text();
+                                if(!txt.includes("404")) cues = parseCueSheet(txt);
+                            }
+                        } catch(e){}
+                    }
+
+                    // 3. Datenbank Eintrag erstellen (Noch OHNE Audio Datei)
                     const record = {
                         tagId: entry.tagId,
                         name: entry.name,
-                        playlist: [], playlistFileNames: [], 
-                        imageBlob: null, imageFileName: entry.imageFileName,
-                        cueTracks: null, 
-                        meta: entry.meta || {}, tags: entry.tags || [],
-                        filter_age: entry.filter_age || 0,
+                        playlist: [], // Bleibt leer -> wird durch "Reparieren" gefüllt
+                        playlistFileNames: entry.playlistFileNames || [], // Wichtig für Repair-Funktion!
+                        imageBlob: imgBlob,
+                        imageFileName: entry.imageFileName,
+                        cueTracks: cues,
+                        meta: entry.meta || {},
+                        tags: entry.tags || [],
                         lastTrackIndex: 0, lastTime: 0, completed: false,
-                        
-                        _downloadUrl: entry.downloadUrl,
-                        _coverUrl: entry.imageFileName ? (AUDIO_BASE_URL + encodeURIComponent(entry.imageFileName)) : null,
-                        _cueUrl: (entry.playlistFileNames && entry.playlistFileNames.length > 0) ? (AUDIO_BASE_URL + encodeURIComponent(entry.playlistFileNames[0].replace('.mp3', '.cue'))) : null
+                        hiddenInLib: false
                     };
-                    candidates.push({ name: entry.name, fileCount: 1, data: record, meta: entry.meta });
+                    
+                    // Speichern
+                    await new Promise(resolve => {
+                        const tx = db.transaction(["tracks"], "readwrite");
+                        tx.objectStore("tracks").put(record);
+                        tx.oncomplete = resolve;
+                    });
+                    
+                    // Link für Schritt 2 merken
+                    if(entry.downloadUrl) {
+                        // Dateiname aus URL oder Meta erraten für saubere Anzeige
+                        const cleanName = entry.playlistFileNames[0] || "audio.mp3";
+                        downloadLinks.push(`<li style="margin-bottom:8px;"><a href="${entry.downloadUrl}" download="${cleanName}" target="_blank" style="color:#74b9ff; text-decoration:none; font-weight:bold;">📥 ${entry.name}</a></li>`);
+                    }
+                    installed++;
                 }
 
-                showImportModal(candidates, async (selectedItems) => {
-                     let count = 0;
-                     
-                     // Helper: Versuche Download über mehrere Wege
-                     const fetchBlob = async (url) => {
-                         // 1. Versuch: Direkt (klappt selten bei Cross-Origin)
-                         try {
-                             const r = await fetch(url);
-                             if(r.ok) return await r.blob();
-                         } catch(e) {}
+                showStatus("✅ Metadaten fertig!");
+                loadTagList();
 
-                         // 2. Versuch: Proxies durchprobieren
-                         for (let proxy of PROXIES) {
-                             try {
-                                 console.log("Versuche Proxy: " + proxy);
-                                 const r = await fetch(proxy + encodeURIComponent(url));
-                                 if(r.ok) return await r.blob();
-                             } catch(e) { console.warn("Proxy failed", proxy); }
-                         }
-                         
-                         throw new Error("Alle Download-Wege gescheitert");
-                     };
-                     
-                     for (let i = 0; i < selectedItems.length; i++) {
-                        const rec = selectedItems[i];
-                        showStatus(`Lade ${i+1}/${selectedItems.length}: ${rec.name} (bitte warten)...`, true);
+                // SCHRITT 2 DIALOG ANZEIGEN
+                const dlHtml = `
+                    <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:99999; color:white; padding:20px; box-sizing:border-box; overflow:auto; display:flex; flex-direction:column;">
+                        <h2 style="color:#2ecc71; margin-top:0;">Schritt 2: Offline Dateien</h2>
+                        <p style="background:rgba(255,255,255,0.1); padding:10px; border-radius:5px;">Die Bücher sind installiert, aber die Audiodateien fehlen noch. Browser erlauben automatische Downloads oft nicht.</p>
                         
-                        // 1. Cover
-                        if(rec._coverUrl) {
-                            try {
-                                const b = await fetchBlob(rec._coverUrl);
-                                rec.imageBlob = new File([b], rec.imageFileName, { type: "image/jpeg" });
-                            } catch(e) {}
-                        }
-                        // 2. Cue
-                        if(rec._cueUrl) {
-                            try {
-                                // Cue Files sind Text, das geht meist einfacher
-                                const r = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(rec._cueUrl));
-                                if(r.ok) {
-                                    const txt = await r.text();
-                                    if(!txt.includes("<html")) rec.cueTracks = parseCueSheet(txt);
-                                }
-                            } catch(e) {}
-                        }
-                        // 3. AUDIO DOWNLOAD (Das Wichtigste!)
-                        if(rec._downloadUrl) {
-                           try {
-                               const b = await fetchBlob(rec._downloadUrl);
-                               const audioFile = new File([b], "audio.mp3", { type: "audio/mp3" });
-                               rec.playlist = [audioFile]; 
-                               rec.playlistFileNames = ["audio.mp3"];
-                           } catch(e) {
-                               console.error("MP3 Download gescheitert", e);
-                               // WICHTIG: Wenn Download fehlschlägt, KEIN Streaming-Fallback speichern!
-                               // Stattdessen Fehler anzeigen, damit du weißt, dass es nicht offline geht.
-                               alert("Fehler bei: " + rec.name + "\nKonnte MP3 nicht herunterladen (CORS/Proxy Block).");
-                               continue; // Nächsten Eintrag versuchen
-                           }
-                        }
+                        <strong style="color:#f1c40f;">Anleitung:</strong>
+                        <ol style="line-height:1.6; padding-left:20px;">
+                            <li>Klicke unten auf die Links, um die MP3s herunterzuladen.</li>
+                            <li>Schließe danach dieses Fenster.</li>
+                            <li>Klicke in der App auf den orangenen Button <br><strong>"🪄 Automatisch reparieren"</strong>.</li>
+                            <li>Wähle die heruntergeladenen Dateien aus deinem Download-Ordner aus.</li>
+                        </ol>
+
+                        <ul style="background:#2d3436; padding:15px; border-radius:10px; list-style:none; border:1px solid #555;">${downloadLinks.join('')}</ul>
                         
-                        // Aufräumen & Speichern
-                        delete rec._downloadUrl; delete rec._coverUrl; delete rec._cueUrl;
-                        
-                        await new Promise((resolve) => {
-                           const tx = db.transaction(["tracks"], "readwrite");
-                           tx.objectStore("tracks").put(rec);
-                           tx.oncomplete = () => resolve();
-                           tx.onerror = () => resolve(); 
-                        });
-                        count++;
-                     }
-                     showStatus(`${count} installiert! 🎉`);
-                     loadTagList();
-                });
-            } catch (e) {
+                        <button onclick="this.parentNode.remove()" style="background:#3498db; color:white; padding:15px; border:none; border-radius:10px; font-size:1.2em; margin-top:auto; width:100%; font-weight:bold; cursor:pointer;">Verstanden & Schließen</button>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', dlHtml);
+
+            } catch(e) {
                 alert("Fehler: " + e.message);
-                showStatus("Fehler ❌");
             }
         }
         
