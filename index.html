@@ -3615,21 +3615,20 @@
             renderLibrary();
         }
 
-        // --- OHRKA INSTALLATION (2-SCHRITTE) ---
+        // --- OHRKA INSTALLATION (2-SCHRITTE - ROBUST) ---
         async function loadOhrkaSetup(event) {
             if(event) { event.stopPropagation(); event.preventDefault(); }
             
             const BASE = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/ohrka/";
-            // Proxy nur für kleine Bilder/Text nutzen, da ist die Erfolgschance höher
-            const PROXY = "https://api.allorigins.win/raw?url="; 
-
+            
             if(!confirm("Schritt 1: Metadaten (Cover, Titel) werden installiert.\nSchritt 2: Du erhältst Links zum manuellen Download der MP3s.\n\nStarten?")) return;
 
             showStatus("⏳ Lade Liste...");
             
             try {
+                // Versuche die Liste direkt zu laden
                 const r = await fetch(BASE + "klangkiste.json");
-                if(!r.ok) throw new Error("Liste nicht geladen");
+                if(!r.ok) throw new Error("Liste nicht geladen: " + r.status);
                 const data = await r.json();
                 
                 let installed = 0;
@@ -3638,35 +3637,40 @@
                 for(const entry of data) {
                     showStatus("Installiere Infos: " + entry.name + "...");
                     
-                    // 1. Versuche Cover zu laden (Best Effort)
                     let imgBlob = null;
+                    let cues = null;
+
+                    // 1. VERSUCHE COVER (Failsafe: Wenn es nicht klappt, mach weiter!)
                     if(entry.imageFileName) {
                         try {
-                           const ir = await fetch(PROXY + encodeURIComponent(BASE + "audio/" + entry.imageFileName));
+                           // Wir versuchen es direkt von GitHub. Das hat meistens CORS erlaubt.
+                           const url = BASE + "audio/" + encodeURIComponent(entry.imageFileName);
+                           const ir = await fetch(url);
                            if(ir.ok) imgBlob = await ir.blob();
-                        } catch(e){}
+                        } catch(e){
+                            console.warn("Cover konnte nicht geladen werden (egal):", entry.name);
+                        }
                     }
 
-                    // 2. Versuche Cue zu laden (Best Effort)
-                    let cues = null;
+                    // 2. VERSUCHE CUE (Failsafe)
                     if(entry.playlistFileNames && entry.playlistFileNames[0]) {
                         try {
-                            const cueUrl = BASE + "audio/" + entry.playlistFileNames[0].replace('.mp3', '.cue');
-                            const cr = await fetch(PROXY + encodeURIComponent(cueUrl));
+                            const cueUrl = BASE + "audio/" + encodeURIComponent(entry.playlistFileNames[0].replace('.mp3', '.cue'));
+                            const cr = await fetch(cueUrl);
                             if(cr.ok) {
                                 const txt = await cr.text();
                                 if(!txt.includes("404")) cues = parseCueSheet(txt);
                             }
-                        } catch(e){}
+                        } catch(e){ console.warn("Cue failed (egal)"); }
                     }
 
-                    // 3. Datenbank Eintrag erstellen (Noch OHNE Audio Datei)
+                    // 3. Datenbank Eintrag erstellen
                     const record = {
                         tagId: entry.tagId,
                         name: entry.name,
-                        playlist: [], // Bleibt leer -> wird durch "Reparieren" gefüllt
-                        playlistFileNames: entry.playlistFileNames || [], // Wichtig für Repair-Funktion!
-                        imageBlob: imgBlob,
+                        playlist: [], 
+                        playlistFileNames: entry.playlistFileNames || [],
+                        imageBlob: imgBlob, // Kann null sein, wenn Download scheitert, ist ok!
                         imageFileName: entry.imageFileName,
                         cueTracks: cues,
                         meta: entry.meta || {},
@@ -3684,7 +3688,6 @@
                     
                     // Link für Schritt 2 merken
                     if(entry.downloadUrl) {
-                        // Dateiname aus URL oder Meta erraten für saubere Anzeige
                         const cleanName = entry.playlistFileNames[0] || "audio.mp3";
                         downloadLinks.push(`<li style="margin-bottom:8px;"><a href="${entry.downloadUrl}" download="${cleanName}" target="_blank" style="color:#74b9ff; text-decoration:none; font-weight:bold;">📥 ${entry.name}</a></li>`);
                     }
@@ -3698,7 +3701,7 @@
                 const dlHtml = `
                     <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:99999; color:white; padding:20px; box-sizing:border-box; overflow:auto; display:flex; flex-direction:column;">
                         <h2 style="color:#2ecc71; margin-top:0;">Schritt 2: Offline Dateien</h2>
-                        <p style="background:rgba(255,255,255,0.1); padding:10px; border-radius:5px;">Die Bücher sind installiert, aber die Audiodateien fehlen noch. Browser erlauben automatische Downloads oft nicht.</p>
+                        <p style="background:rgba(255,255,255,0.1); padding:10px; border-radius:5px;">Die Bücher sind angelegt (${installed} Stück).</p>
                         
                         <strong style="color:#f1c40f;">Anleitung:</strong>
                         <ol style="line-height:1.6; padding-left:20px;">
@@ -3716,7 +3719,7 @@
                 document.body.insertAdjacentHTML('beforeend', dlHtml);
 
             } catch(e) {
-                alert("Fehler: " + e.message);
+                alert("Fehler beim Laden der Liste: " + e.message + "\n\nBist du online?");
             }
         }
         
