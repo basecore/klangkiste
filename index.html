@@ -3599,11 +3599,10 @@
             renderLibrary();
         }
 
-        // --- OHRKA INSTALLATION V8 (FIX: NEUE STRUKTUR OHNE /AUDIO/ ORDNER) ---
+        // --- OHRKA INSTALLATION V8.1 (FIX: BUTTON HIGHLIGHT HINZUGEFÜGT) ---
         async function loadOhrkaSetup(event) {
             if(event) { event.stopPropagation(); event.preventDefault(); }
             
-            // Der Basis-Pfad auf deinem GitHub
             const BASE = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/ohrka/";
             
             if(!confirm("Schritt 1: Metadaten (Cover, Titel) werden installiert.\nSchritt 2: Du erhältst Links zum manuellen Download der MP3s.\n\nStarten?")) return;
@@ -3611,7 +3610,6 @@
             showStatus("⏳ Lade OHRKA Katalog...");
             
             try {
-                // 1. klangkiste.json aus dem ohrka-Ordner laden
                 const r = await fetch(BASE + "klangkiste.json");
                 if(!r.ok) throw new Error("Konnte Liste nicht laden");
                 const data = await r.json();
@@ -3621,13 +3619,11 @@
                 const candidates = [];
                 
                 for(const entry of data) {
-                    // Dateiname für den späteren Download berechnen
                     let expectedFileName = "audio.mp3";
                     if(entry.downloadUrl) {
                         expectedFileName = decodeURIComponent(entry.downloadUrl.substring(entry.downloadUrl.lastIndexOf('/') + 1));
                     }
 
-                    // Datensatz vorbereiten (Pfade jetzt direkt in BASE)
                     const record = {
                         tagId: entry.tagId,
                         name: entry.name,
@@ -3640,8 +3636,6 @@
                         tags: entry.tags || [],
                         lastTrackIndex: 0, lastTime: 0, completed: false,
                         hiddenInLib: false,
-                        
-                        // Temporäre URLs für den Fetch-Prozess (OHNE /audio/)
                         _downloadUrl: entry.downloadUrl,
                         _coverUrl: entry.imageFileName ? (BASE + entry.imageFileName) : null,
                         _cueUrl: (entry.playlistFileNames && entry.playlistFileNames[0]) ? (BASE + entry.playlistFileNames[0].replace('.mp3', '.cue')) : null
@@ -3657,7 +3651,6 @@
                     });
                 }
 
-                // 2. Auswahl-Modal anzeigen
                 showImportModal(candidates, async (selectedItems) => {
                      let installedCount = 0;
                      let downloadLinks = [];
@@ -3666,7 +3659,6 @@
                         const rec = selectedItems[i];
                         showStatus(`Installiere ${i+1}/${selectedItems.length}: ${rec.name}...`);
                         
-                        // A) Cover direkt laden
                         if(rec._coverUrl) {
                             try {
                                const ir = await fetch(rec._coverUrl);
@@ -3674,7 +3666,6 @@
                             } catch(e){ console.log("Cover Fehler:", e); }
                         }
 
-                        // B) Cue-Datei direkt laden
                         if(rec._cueUrl) {
                             try {
                                 const cr = await fetch(rec._cueUrl);
@@ -3685,7 +3676,6 @@
                             } catch(e){ console.log("Cue Fehler:", e); }
                         }
                         
-                        // Download-Link für Schritt 2 generieren
                         if(rec._downloadUrl) {
                             const fName = rec.playlistFileNames[0];
                             downloadLinks.push(`
@@ -3698,10 +3688,8 @@
                                 </li>`);
                         }
 
-                        // Hilfs-URLs entfernen vor dem Speichern
                         delete rec._downloadUrl; delete rec._coverUrl; delete rec._cueUrl;
 
-                        // C) In IndexedDB speichern
                         await new Promise((resolve) => {
                             const tx = db.transaction(["tracks"], "readwrite");
                             const store = tx.objectStore("tracks");
@@ -3713,7 +3701,15 @@
                      showStatus("✅ Fertig!");
                      loadTagList();
 
-                     // 3. Download-Liste anzeigen
+                     // --- DIESER TEIL ÄNDERT DIE FARBE DES REPARIEREN-BUTTONS ---
+                     const repairBtn = document.getElementById('btn-auto-repair');
+                     if(repairBtn && installedCount > 0) {
+                        repairBtn.style.backgroundColor = "#e67e22"; // Orange
+                        repairBtn.style.color = "white";
+                        repairBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        showStatus("Bitte 'Automatisch Reparieren' nutzen für Audio!");
+                     }
+
                      if(downloadLinks.length > 0) {
                          const dlHtml = `
                             <div id="ohrka-download-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:99999; color:white; padding:20px; box-sizing:border-box; overflow:auto; display:flex; flex-direction:column;">
@@ -3722,7 +3718,7 @@
                                 <div style="background:rgba(243, 156, 18, 0.2); border-left:4px solid #f39c12; padding:10px; margin-bottom:15px; font-size:0.9em;">
                                     ⚠️ <strong>DOWNLOAD-TIPPS:</strong><br>
                                     1. <b>LANGE</b> drücken -> "Link herunterladen".<br>
-                                    2. Danach Dateien in der App über <b>"Reparieren"</b> verknüpfen.
+                                    2. Danach Dateien über den jetzt <b>orangenen Button</b> verknüpfen.
                                 </div>
                                 <ul style="background:#2d3436; padding:15px; border-radius:10px; list-style:none; border:1px solid #555; margin:0;">
                                     ${downloadLinks.join('')}
