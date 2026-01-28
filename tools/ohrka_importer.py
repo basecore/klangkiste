@@ -20,8 +20,8 @@ from bs4 import BeautifulSoup
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'}
 
-VERSION = "4.2"
-LAST_UPDATE = "27.01.2026"
+VERSION = "4.3"
+LAST_UPDATE = "28.01.2026"
 AUTHOR = "KlangKiste Magic Importer"
 LOGO_URL = "https://www.ohrka.de/templates/public/img/logo.png"
 
@@ -30,7 +30,6 @@ RANDOM_COLORS = [
     (231, 76, 60), (241, 196, 15), (230, 126, 34), (26, 188, 156),
     (142, 68, 173), (22, 160, 133), (44, 62, 80)
 ]
-
 
 class ImporterGUI:
     def __init__(self, root):
@@ -41,6 +40,7 @@ class ImporterGUI:
 
         self.books = []
         self.sort_reverse = {"ID": False, "Alter": False, "Titel": False, "Likes": True}
+        # Standardpfad angepasst
         self.export_path = os.path.join(os.getcwd(), "ohrka_export")
         self.logo_data = self.fetch_logo()
 
@@ -210,7 +210,6 @@ class ImporterGUI:
                     text_div = teaser.find('div', class_='teaserText')
                     if not text_div: continue
 
-                    # Titel extrahieren
                     title = "Unbekannt"
                     h3 = text_div.find('h3')
                     if h3:
@@ -225,7 +224,6 @@ class ImporterGUI:
                             else:
                                 title = full_h3.strip()
 
-                    # Likes
                     likes = 0
                     ratings_span = text_div.find('span', class_='ratings')
                     if ratings_span:
@@ -234,7 +232,6 @@ class ImporterGUI:
                         except:
                             pass
 
-                    # Beschreibung
                     desc = ""
                     p_tag = text_div.find('p')
                     if p_tag:
@@ -329,7 +326,6 @@ class ImporterGUI:
         canvas = Image.new("RGB", (600, 600), (255, 255, 255))
         draw = ImageDraw.Draw(canvas)
 
-        # 1. Logo RIESIG
         if logo_raw:
             try:
                 logo = Image.open(BytesIO(logo_raw)).convert("RGBA")
@@ -341,7 +337,6 @@ class ImporterGUI:
             except:
                 pass
 
-        # 2. Icon 250px
         if specific_icon_raw:
             try:
                 spec_icon = Image.open(BytesIO(specific_icon_raw)).convert("RGBA")
@@ -404,13 +399,14 @@ class ImporterGUI:
 
     def download_loop(self, indices):
         path = self.path_entry.get()
-        audio_dir = os.path.join(path, "audio")
-        os.makedirs(audio_dir, exist_ok=True)
+        # ÄNDERUNG: Kein audio_dir mehr, alles direkt in 'path'
+        os.makedirs(path, exist_ok=True)
         results = []
         for idx in indices:
             b = self.books[idx]
             self.status_var.set(f"📥 Lade: {b['title']}...")
-            entry = self.proc_file(b, audio_dir)
+            # ÄNDERUNG: Direkt in den Zielordner 'path'
+            entry = self.proc_file(b, path)
             if entry:
                 results.append(entry)
                 self.save_json(path, results)
@@ -428,13 +424,15 @@ class ImporterGUI:
 
             safe = "".join([c for c in b['title'] if c.isalnum() or c in (' ', '-', '_')]).strip()
 
+            # Speichern MP3 direkt in den Hauptordner
             with open(os.path.join(folder, f"{safe}.mp3"), 'wb') as f:
                 f.write(requests.get(mp3_url, verify=False, timeout=60).content)
 
-            # Optimiertes Speichern (kleinere Dateigröße)
+            # Speichern JPG direkt in den Hauptordner
             self.generate_sq_cover(self.logo_data, b['title'], b.get('icon_data')).save(
                 os.path.join(folder, f"{safe}.jpg"), "JPEG", quality=70, optimize=True)
 
+            # Speichern CUE direkt in den Hauptordner
             if b['chapters']:
                 with open(os.path.join(folder, f"{safe}.cue"), 'w', encoding='utf-8') as c:
                     c.write(f'FILE "{safe}.mp3" MP3\n')
@@ -467,13 +465,14 @@ class ImporterGUI:
                 },
                 "tags": ["Ohrka", "Hörspiel", "Kostenlos"],
                 "filter_age": int(re.sub(r'\D', '', b['age']) or 0),
-                "downloadUrl": mp3_url  # Wichtig für die App!
+                "downloadUrl": mp3_url
             }
         except:
             return None
 
     def save_json(self, path, data):
-        j_p = os.path.join(path, "klangkiste.json")
+        # ÄNDERUNG: Neuer Dateiname klangkiste_ohrka.json
+        j_p = os.path.join(path, "klangkiste_ohrka.json")
         cur = []
         if os.path.exists(j_p):
             try:
