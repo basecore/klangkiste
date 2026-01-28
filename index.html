@@ -3616,11 +3616,11 @@
             renderLibrary();
         }
 
-        // --- OHRKA INSTALLATION V5 (DIRECT GITHUB + SELECTION) ---
+        // --- OHRKA INSTALLATION V5 (FIX: DIREKT GITHUB & STABILE DB) ---
         async function loadOhrkaSetup(event) {
             if(event) { event.stopPropagation(); event.preventDefault(); }
             
-            // Wir laden direkt von GitHub (CORS ist dort meist erlaubt für GET)
+            // Wir laden direkt von GitHub (Viel schneller & kein Proxy-Fehler)
             const BASE = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/ohrka/";
             
             showStatus("⏳ Lade OHRKA Katalog...");
@@ -3637,7 +3637,8 @@
                 const candidates = [];
                 
                 for(const entry of data) {
-                    // Dateinamen berechnen
+                    // Den echten Dateinamen aus der Download-URL extrahieren
+                    // z.B. "Ein_MS_kommt_selten_allein.mp3"
                     let expectedFileName = "audio.mp3";
                     if(entry.downloadUrl) {
                         expectedFileName = decodeURIComponent(entry.downloadUrl.substring(entry.downloadUrl.lastIndexOf('/') + 1));
@@ -3648,7 +3649,7 @@
                         tagId: entry.tagId,
                         name: entry.name,
                         playlist: [], 
-                        playlistFileNames: [expectedFileName], 
+                        playlistFileNames: [expectedFileName], // Wichtig für Repair!
                         imageBlob: null,
                         imageFileName: entry.imageFileName,
                         cueTracks: null,
@@ -3657,9 +3658,8 @@
                         lastTrackIndex: 0, lastTime: 0, completed: false,
                         hiddenInLib: false,
                         
-                        // Hilfs-URLs für den nächsten Schritt
+                        // Hilfs-URLs für den nächsten Schritt (Direkte GitHub Links)
                         _downloadUrl: entry.downloadUrl,
-                        // WICHTIG: Hier bauen wir die direkte GitHub URL zusammen, OHNE Proxy
                         _coverUrl: entry.imageFileName ? (BASE + "audio/" + entry.imageFileName) : null,
                         _cueUrl: (entry.playlistFileNames && entry.playlistFileNames[0]) ? (BASE + "audio/" + entry.playlistFileNames[0].replace('.mp3', '.cue')) : null
                     };
@@ -3680,18 +3680,17 @@
                      let installedCount = 0;
                      let downloadLinks = [];
 
-                     // 4. Verarbeitung
+                     // 4. Verarbeitung der ausgewählten Items
                      for (let i = 0; i < selectedItems.length; i++) {
                         const rec = selectedItems[i];
                         showStatus(`Installiere ${i+1}/${selectedItems.length}: ${rec.name}...`);
                         
-                        // A) Cover laden (DIREKT)
+                        // A) Cover laden (DIREKT von GitHub)
                         if(rec._coverUrl) {
                             try {
-                               // encodeURIComponent ist wichtig für Leerzeichen im Dateinamen auf GitHub
-                               // Wir splitten die URL auf, um nur den Dateinamen zu encodieren, 
-                               // oder nutzen die bereits saubere URLLogik von oben, aber fetch braucht encoding bei Sonderzeichen
+                               // Wir bauen die URL sicher zusammen (für Leerzeichen im Dateinamen)
                                const urlParts = rec._coverUrl.split('/audio/');
+                               // encodiere nur den Dateinamen-Teil
                                const safeUrl = urlParts[0] + '/audio/' + encodeURIComponent(urlParts[1]);
                                
                                const ir = await fetch(safeUrl);
@@ -3699,7 +3698,7 @@
                             } catch(e){ console.log("Cover Fehler (ignoriert):", e); }
                         }
 
-                        // B) Cue laden (DIREKT)
+                        // B) Cue laden (DIREKT von GitHub)
                         if(rec._cueUrl) {
                             try {
                                 const urlParts = rec._cueUrl.split('/audio/');
@@ -3708,28 +3707,32 @@
                                 const cr = await fetch(safeUrl);
                                 if(cr.ok) {
                                     const txt = await cr.text();
+                                    // Manchmal gibt GitHub 404 als Text zurück
                                     if(!txt.includes("404")) rec.cueTracks = parseCueSheet(txt);
                                 }
                             } catch(e){ console.log("Cue Fehler (ignoriert):", e); }
                         }
                         
-                        // Link merken
+                        // Download-Link für die Liste merken
                         if(rec._downloadUrl) {
                             const fName = rec.playlistFileNames[0];
                             downloadLinks.push(`<li style="margin-bottom:8px;"><a href="${rec._downloadUrl}" download="${fName}" target="_blank" style="color:#74b9ff; text-decoration:none; font-weight:bold;">📥 ${rec.name}</a><br><span style="font-size:0.75em; color:#aaa; font-family:monospace;">Datei: ${fName}</span></li>`);
                         }
 
-                        // Cleanup interne Felder
+                        // Cleanup interne Felder (nicht in DB speichern)
                         delete rec._downloadUrl; delete rec._coverUrl; delete rec._cueUrl;
 
-                        // C) Speichern (Neue Transaktion für jeden Eintrag verhindert Timeouts)
+                        // C) Speichern
+                        // WICHTIG: Wir öffnen für JEDEN Eintrag eine NEUE Transaktion.
+                        // Das verhindert den "InvalidStateError", weil die Transaktion nicht offen bleiben muss,
+                        // während wir oben auf das Internet (fetch) warten.
                         try {
                             await new Promise((resolve, reject) => {
                                 const tx = db.transaction(["tracks"], "readwrite");
                                 const store = tx.objectStore("tracks");
                                 const req = store.put(rec);
                                 req.onsuccess = resolve;
-                                req.onerror = reject;
+                                req.onerror = (e) => reject(e.target.error);
                             });
                             installedCount++;
                         } catch(dbErr) {
@@ -3741,7 +3744,7 @@
                      showStatus("✅ Fertig!");
                      loadTagList();
 
-                     // 5. Download Fenster
+                     // 5. Download Fenster anzeigen
                      if(downloadLinks.length > 0) {
                          const dlHtml = `
                             <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:99999; color:white; padding:20px; box-sizing:border-box; overflow:auto; display:flex; flex-direction:column;">
