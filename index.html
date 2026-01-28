@@ -2509,12 +2509,13 @@
             }
         }
 
+        // --- REPAIR V3 (EXACT MATCH VIA URL-NAME) ---
         async function smartRelinkFiles(input) {
             const files = Array.from(input.files); 
             if(files.length === 0) return;
             
-            // 1. Erstmal alle Tracks aus der DB holen
-            showStatus("Lade Datenbank für Analyse...");
+            showStatus("Analysiere Dateien...");
+            
             const allTracks = await new Promise((resolve) => {
                 const tx = db.transaction(["tracks"], "readonly");
                 tx.objectStore("tracks").getAll().onsuccess = (e) => resolve(e.target.result);
@@ -2523,57 +2524,57 @@
             let fixedCount = 0;
             const total = allTracks.length;
 
-            // 2. Schleife durchlaufen (asynchron, damit UI nicht einfriert)
             for (let i = 0; i < total; i++) {
                 const record = allTracks[i];
-                
-                // UI Update: Zeige Fortschritt an
-                showStatus(`Prüfe ${i + 1} / ${total}: ${record.name.substring(0, 15)}...`);
-                
-                // WICHTIG: Kurze Pause, damit der Browser den Text zeichnen kann
-                await new Promise(r => setTimeout(r, 0));
-
-                if(record.tagId === SYSTEM_BG_ID || record.tagId === SYSTEM_SETTINGS_ID) continue;
+                if(record.tagId === "system_bg" || record.tagId === "system_settings") continue;
 
                 let changed = false;
                 
-                // Audio Files suchen & verknüpfen
-                if (record.playlistFileNames && (!record.playlist || record.playlist.length === 0)) {
+                // Prüfen, ob wir Dateinamen erwarten und noch kein Audio haben
+                if (record.playlistFileNames && record.playlistFileNames.length > 0 && (!record.playlist || record.playlist.length === 0)) {
+                    
                     const newPlaylist = [];
-                    record.playlistFileNames.forEach(name => {
-                        const f = files.find(x => x.name === name);
-                        if(f) newPlaylist.push(f);
-                    });
-                    if(newPlaylist.length > 0) {
+                    // Da wir beim Installieren den echten Namen aus der URL gespeichert haben,
+                    // können wir hier exakt danach suchen!
+                    const expectedName = record.playlistFileNames[0]; 
+                    
+                    // Suche die Datei in den hochgeladenen Files
+                    const match = files.find(f => f.name === expectedName);
+
+                    if(match) {
+                        console.log(`Gefunden: ${match.name} für ${record.name}`);
+                        newPlaylist.push(match);
                         record.playlist = newPlaylist;
                         changed = true;
                     }
                 }
                 
-                // Cover Bild suchen & verknüpfen
+                // Cover check (optional)
                 if (record.imageFileName && !record.imageBlob) {
                     const img = files.find(x => x.name === record.imageFileName);
-                    if(img) {
-                        record.imageBlob = img;
-                        changed = true;
-                    }
+                    if(img) { record.imageBlob = img; changed = true; }
                 }
 
-                // Wenn etwas repariert wurde, speichern wir diesen EINEN Eintrag
                 if(changed) {
                     await new Promise((resolve) => {
                         const tx = db.transaction(["tracks"], "readwrite");
-                        const store = tx.objectStore("tracks");
-                        store.put(record);
+                        tx.objectStore("tracks").put(record);
                         tx.oncomplete = () => resolve();
-                        tx.onerror = () => resolve(); // Fehler ignorieren und weitermachen
+                        tx.onerror = () => resolve(); 
                     });
                     fixedCount++;
                 }
             }
 
-            showStatus(`${fixedCount} Einträge erfolgreich repariert! 🎉`); 
-            loadTagList(); 
+            if(fixedCount > 0) {
+                showStatus(`${fixedCount} verknüpft! 🎉`);
+                alert(`Erfolg! ${fixedCount} Hörbücher sind jetzt offline verfügbar.`);
+            } else {
+                showStatus("Nichts gefunden.");
+                alert("Keine passende Datei gefunden.\nBitte stelle sicher, dass du die heruntergeladenen Dateien ausgewählt hast.");
+            }
+            
+            loadTagList();
             input.value = "";
         }
 
