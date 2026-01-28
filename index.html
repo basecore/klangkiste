@@ -3616,106 +3616,151 @@
             renderLibrary();
         }
 
-        // --- OHRKA INSTALLATION V3 (URL-FILENAME EXTRACT) ---
+        // --- OHRKA INSTALLATION V4 (MIT AUSWAHL-FENSTER) ---
         async function loadOhrkaSetup(event) {
             if(event) { event.stopPropagation(); event.preventDefault(); }
             
             const BASE = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/ohrka/";
             const PROXY = "https://api.allorigins.win/raw?url="; 
 
-            if(!confirm("Schritt 1: Metadaten werden installiert.\nSchritt 2: Du erhältst Links zum Download.\n\nStarten?")) return;
-
-            showStatus("⏳ Lade Liste...");
+            showStatus("⏳ Lade OHRKA Katalog...");
             
             try {
+                // 1. Liste laden
                 const r = await fetch(BASE + "klangkiste.json");
                 if(!r.ok) throw new Error("Liste nicht geladen");
                 const data = await r.json();
                 
-                let installed = 0;
-                let downloadLinks = [];
+                if(!db) { alert("Datenbank nicht bereit."); return; }
 
+                // 2. Kandidaten für das Auswahl-Fenster vorbereiten
+                const candidates = [];
+                
                 for(const entry of data) {
-                    showStatus("Installiere: " + entry.name + "...");
-                    
-                    // --- NEU: ECHTEN DATEINAMEN AUS URL HOLEN ---
-                    // Wir nehmen die downloadUrl (z.B. .../Ein_MS.mp3) und holen uns nur das Ende
-                    let expectedFileName = "audio.mp3"; // Fallback
+                    // Wir ermitteln den Dateinamen aus der URL schon jetzt, 
+                    // speichern ihn aber erst nach der Auswahl.
+                    let expectedFileName = "audio.mp3";
                     if(entry.downloadUrl) {
-                        // Schneidet alles vor dem letzten "/" weg und dekodiert %20 zu Leerzeichen
                         expectedFileName = decodeURIComponent(entry.downloadUrl.substring(entry.downloadUrl.lastIndexOf('/') + 1));
                     }
-                    // ---------------------------------------------
 
-                    // 1. Cover laden (Failsafe)
-                    let imgBlob = null;
-                    if(entry.imageFileName) {
-                        try {
-                           const url = BASE + "audio/" + encodeURIComponent(entry.imageFileName);
-                           const ir = await fetch(url);
-                           if(ir.ok) imgBlob = await ir.blob();
-                        } catch(e){}
-                    }
-
-                    // 2. Cue laden (Failsafe)
-                    let cues = null;
-                    if(entry.playlistFileNames && entry.playlistFileNames[0]) {
-                        try {
-                            const cueUrl = BASE + "audio/" + encodeURIComponent(entry.playlistFileNames[0].replace('.mp3', '.cue'));
-                            const cr = await fetch(cueUrl);
-                            if(cr.ok) {
-                                const txt = await cr.text();
-                                if(!txt.includes("404")) cues = parseCueSheet(txt);
-                            }
-                        } catch(e){}
-                    }
-
-                    // 3. Datenbank Eintrag
+                    // Das Daten-Objekt (noch nicht speichern!)
                     const record = {
                         tagId: entry.tagId,
                         name: entry.name,
                         playlist: [], 
-                        // HIER IST DER TRICK: Wir speichern den echten Dateinamen aus der URL!
-                        playlistFileNames: [expectedFileName], 
-                        imageBlob: imgBlob,
+                        playlistFileNames: [expectedFileName], // Wichtig für Repair!
+                        imageBlob: null,
                         imageFileName: entry.imageFileName,
-                        cueTracks: cues,
+                        cueTracks: null,
                         meta: entry.meta || {},
                         tags: entry.tags || [],
                         lastTrackIndex: 0, lastTime: 0, completed: false,
-                        hiddenInLib: false
+                        hiddenInLib: false,
+                        
+                        // Hilfsdaten für den Installations-Prozess
+                        _downloadUrl: entry.downloadUrl,
+                        _coverUrl: entry.imageFileName ? (BASE + "audio/" + entry.imageFileName) : null,
+                        _cueUrl: (entry.playlistFileNames && entry.playlistFileNames[0]) ? (BASE + "audio/" + entry.playlistFileNames[0].replace('.mp3', '.cue')) : null
                     };
-                    
-                    // Workaround: Falls Repair scheitert, Stream Link merken
+
+                    // Streaming Fallback
                     if(!record.meta.streamingUrl) record.meta.streamingUrl = entry.downloadUrl;
 
-                    await new Promise(resolve => {
-                        const tx = db.transaction(["tracks"], "readwrite");
-                        tx.objectStore("tracks").put(record);
-                        tx.oncomplete = resolve;
+                    candidates.push({
+                        name: entry.name,
+                        fileCount: 1, 
+                        data: record,
+                        meta: entry.meta
                     });
-                    
-                    if(entry.downloadUrl) {
-                        downloadLinks.push(`<li style="margin-bottom:8px;"><a href="${entry.downloadUrl}" download target="_blank" style="color:#74b9ff; text-decoration:none; font-weight:bold;">📥 ${entry.name}</a><br><span style="font-size:0.8em; color:#aaa;">Datei: ${expectedFileName}</span></li>`);
-                    }
-                    installed++;
                 }
 
-                showStatus("✅ Fertig installiert!");
-                loadTagList();
+                // 3. Zeige das Auswahl-Fenster (Checkboxen)
+                showImportModal(candidates, async (selectedItems) => {
+                     let installedCount = 0;
+                     let downloadLinks = [];
 
-                const dlHtml = `
-                    <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:99999; color:white; padding:20px; box-sizing:border-box; overflow:auto; display:flex; flex-direction:column;">
-                        <h2 style="color:#2ecc71; margin-top:0;">Schritt 2: Offline Dateien</h2>
-                        <p>Klicke auf die Links, lade die Dateien herunter und nutze danach den <span style="color:orange">orangenen Reparieren-Knopf</span>.</p>
-                        <ul style="background:#2d3436; padding:15px; border-radius:10px; list-style:none; border:1px solid #555;">${downloadLinks.join('')}</ul>
-                        <button onclick="this.parentNode.remove()" style="background:#3498db; color:white; padding:15px; border:none; border-radius:10px; font-size:1.2em; margin-top:auto; width:100%; font-weight:bold; cursor:pointer;">Verstanden & Schließen</button>
-                    </div>
-                `;
-                document.body.insertAdjacentHTML('beforeend', dlHtml);
+                     // 4. Nur die AUSGEWÄHLTEN verarbeiten
+                     for (let i = 0; i < selectedItems.length; i++) {
+                        const rec = selectedItems[i];
+                        showStatus(`Installiere ${i+1}/${selectedItems.length}: ${rec.name}...`);
+                        
+                        // A) Cover laden (Versuch ohne Proxy zuerst, da github pages oft cors erlaubt für images)
+                        if(rec._coverUrl) {
+                            try {
+                               // Encode nur den Dateinamen-Teil, falls nötig. Hier nehmen wir die URL direkt.
+                               // Wir versuchen es via Proxy für maximale Kompatibilität bei Bildern
+                               const ir = await fetch(PROXY + encodeURIComponent(rec._coverUrl));
+                               if(ir.ok) rec.imageBlob = await ir.blob();
+                            } catch(e){}
+                        }
+
+                        // B) Cue laden
+                        if(rec._cueUrl) {
+                            try {
+                                const cr = await fetch(PROXY + encodeURIComponent(rec._cueUrl));
+                                if(cr.ok) {
+                                    const txt = await cr.text();
+                                    if(!txt.includes("404")) rec.cueTracks = parseCueSheet(txt);
+                                }
+                            } catch(e){}
+                        }
+                        
+                        // Link für die Liste merken
+                        if(rec._downloadUrl) {
+                            // Dateiname für Anzeige
+                            const fName = rec.playlistFileNames[0];
+                            downloadLinks.push(`<li style="margin-bottom:8px;"><a href="${rec._downloadUrl}" download="${fName}" target="_blank" style="color:#74b9ff; text-decoration:none; font-weight:bold;">📥 ${rec.name}</a><br><span style="font-size:0.75em; color:#aaa; font-family:monospace;">Datei: ${fName}</span></li>`);
+                        }
+
+                        // Aufräumen (interne Felder nicht speichern)
+                        delete rec._downloadUrl; delete rec._coverUrl; delete rec._cueUrl;
+
+                        // C) Speichern in DB
+                        await new Promise(resolve => {
+                            const tx = db.transaction(["tracks"], "readwrite");
+                            tx.objectStore("tracks").put(rec);
+                            tx.oncomplete = resolve;
+                        });
+                        
+                        installedCount++;
+                     }
+
+                     showStatus("✅ Installation fertig!");
+                     loadTagList();
+
+                     // 5. Fenster mit Download-Links anzeigen
+                     if(downloadLinks.length > 0) {
+                         const dlHtml = `
+                            <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:99999; color:white; padding:20px; box-sizing:border-box; overflow:auto; display:flex; flex-direction:column;">
+                                <h2 style="color:#2ecc71; margin-top:0;">Schritt 2: Offline Dateien</h2>
+                                <p>Du hast <b>${installedCount} Hörbücher</b> installiert.</p>
+                                <p style="background:rgba(231, 76, 60, 0.2); border-left:3px solid #e74c3c; padding:10px;">
+                                    ⚠️ <strong>WICHTIG:</strong> Damit sie offline laufen, musst du die MP3s jetzt herunterladen und verknüpfen.
+                                </p>
+                                
+                                <strong style="color:#f1c40f;">Deine To-Do Liste:</strong>
+                                <ol style="line-height:1.6; padding-left:20px; margin-bottom:20px;">
+                                    <li>Klicke auf die blauen Links unten (MP3s werden geladen).</li>
+                                    <li>Merke dir den Speicherort (meist "Downloads").</li>
+                                    <li>Schließe dieses Fenster.</li>
+                                    <li>Drücke in der App auf <strong>"🪄 Automatisch reparieren"</strong>.</li>
+                                    <li>Wähle alle eben geladenen MP3s aus.</li>
+                                </ol>
+
+                                <ul style="background:#2d3436; padding:15px; border-radius:10px; list-style:none; border:1px solid #555;">${downloadLinks.join('')}</ul>
+                                
+                                <button onclick="this.parentNode.remove()" style="background:#3498db; color:white; padding:15px; border:none; border-radius:10px; font-size:1.2em; margin-top:auto; width:100%; font-weight:bold; cursor:pointer;">Verstanden & Schließen</button>
+                            </div>
+                        `;
+                        document.body.insertAdjacentHTML('beforeend', dlHtml);
+                     } else {
+                         alert("Fertig! Keine Downloads notwendig (nur Metadaten?).");
+                     }
+                });
 
             } catch(e) {
-                alert("Fehler: " + e.message);
+                alert("Fehler beim Laden der Liste: " + e.message);
             }
         }
         
