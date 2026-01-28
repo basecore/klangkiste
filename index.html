@@ -3615,44 +3615,49 @@
             renderLibrary();
         }
 
-        // --- OHRKA INSTALLATION (2-SCHRITTE - ROBUST) ---
+        // --- OHRKA INSTALLATION V3 (URL-FILENAME EXTRACT) ---
         async function loadOhrkaSetup(event) {
             if(event) { event.stopPropagation(); event.preventDefault(); }
             
             const BASE = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/ohrka/";
-            
-            if(!confirm("Schritt 1: Metadaten (Cover, Titel) werden installiert.\nSchritt 2: Du erhältst Links zum manuellen Download der MP3s.\n\nStarten?")) return;
+            const PROXY = "https://api.allorigins.win/raw?url="; 
+
+            if(!confirm("Schritt 1: Metadaten werden installiert.\nSchritt 2: Du erhältst Links zum Download.\n\nStarten?")) return;
 
             showStatus("⏳ Lade Liste...");
             
             try {
-                // Versuche die Liste direkt zu laden
                 const r = await fetch(BASE + "klangkiste.json");
-                if(!r.ok) throw new Error("Liste nicht geladen: " + r.status);
+                if(!r.ok) throw new Error("Liste nicht geladen");
                 const data = await r.json();
                 
                 let installed = 0;
                 let downloadLinks = [];
 
                 for(const entry of data) {
-                    showStatus("Installiere Infos: " + entry.name + "...");
+                    showStatus("Installiere: " + entry.name + "...");
                     
-                    let imgBlob = null;
-                    let cues = null;
+                    // --- NEU: ECHTEN DATEINAMEN AUS URL HOLEN ---
+                    // Wir nehmen die downloadUrl (z.B. .../Ein_MS.mp3) und holen uns nur das Ende
+                    let expectedFileName = "audio.mp3"; // Fallback
+                    if(entry.downloadUrl) {
+                        // Schneidet alles vor dem letzten "/" weg und dekodiert %20 zu Leerzeichen
+                        expectedFileName = decodeURIComponent(entry.downloadUrl.substring(entry.downloadUrl.lastIndexOf('/') + 1));
+                    }
+                    // ---------------------------------------------
 
-                    // 1. VERSUCHE COVER (Failsafe: Wenn es nicht klappt, mach weiter!)
+                    // 1. Cover laden (Failsafe)
+                    let imgBlob = null;
                     if(entry.imageFileName) {
                         try {
-                           // Wir versuchen es direkt von GitHub. Das hat meistens CORS erlaubt.
                            const url = BASE + "audio/" + encodeURIComponent(entry.imageFileName);
                            const ir = await fetch(url);
                            if(ir.ok) imgBlob = await ir.blob();
-                        } catch(e){
-                            console.warn("Cover konnte nicht geladen werden (egal):", entry.name);
-                        }
+                        } catch(e){}
                     }
 
-                    // 2. VERSUCHE CUE (Failsafe)
+                    // 2. Cue laden (Failsafe)
+                    let cues = null;
                     if(entry.playlistFileNames && entry.playlistFileNames[0]) {
                         try {
                             const cueUrl = BASE + "audio/" + encodeURIComponent(entry.playlistFileNames[0].replace('.mp3', '.cue'));
@@ -3661,16 +3666,17 @@
                                 const txt = await cr.text();
                                 if(!txt.includes("404")) cues = parseCueSheet(txt);
                             }
-                        } catch(e){ console.warn("Cue failed (egal)"); }
+                        } catch(e){}
                     }
 
-                    // 3. Datenbank Eintrag erstellen
+                    // 3. Datenbank Eintrag
                     const record = {
                         tagId: entry.tagId,
                         name: entry.name,
                         playlist: [], 
-                        playlistFileNames: entry.playlistFileNames || [],
-                        imageBlob: imgBlob, // Kann null sein, wenn Download scheitert, ist ok!
+                        // HIER IST DER TRICK: Wir speichern den echten Dateinamen aus der URL!
+                        playlistFileNames: [expectedFileName], 
+                        imageBlob: imgBlob,
                         imageFileName: entry.imageFileName,
                         cueTracks: cues,
                         meta: entry.meta || {},
@@ -3679,47 +3685,36 @@
                         hiddenInLib: false
                     };
                     
-                    // Speichern
+                    // Workaround: Falls Repair scheitert, Stream Link merken
+                    if(!record.meta.streamingUrl) record.meta.streamingUrl = entry.downloadUrl;
+
                     await new Promise(resolve => {
                         const tx = db.transaction(["tracks"], "readwrite");
                         tx.objectStore("tracks").put(record);
                         tx.oncomplete = resolve;
                     });
                     
-                    // Link für Schritt 2 merken
                     if(entry.downloadUrl) {
-                        const cleanName = entry.playlistFileNames[0] || "audio.mp3";
-                        downloadLinks.push(`<li style="margin-bottom:8px;"><a href="${entry.downloadUrl}" download="${cleanName}" target="_blank" style="color:#74b9ff; text-decoration:none; font-weight:bold;">📥 ${entry.name}</a></li>`);
+                        downloadLinks.push(`<li style="margin-bottom:8px;"><a href="${entry.downloadUrl}" download target="_blank" style="color:#74b9ff; text-decoration:none; font-weight:bold;">📥 ${entry.name}</a><br><span style="font-size:0.8em; color:#aaa;">Datei: ${expectedFileName}</span></li>`);
                     }
                     installed++;
                 }
 
-                showStatus("✅ Metadaten fertig!");
+                showStatus("✅ Fertig installiert!");
                 loadTagList();
 
-                // SCHRITT 2 DIALOG ANZEIGEN
                 const dlHtml = `
                     <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:99999; color:white; padding:20px; box-sizing:border-box; overflow:auto; display:flex; flex-direction:column;">
                         <h2 style="color:#2ecc71; margin-top:0;">Schritt 2: Offline Dateien</h2>
-                        <p style="background:rgba(255,255,255,0.1); padding:10px; border-radius:5px;">Die Bücher sind angelegt (${installed} Stück).</p>
-                        
-                        <strong style="color:#f1c40f;">Anleitung:</strong>
-                        <ol style="line-height:1.6; padding-left:20px;">
-                            <li>Klicke unten auf die Links, um die MP3s herunterzuladen.</li>
-                            <li>Schließe danach dieses Fenster.</li>
-                            <li>Klicke in der App auf den orangenen Button <br><strong>"🪄 Automatisch reparieren"</strong>.</li>
-                            <li>Wähle die heruntergeladenen Dateien aus deinem Download-Ordner aus.</li>
-                        </ol>
-
+                        <p>Klicke auf die Links, lade die Dateien herunter und nutze danach den <span style="color:orange">orangenen Reparieren-Knopf</span>.</p>
                         <ul style="background:#2d3436; padding:15px; border-radius:10px; list-style:none; border:1px solid #555;">${downloadLinks.join('')}</ul>
-                        
                         <button onclick="this.parentNode.remove()" style="background:#3498db; color:white; padding:15px; border:none; border-radius:10px; font-size:1.2em; margin-top:auto; width:100%; font-weight:bold; cursor:pointer;">Verstanden & Schließen</button>
                     </div>
                 `;
                 document.body.insertAdjacentHTML('beforeend', dlHtml);
 
             } catch(e) {
-                alert("Fehler beim Laden der Liste: " + e.message + "\n\nBist du online?");
+                alert("Fehler: " + e.message);
             }
         }
         
