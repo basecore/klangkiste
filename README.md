@@ -1,10 +1,19 @@
-# 🎵 KlangKiste PWA (V81 Search & Safe Import)
+# 🎵 KlangKiste PWA (V82 OHRKA Update)
 
 **Die smarte DIY "Toniebox" fürs Handy – 100% AI-Generated Code.**
 
 Dieses Projekt ist eine kinderfreundliche Musik-Player-App, die alte Smartphones in sichere, werbefreie Abspielgeräte verwandelt. Sie läuft als **Progressive Web App (PWA)** komplett offline im Browser und nutzt IndexedDB zur Speicherung von hunderten Hörspielen.
 
 > 🤖 **Made with Gemini:** Dieses gesamte Projekt (HTML, CSS, JavaScript Logik, Datenbank-Struktur) wurde vollständig durch **Google Gemini 3 Pro** erstellt und analysiert. Es ist ein Experiment, wie weit KI-gestützte Entwicklung ohne manuelles Coden gehen kann.
+
+---
+
+## 🎧 Neu in v82: OHRKA Hörbücher (Offline)
+
+KlangKiste unterstützt nun direkt die Integration von hochwertigen, kostenlosen Hörbüchern des Portals **OHRKA**. Da Browser direkte Downloads von fremden Seiten oft blockieren (CORS), nutzt die App einen smarten **2-Schritte-Prozess**, um die Dateien **100% offline** verfügbar zu machen:
+
+1.  **Installation:** Wähle "OHRKA Installation". Die App lädt Titel, Beschreibungen, Kapitelmarken und Cover in die Datenbank.
+2.  **Verknüpfung:** Du erhältst in einem Fenster Download-Links für die MP3s. Lade diese herunter und nutze dann den Button **"🪄 Automatisch reparieren"**. Die App erkennt die Dateien automatisch anhand ihres Namens und verknüpft sie mit den Einträgen.
 
 ---
 
@@ -121,15 +130,17 @@ Die App muss nicht über den Play Store geladen werden, sondern wird direkt übe
 
 ## 📖 Bedienung & Musik hinzufügen
 
-### 1. Musik importieren (4 Wege)
+### 1. Musik importieren (5 Wege)
 
 * **A) Ordner-Struktur Import (Smart - Empfohlen):**
     Der beste Weg für sortierte Sammlungen. Wähle deinen Haupt-Ordner. Es öffnet sich das neue **Import-Fenster**, in dem du nach Alter filtern oder unerwünschte Serien ausschließen kannst, bevor sie importiert werden.
 * **B) Massen-Import (Dateien):**
     Für lose MP3s oder wenn du unser Python-Tool nutzt. Wähle Dateien und die `klangkiste.json` aus. Auch hier greift der neue **Safe-Filter**.
-* **C) Online-Beispiele:**
+* **C) OHRKA Installation (Neu):**
+    Nutze die neue V82 Funktion, um OHRKA-Hörbücher in zwei Schritten (Metadaten installieren -> MP3 downloaden & verknüpfen) offline verfügbar zu machen.
+* **D) Online-Beispiele:**
     Lade mit einem Klick vorbereitete KI-generierte Hörspiele direkt vom Server (zum Testen).
-* **D) Manuell anlernen:**
+* **E) Manuell anlernen:**
     Gehe auf „Neuen Tag anlernen", wähle Audio & Bild einzeln und fülle Details wie Beschreibung und Alter aus.
 
 ### 2. Backups & Restore
@@ -151,72 +162,36 @@ Es gibt keinen sichtbaren „Zurück"-Button, damit Kinder die App nicht versehe
 
 ---
 
-## 🚀 Schnellstart mit Beispielen
+## 🪄 Python Tools: Automatisch Inhalte erstellen
 
-Du möchtest die App sofort testen? Wir haben Beispiel-Hörspiele vorbereitet.
+Wir bieten zwei mächtige Python-Tools an, um Inhalte am PC vorzubereiten und dann einfach in die App zu laden.
 
-### ⚡ Methode 1: Direkt in der App laden (Empfohlen)
-1. Öffne den Bereich **„📂 Datenbank“** im Eltern-Modus.
-2. Klicke auf den blauen Button **„☁️ Beispiele direkt laden (Online)“**.
-3. Bestätige den Download. Fertig!
+### 1. TAF zu KlangKiste (Tonie-Format)
 
-<img src="docs/screenshots/import-online.png" width="400" alt="Screenshot des Online Import Buttons">
+Hast du eigene **.taf** Dateien? Das Script `taf_klangkiste_final.py` konvertiert diese vollautomatisch.
 
-> **⚠️ Hinweis zu den Beispielen:** Die enthaltenen Hörbücher wurden testweise mit der **KI Suno 4.5** generiert. Sie dienen rein zu Testzwecken.
+* **Funktion:** Wandelt `.taf` in `.mp3`, lädt Original-Cover und Metadaten (Alter, Genre) von der Webseite und erstellt eine `klangkiste.json`.
+* **Ort:** `tools/taf_klangkiste_final.py`
 
-### 📥 Methode 2: Manuell herunterladen
-1. Gehe auf https://github.com/basecore/klangkiste
-2. Klicke auf den grünen **„Code"**-Button -> **„Download ZIP"**
-3. Entpacke die Datei und lade Ordner `example/` über "Massen-Import".
+### 2. OHRKA Importer (Neu!)
 
----
+Du möchtest alle OHRKA Hörbücher bequem am PC herunterladen und für die App vorbereiten?
 
-## 🪄 Das Python-Tool: TAF zu KlangKiste
+<img src="docs/screenshots/ohrka_importer_gui.jpg" width="600" alt="OHRKA Importer GUI">
 
-Hast du **eigene Tonie-Dateien (.taf)**? Du kannst diese mit dem beiliegenden Skript `taf_klangkiste_final.py` (im Ordner `tools/`) vollautomatisch für die App konvertieren.
-
-**Das Script erledigt alles:**
-1. Wandelt `.taf` (Tonie-Format) in `.mp3` um (inkl. Kapitelmarken in einer `.cue` Datei).
-2. Lädt das **Original-Cover** herunter.
-3. Holt **Metadaten** (Beschreibungstext, Altersempfehlung, Genre) von der Tonie-Website.
-4. Erstellt eine perfekte `klangkiste.json` für den Import.
-
-### Anleitung für PC/Mac
-
-1. **Vorbereitung:**
-    * Installiere [Python](https://www.python.org/)
-    * Installiere [FFmpeg](https://ffmpeg.org/) (muss im System-Pfad sein)
-
-2. **Dateien ablegen:**
-    * Kopiere das Script `taf_klangkiste_final.py` und deine `.taf`-Dateien in einen gemeinsamen Ordner
-
-3. **Abhängigkeiten installieren:**
-    * Öffne ein Terminal in dem Ordner und führe aus:
-    ```bash
-    pip install requests beautifulsoup4 playwright
-    playwright install
-    ```
-
-4. **Script starten:**
-    ```bash
-    python taf_klangkiste_final.py
-    ```
-
-5. **Ergebnis:**
-    * Es entsteht ein Ordner `klangkiste_output`.
-    * Diesen Ordner lädst du über **„📂 Massen-Import"** in die App.
-    * Die App erkennt dank der `klangkiste.json` automatisch das Alter und du kannst beim Import filtern (z.B. "Nur bis 6 Jahre").
+* **Funktion:** Dieses Tool bietet eine grafische Oberfläche (GUI), um MP3s, Cover und Metadaten von OHRKA zu laden und direkt im passenden Format für den **Massen-Import** der KlangKiste zu speichern.
+* **Ort:** [`tools/ohrka_importer.py`](https://github.com/basecore/klangkiste/blob/main/tools/ohrka_importer.py)
 
 ---
 
 ## 📂 Dateistruktur
 
-* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v81)
+* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v82)
 * `sw.js` – Der Service Worker für die Offline-Funktionalität (Cache v76+)
 * `manifest.json` – Konfiguration für das App-Icon und den Vollbild-Modus
 * `assets/` – Ordner für Icons und Test-Sounds
 * `example/` – Beispieldateien (MP3s, PNGs, `klangkiste.json`) für schnellen Start
-* `tools/` – Enthält das Python-Script für den Import von Tonie-Dateien
+* `tools/` – Enthält die Python-Scripts (TAF Converter & OHRKA Importer)
 * `docs/screenshots/` – Screenshots für diese Anleitung
 
 ---
@@ -242,4 +217,4 @@ Wir haben ein DIY-Diagnose-Tool auf Basis eines ESP32 und PN5180 entwickelt.
 ## 👨‍💻 Credits
 
 Entwickelt von Sebastian Rößer mit Unterstützung von **Google Gemini 3 Pro**.
-Version 81 „Search & Safe Import Edition".
+Version 82 „OHRKA Update".
