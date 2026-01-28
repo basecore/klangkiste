@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V81 (Search Update) </title>
+    <title>KlangKiste V82 (OHRKA Update) </title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -955,7 +955,7 @@
         </div>
 
         <div class="footer-info">
-            <p>KlangKiste NFC V81</p>
+            <p>KlangKiste NFC V82</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>
                 <a href="https://github.com/basecore/klangkiste/tree/main" target="_blank">GitHub Projekt</a> | 
@@ -1966,21 +1966,15 @@
         function playTrackByTag(tagId) {
             if (currentPlayingTagId === tagId) {
                 if(audioPlayer.paused) {
-                    audioPlayer.play();
-                    setPlayButtonState(true);
-                    startSleepTimer();
-                    requestWakeLock();
+                    audioPlayer.play(); setPlayButtonState(true); startSleepTimer(); requestWakeLock();
                     showStatus("Fortgesetzt ▶️");
                     currentSessionStart = Date.now(); 
                     logStatEvent('play', tagId, 0, "Resume");
-                } else {
-                    showStatus("Spielt bereits 🔊");
-                }
+                } else { showStatus("Spielt bereits 🔊"); }
                 return;
             }
             
             endSessionLog();
-
             if(currentPlayingTagId && currentPlayingTagId !== tagId) forceSaveCurrentPosition();
             
             const tx = db.transaction(["tracks"], "readwrite");
@@ -1990,38 +1984,62 @@
                 const track = e.target.result;
                 if(track) {
                     logStatEvent('play', tagId, 0, "Start"); 
-
                     localStorage.setItem('lastActiveTagId', tagId);
-
                     track.lastPlayedTimestamp = Date.now();
                     store.put(track);
 
-                    if(!track.playlist || track.playlist.length === 0) { showStatus("⚠️ Audio fehlt!"); return; }
+                    // CHECK: Playlist ODER Stream muss da sein
+                    if((!track.playlist || track.playlist.length === 0) && (!track.meta || !track.meta.streamingUrl)) { 
+                        showStatus("⚠️ Audio fehlt!"); return; 
+                    }
+                    
                     document.getElementById('track-title-display').innerText = track.name;
                     const imgEl = document.getElementById('album-img'); const placeEl = document.getElementById('album-placeholder');
                     if(track.imageBlob) { imgEl.src = URL.createObjectURL(track.imageBlob); imgEl.style.display="block"; placeEl.style.display="none"; } 
                     else { imgEl.style.display="none"; placeEl.style.display="block"; }
                     
-                    currentPlayingTagId = tagId; currentPlaylist = track.playlist;
+                    currentPlayingTagId = tagId; 
+                    currentPlaylist = track.playlist;
                     currentCueTracks = track.cueTracks || null;
                     
                     const nextBtn = document.getElementById('btn-next-track');
-                    // UPDATE: Zeige Button wenn Cues ODER wenn Playlist > 1
                     if((currentCueTracks && currentCueTracks.length > 0) || (currentPlaylist && currentPlaylist.length > 1)) { 
                         nextBtn.style.display = "flex"; 
-                    } else { 
-                        nextBtn.style.display = "none"; 
-                    }
+                    } else { nextBtn.style.display = "none"; }
 
                     let startIndex = track.lastTrackIndex || 0; let startTime = track.lastTime || 0;
                     if(startIndex >= currentPlaylist.length) startIndex = 0;
                     
-                    playPlaylistIndex(startIndex, startTime);
+                    // ENTSCHEIDUNG: Stream oder Download?
+                    if(track.playlist && track.playlist.length > 0) {
+                        playPlaylistIndex(startIndex, startTime); // Offline Datei
+                    } else if(track.meta && track.meta.streamingUrl) {
+                        playStreamingUrl(track.meta.streamingUrl, startTime); // Fallback Stream
+                    }
+
                     if (isParentMode) { goToKidsMode(); }
                 } else { showStatus("Tag unbekannt"); }
             };
         }
 
+        function playStreamingUrl(url, startTime = 0) {
+            if (currentAudioUrl) { URL.revokeObjectURL(currentAudioUrl); currentAudioUrl = null; }
+            currentTrackIndex = 0;
+            updateInfoText();
+            audioPlayer.src = url; 
+            audioPlayer.onloadedmetadata = () => {
+                if(startTime > 0 && startTime < audioPlayer.duration - 2) audioPlayer.currentTime = startTime;
+                applyActualVolume(); updateVolumeUI();
+                audioPlayer.play().then(() => { 
+                    setPlayButtonState(true); startSleepTimer(); requestWakeLock(); 
+                    currentSessionStart = Date.now(); 
+                    if(saveInterval) clearInterval(saveInterval);
+                    saveInterval = setInterval(forceSaveCurrentPosition, 5000);
+                }).catch(e => showStatus("Bereit"));
+                audioPlayer.onloadedmetadata = null;
+            };
+        }
+        
         function playPlaylistIndex(index, startTime = 0) {
             if(index >= currentPlaylist.length) return;
             
@@ -3614,142 +3632,111 @@
             renderLibrary();
         }
 
-// --- START NEUE OHRKA FUNKTION (OFFLINE DOWNLOAD) ---
+// --- NEU: OHRKA DOWNLOAD (OFFLINE FIX) ---
         async function loadOhrkaFromGitHub(event) {
             if(event) { event.stopPropagation(); event.preventDefault(); }
 
-            // Konfiguration
             const BASE_URL = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/ohrka/";
             const AUDIO_BASE_URL = BASE_URL + "audio/";
-            const CORS_PROXY = "https://api.allorigins.win/raw?url="; // Hilft beim MP3 Download
-
+            // Dieser Proxy hilft uns, die MP3s trotz Browsersperre herunterzuladen:
+            const PROXY_URL = "https://corsproxy.io/?"; 
+            
             showStatus("⏳ Lade OHRKA Liste...");
 
             try {
-                // 1. JSON Liste laden
                 const jsonResp = await fetch(BASE_URL + "klangkiste.json");
-                if (!jsonResp.ok) throw new Error("Liste nicht gefunden");
+                if (!jsonResp.ok) throw new Error("JSON nicht gefunden");
                 const data = await jsonResp.json();
                 
                 if(!db) { alert("Datenbank noch nicht bereit."); return; }
 
-                // 2. Daten für das Auswahl-Fenster vorbereiten
                 const candidates = [];
                 for (const entry of data) {
-                    // Wir bauen ein leeres Gerüst, die Dateien kommen erst nach dem Klick
+                    // Wir bauen das Speicher-Objekt
                     const record = {
                         tagId: entry.tagId,
                         name: entry.name,
-                        playlist: [], 
-                        playlistFileNames: [], 
-                        imageBlob: null, 
-                        imageFileName: entry.imageFileName,
+                        playlist: [], playlistFileNames: [], 
+                        imageBlob: null, imageFileName: entry.imageFileName,
                         cueTracks: null, 
-                        meta: entry.meta || {},
-                        tags: entry.tags || [],
+                        meta: entry.meta || {}, tags: entry.tags || [],
                         filter_age: entry.filter_age || 0,
-                        lastTrackIndex: 0,
-                        lastTime: 0,
-                        completed: false,
+                        lastTrackIndex: 0, lastTime: 0, completed: false,
                         
                         // Temporäre Speicherorte für die URLs
                         _downloadUrl: entry.downloadUrl,
                         _coverUrl: entry.imageFileName ? (AUDIO_BASE_URL + encodeURIComponent(entry.imageFileName)) : null,
                         _cueUrl: (entry.playlistFileNames && entry.playlistFileNames.length > 0) ? (AUDIO_BASE_URL + encodeURIComponent(entry.playlistFileNames[0].replace('.mp3', '.cue'))) : null
                     };
-
-                    candidates.push({
-                        name: entry.name,
-                        fileCount: 1, // Ohrka ist meist 1 große MP3
-                        data: record,
-                        meta: entry.meta
-                    });
+                    candidates.push({ name: entry.name, fileCount: 1, data: record, meta: entry.meta });
                 }
 
-                // 3. Modal anzeigen und Auswahl abwarten
                 showImportModal(candidates, async (selectedItems) => {
                      let count = 0;
-                     
-                     // Helper: Versucht Download direkt, sonst über Proxy (für MP3s wichtig)
-                     const downloadFile = async (url) => {
+                     // Helfer zum Herunterladen über Proxy
+                     const fetchBlob = async (url) => {
                          try {
-                             // Versuch 1: Direkt
-                             const r = await fetch(url);
+                             const r = await fetch(url); // Versuch direkt
                              if(r.ok) return await r.blob();
                              throw new Error("Direct fail");
                          } catch(e) {
                              console.log("Nutze Proxy für: " + url);
-                             // Versuch 2: Über Proxy
-                             const r2 = await fetch(CORS_PROXY + encodeURIComponent(url));
+                             const r2 = await fetch(PROXY_URL + encodeURIComponent(url));
                              if(!r2.ok) throw new Error("Download fehlgeschlagen");
                              return await r2.blob();
                          }
                      };
                      
-                     // 4. Die ausgewählten Sachen wirklich herunterladen
                      for (let i = 0; i < selectedItems.length; i++) {
                         const rec = selectedItems[i];
                         showStatus(`Lade ${i+1}/${selectedItems.length}: ${rec.name} (bitte warten)...`, true);
                         
-                        // A) Cover laden
+                        // 1. Cover
                         if(rec._coverUrl) {
                             try {
-                                const b = await downloadFile(rec._coverUrl);
+                                const b = await fetchBlob(rec._coverUrl);
                                 rec.imageBlob = new File([b], rec.imageFileName, { type: "image/jpeg" });
                             } catch(e) { console.warn("Kein Cover", e); }
                         }
-
-                        // B) Cue laden (Kapitel)
+                        // 2. Cue
                         if(rec._cueUrl) {
                             try {
-                                const r = await fetch(CORS_PROXY + encodeURIComponent(rec._cueUrl));
+                                const r = await fetch(PROXY_URL + encodeURIComponent(rec._cueUrl));
                                 if(r.ok) {
                                     const txt = await r.text();
-                                    // Manchmal liefert Proxy HTML Fehler zurück, prüfen:
-                                    if(!txt.includes("<html")) {
-                                        rec.cueTracks = parseCueSheet(txt);
-                                    }
+                                    if(!txt.includes("<html")) rec.cueTracks = parseCueSheet(txt);
                                 }
-                            } catch(e) { console.warn("Keine Kapitel", e); }
+                            } catch(e) {}
                         }
-                        
-                        // C) MP3 laden (Das Wichtigste!)
+                        // 3. AUDIO DOWNLOAD (Das Wichtigste!)
                         if(rec._downloadUrl) {
                            try {
-                               const b = await downloadFile(rec._downloadUrl);
+                               const b = await fetchBlob(rec._downloadUrl);
                                const audioFile = new File([b], "audio.mp3", { type: "audio/mp3" });
-                               rec.playlist = [audioFile]; // Jetzt ist es wirklich offline da!
+                               rec.playlist = [audioFile]; // Als Datei speichern -> Offline verfügbar!
                                rec.playlistFileNames = ["audio.mp3"];
                            } catch(e) {
-                               console.error("MP3 Download gescheitert", e);
-                               alert("Fehler beim Laden von: " + rec.name + "\nDie Datei konnte nicht gespeichert werden.");
-                               continue; // Diesen Eintrag überspringen
+                               console.warn("Download fehlgeschlagen, speichere als Stream", e);
+                               rec.meta.streamingUrl = rec._downloadUrl; // Fallback
                            }
                         }
-
-                        // Aufräumen der Hilfs-Felder
-                        delete rec._downloadUrl;
-                        delete rec._coverUrl;
-                        delete rec._cueUrl;
                         
-                        // Speichern in DB
+                        // Aufräumen & Speichern
+                        delete rec._downloadUrl; delete rec._coverUrl; delete rec._cueUrl;
+                        
                         await new Promise((resolve) => {
                            const tx = db.transaction(["tracks"], "readwrite");
                            tx.objectStore("tracks").put(rec);
                            tx.oncomplete = () => resolve();
                            tx.onerror = () => resolve(); 
                         });
-                        
                         count++;
                      }
-                     
-                     showStatus(`${count} Hörbücher installiert! 🎉`);
-                     loadTagList(); // Liste aktualisieren
+                     showStatus(`${count} installiert! 🎉`);
+                     loadTagList();
                 });
-
             } catch (e) {
-                console.error(e);
-                alert("Verbindungsfehler: " + e.message);
+                alert("Fehler: " + e.message);
                 showStatus("Fehler ❌");
             }
         }
