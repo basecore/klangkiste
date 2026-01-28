@@ -1,0 +1,97 @@
+[
+  {
+    "tagId": "manual_1766486609217_s3flk",
+    "name": "Die drei Schneeflocken der Freundschaft - Das Hörspiel",
+    "playlistFileNames": [
+      "Die drei Schneeflocken der Freundschaft.mp3"
+    ],
+    "imageFileName": "Die drei Schneeflocken der Freundschaft.png",
+    "meta": {
+      "series": "Die drei Schneeflocken der Freundschaft",
+      "episode": "Hörbuch",
+      "description": "In dieser herzerwärmenden Geschichte lernen drei einzigartige Schneeflocken die Bedeutung von Freundschaft und Zusammenhalt kennen, während sie gemeinsam ein winterliches Abenteuer erleben.",
+      "age_recommendation": 4,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 5
+    },
+    "tags": [
+      "Freundschaft",
+      "Winter",
+      "Abenteuer",
+      "Hörspiel"
+    ],
+    "filter_age": 4
+  },
+  {
+    "tagId": "manual_1766486610555_song1",
+    "name": "Schneeflocken - Das Lied",
+    "playlistFileNames": [
+      "Schneeflocken.mp3"
+    ],
+    "imageFileName": "Schneeflocken.png",
+    "meta": {
+      "series": "Die drei Schneeflocken der Freundschaft",
+      "episode": "Lied zum Hörspiel",
+      "description": "Ein magischer Song über Mut, Freundschaft und Zusammenhalt. Passend zum gleichnamigen Hörspiel.",
+      "age_recommendation": 3,
+      "genre": "Musik",
+      "language": "Deutsch",
+      "runtime": 4
+    },
+    "tags": [
+      "Musik",
+      "Freundschaft",
+      "Winter"
+    ],
+    "filter_age": 3
+  },
+  {
+    "tagId": "manual_1766486611000_wusel",
+    "name": "Wusel in der Werkstatt",
+    "playlistFileNames": [
+      "Wusel in der Werkstatt.mp3"
+    ],
+    "imageFileName": "Wusel in der Werkstatt.png",
+    "meta": {
+      "series": "Wusel der Werkstatt-Kobold",
+      "episode": "Episode 1: Das klebrige Abenteuer",
+      "description": "Schreinermeister Hannes wundert sich über verschwundene Werkzeuge, bis er an seinem Leimtopf ein winziges Wesen mit roten Haaren entdeckt. Es ist der Kobold Wusel, der ab jetzt für jede Menge Wirbel in der Werkstatt sorgt.",
+      "age_recommendation": 4,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 1
+    },
+    "tags": [
+      "Hörspiel",
+      "Kobold",
+      "Abenteuer",
+      "Humor"
+    ],
+    "filter_age": 4
+  },
+  {
+    "tagId": "manual_1767105600000_lina",
+    "name": "Lina und die Logik des Herzens",
+    "playlistFileNames": [
+      "Lina und die Logik des Herzens.mp3"
+    ],
+    "imageFileName": "Lina und die Logik des Herzens.png",
+    "meta": {
+      "series": "Lina und die Schneeflocken",
+      "episode": "Hörspiel",
+      "description": "Lina, der Schneemann Ole und die wilde Anina verirren sich im Nebel. Durch drei spannende Rätsel lernen sie, warum Zuhören, Teilen und Echt-Sein nicht nur nett, sondern auch logisch sind. Ein pädagogisches Hörspiel über die Ursache und Wirkung von Freundschaft.",
+      "age_recommendation": 5,
+      "genre": "Hörspiel",
+      "language": "Deutsch",
+      "runtime": 6
+    },
+    "tags": [
+      "Freundschaft",
+      "Logik",
+      "Winter",
+      "Hörspiel"
+    ],
+    "filter_age": 5
+  }
+]
