@@ -2406,6 +2406,7 @@
             }
         };
 
+        // --- KI BEISPIELE: Dateiname auf klangkiste_ki.json angepasst ---
         async function loadExamplesFromGitHub(event) {
             if(event) {
                 event.stopPropagation();
@@ -2419,8 +2420,9 @@
             showStatus("⏳ Lade Daten von GitHub...");
 
             try {
-                const jsonResp = await fetch(BASE_URL + "klangkiste.json");
-                if (!jsonResp.ok) throw new Error("JSON nicht gefunden");
+                // GEÄNDERT: klangkiste_ki.json statt klangkiste.json
+                const jsonResp = await fetch(BASE_URL + "klangkiste_ki.json");
+                if (!jsonResp.ok) throw new Error("JSON (klangkiste_ki.json) nicht gefunden");
                 const data = await jsonResp.json();
                 
                 if(!db) { alert("Datenbank noch nicht bereit. Warte kurz..."); return; }
@@ -3599,7 +3601,7 @@
             renderLibrary();
         }
 
-        // --- OHRKA INSTALLATION V8.1 (FIX: BUTTON HIGHLIGHT HINZUGEFÜGT) ---
+        // --- OHRKA INSTALLATION: Dateiname auf klangkiste_ohrka.json angepasst ---
         async function loadOhrkaSetup(event) {
             if(event) { event.stopPropagation(); event.preventDefault(); }
             
@@ -3610,8 +3612,9 @@
             showStatus("⏳ Lade OHRKA Katalog...");
             
             try {
-                const r = await fetch(BASE + "klangkiste.json");
-                if(!r.ok) throw new Error("Konnte Liste nicht laden");
+                // GEÄNDERT: klangkiste_ohrka.json statt klangkiste.json
+                const r = await fetch(BASE + "klangkiste_ohrka.json");
+                if(!r.ok) throw new Error("Konnte Liste (klangkiste_ohrka.json) nicht laden");
                 const data = await r.json();
                 
                 if(!db) { alert("Datenbank nicht bereit."); return; }
@@ -3701,10 +3704,9 @@
                      showStatus("✅ Fertig!");
                      loadTagList();
 
-                     // --- DIESER TEIL ÄNDERT DIE FARBE DES REPARIEREN-BUTTONS ---
                      const repairBtn = document.getElementById('btn-auto-repair');
                      if(repairBtn && installedCount > 0) {
-                        repairBtn.style.backgroundColor = "#e67e22"; // Orange
+                        repairBtn.style.backgroundColor = "#e67e22";
                         repairBtn.style.color = "white";
                         repairBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         showStatus("Bitte 'Automatisch Reparieren' nutzen für Audio!");
