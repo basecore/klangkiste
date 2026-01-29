@@ -1725,7 +1725,10 @@
         function saveSettings() {
             settings.maxVolume = document.getElementById('max-vol-input').value / 100;
             applyActualVolume(); 
-            settings.sleepTimerMinutes = parseInt(document.getElementById('sleep-timer-input').value);
+            
+            // KORREKTUR: parseFloat statt parseInt, damit 0.5 (30 Sek) funktioniert!
+            settings.sleepTimerMinutes = parseFloat(document.getElementById('sleep-timer-input').value);
+            
             settings.colorfulControls = document.getElementById('check-colorful').checked;
             settings.startMode = document.getElementById('start-mode-input').value;
             settings.bgMode = document.getElementById('bg-mode-select').value;
@@ -2644,45 +2647,67 @@
         }
         
         function startSleepTimer() {
+            // 1. Notbremse: Wenn wir schon im Schlafmodus sind, Abbruch.
             if (isSleepLocked) {
                 audioPlayer.pause();
                 return;
             }
         
-            // Wenn der Timer im Admin-Bereich auf "Aus" steht
-            if (settings.sleepTimerMinutes <= 0) {
+            // 2. Einstellung prüfen
+            // Wir lesen sicherheitshalber den Wert nochmal frisch aus dem Settings-Objekt
+            const timerValue = parseFloat(settings.sleepTimerMinutes);
+
+            // Wenn Timer auf "Aus" (0) steht -> Verstecken und Abbruch
+            if (timerValue <= 0) {
                 stopSleepTimer();
                 remainingSleepSeconds = -1;
                 return;
             }
         
-            // Initialisierung: Wenn noch kein Timer läuft, berechne die Sekunden aus den Einstellungen
+            // 3. Initialisierung (nur wenn noch keine Zeit läuft)
             if (remainingSleepSeconds <= 0) {
-                remainingSleepSeconds = settings.sleepTimerMinutes * 60;
+                // Hier rechnen wir Minuten in Sekunden um (z.B. 0.5 * 60 = 30)
+                remainingSleepSeconds = Math.round(timerValue * 60);
             }
         
-            // Alte Intervalle/Timeouts säubern, bevor neue starten
+            // 4. Aufräumen alter Timer
             if (sleepTimerId) clearTimeout(sleepTimerId);
             if (sleepCountdownInterval) clearInterval(sleepCountdownInterval);
             
+            // 5. Anzeige einschalten
             const indicator = document.getElementById('sleep-indicator');
+            
+            // KORREKTUR: Wir zeigen es IMMER an, wenn Minuten > 0 sind. 
+            // Wir prüfen hier NICHT auf !paused, weil der Player evtl. noch lädt.
             indicator.style.display = 'block';
+            updateSleepUI(); // Sofort erste Zahl anzeigen (z.B. 10:00)
         
-            // Countdown-Intervall starten
+            // 6. Der Taktgeber (jede Sekunde)
             sleepCountdownInterval = setInterval(() => {
-                if (!audioPlayer.paused) { // Zeit läuft nur ab, wenn auch etwas spielt
+                // Nur herunterzählen, wenn Musik wirklich läuft
+                if (!audioPlayer.paused) { 
                     remainingSleepSeconds--;
+                    updateSleepUI(); // Update Text
                 }
         
-                const mins = Math.floor(remainingSleepSeconds / 60);
-                const secs = Math.floor(remainingSleepSeconds % 60);
-                document.getElementById('sleep-countdown').innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
-                
+                // Wenn Zeit abgelaufen ist (0 oder weniger)
                 if (remainingSleepSeconds <= 0) {
                     clearInterval(sleepCountdownInterval);
                     fadeOutAndStop();
                 }
             }, 1000);
+        }
+
+        // Hilfsfunktion für die Anzeige (damit der Code sauberer bleibt)
+        function updateSleepUI() {
+             const display = document.getElementById('sleep-countdown');
+             if(display) {
+                 // Mathe: Falls remainingSleepSeconds negativ ist, nimm 0
+                 const t = Math.max(0, remainingSleepSeconds);
+                 const mins = Math.floor(t / 60);
+                 const secs = Math.floor(t % 60);
+                 display.innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+             }
         }
         
         function stopSleepTimer() { 
