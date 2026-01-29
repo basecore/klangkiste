@@ -2792,17 +2792,42 @@
         }
 
         audioPlayer.addEventListener('timeupdate', () => {
-            if(isNaN(audioPlayer.duration)) { document.getElementById('time-text').innerText = "--:--"; return; }
-            const current = audioPlayer.currentTime; const total = audioPlayer.duration; const pct = (current/total)*100;
-            document.getElementById('time-progress').style.width = pct + "%";
-            document.getElementById('time-text').innerText = showRemainingTime ? "-" + formatTime(total-current) : formatTime(current);
+            // Wenn keine Dauer bekannt ist, abbrechen
+            if(isNaN(audioPlayer.duration)) { 
+                const tText = document.getElementById('time-text');
+                if(tText) tText.innerText = "--:--"; 
+                return; 
+            }
+
+            const current = audioPlayer.currentTime; 
+            const total = audioPlayer.duration; 
+            const pct = (current/total)*100;
+
+            // WICHTIG: Elemente erst in Variablen laden
+            const progressEl = document.getElementById('time-progress');
+            const textEl = document.getElementById('time-text');
+            const infoEl = document.getElementById('playlist-info');
+
+            // Prüfen, ob der Fortschrittsbalken noch existiert (ist im Schlafmodus weg!)
+            if (progressEl) {
+                progressEl.style.width = pct + "%";
+            }
+
+            // Prüfen, ob der Text noch existiert
+            if (textEl) {
+                textEl.innerText = showRemainingTime ? "-" + formatTime(total-current) : formatTime(current);
+            }
             
+            // Kapitel-Logik auch absichern
             if(currentCueTracks) {
                 let currentChapterName = "";
                 for(let i=currentCueTracks.length-1; i>=0; i--) {
                     if(current >= currentCueTracks[i].time) { currentChapterName = currentCueTracks[i].title; break; }
                 }
-                if(currentChapterName) document.getElementById('playlist-info').innerText = currentChapterName;
+                // Nur updaten, wenn Info-Element da ist UND ein Kapitel gefunden wurde
+                if(currentChapterName && infoEl) {
+                    infoEl.innerText = currentChapterName;
+                }
             }
         });
 
