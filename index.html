@@ -2316,6 +2316,16 @@
                                 title = "Abgeschlossen";
                                 text = `${tName} komplett gehört!`;
                                 break;
+                            case 'sleep_start': // NEU
+                                icon = "🌙"; color = "#f1c40f";
+                                title = "Schlafmodus";
+                                text = "Visuelle Phase gestartet";
+                                break;
+                            case 'sleep_blackout': // NEU
+                                icon = "🌑"; color = "#95a5a6";
+                                title = "Display Blackout";
+                                text = "Maximale Dunkelheit aktiviert";
+                                break;
                             case 'control':
                                 icon = "🕹️"; color = "#dfe6e9";
                                 title = "Steuerung";
@@ -2645,23 +2655,16 @@
             remainingSleepSeconds = -1; 
             stopSleepTimer();
         }
-        
-        function startSleepTimer() {
-            // 1. Notbremse: Wenn wir schon im Schlafmodus sind, Abbruch.
-            if (isSleepLocked) {
-                audioPlayer.pause();
-                return;
-            }
-        
-            // 2. Einstellung prüfen
-            // Wir lesen sicherheitshalber den Wert nochmal frisch aus dem Settings-Objekt
-            const timerValue = parseFloat(settings.sleepTimerMinutes);
 
-            // Wenn Timer auf "Aus" (0) steht -> Verstecken und Abbruch
-            if (timerValue <= 0) {
-                stopSleepTimer();
-                remainingSleepSeconds = -1;
-                return;
+        function startSleepTimer() {
+            if (isSleepLocked) { audioPlayer.pause(); return; }
+            const timerValue = parseFloat(settings.sleepTimerMinutes);
+            if (timerValue <= 0) { stopSleepTimer(); remainingSleepSeconds = -1; return; }
+        
+            // NEU: Logge den Start des Timers in die Statistik
+            if (remainingSleepSeconds <= 0) {
+                remainingSleepSeconds = Math.round(timerValue * 60);
+                logStatEvent('control', currentPlayingTagId, 0, `Sleep-Timer auf ${timerValue} Min. gestellt`);
             }
         
             // 3. Initialisierung (nur wenn noch keine Zeit läuft)
@@ -2737,14 +2740,14 @@
             isSleepLocked = true;
             remainingSleepSeconds = 0; 
             
-            // 1. "Gute Nacht" Audio abspielen (optional, falls vorhanden)
+            // NEU: Logge den Start der visuellen Schlafphase
+            logStatEvent('sleep_start', currentPlayingTagId, 0, "Visueller Schlafmodus aktiviert");
+            
             const guteNachtAudio = new Audio("https://raw.githubusercontent.com/basecore/klangkiste/main/assets/gutenacht.mp3");
             guteNachtAudio.volume = settings.maxVolume;
             guteNachtAudio.play().catch(e => console.log("Gute Nacht Audio nicht gefunden"));
         
             const kidsMode = document.getElementById('kids-mode');
-            
-            // 2. PHASE 1: Schlaf-Hintergrund mit der Note anzeigen
             kidsMode.innerHTML = `
                 <div id="sleep-overlay" style="background-image: url('assets/img/background_sleep.png'); background-size: cover; background-position: center; position:fixed; top:0; left:0; width:100vw; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:99999;">
                     <img src="assets/icons/note_sleeping_small.png" style="width: 150px; height: auto; animation: pulse 3s infinite ease-in-out;">
@@ -2752,25 +2755,26 @@
                 </div>
             `;
             
-            // CSS Animation für sanftes Atmen der Note hinzufügen
             const style = document.createElement('style');
             style.innerHTML = `@keyframes pulse { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); opacity: 0.8; } }`;
             document.head.appendChild(style);
         
-            // 3. PHASE 2: Nach 60 Sekunden alles komplett Schwarz schalten
             setTimeout(() => {
                 const overlay = document.getElementById('sleep-overlay');
                 if(overlay) {
                     overlay.style.backgroundImage = 'none';
                     overlay.style.backgroundColor = 'black';
-                    overlay.innerHTML = ''; // Entfernt die Note und den Text
+                    overlay.innerHTML = ''; 
+                    // NEU: Logge den Blackout
+                    logStatEvent('sleep_blackout', null, 0, "Display-Blackout gestartet");
                 }
-            }, 60000); // 60.000 Millisekunden = 1 Minute
+            }, 60000); 
             
             document.getElementById('mode-switch-secret').style.zIndex = "100000"; 
             releaseWakeLock();
             endSessionLog();
         }
+        
         function clearDatabase() { 
             if(confirm("Löschen?")) { 
                 db.close(); 
