@@ -1,10 +1,27 @@
-# 🎵 KlangKiste PWA (V82 OHRKA Update)
+# 🎵 KlangKiste PWA (V83 Sleep Update)
 
 **Die smarte DIY "Toniebox" fürs Handy – 100% AI-Generated Code.**
 
 Dieses Projekt ist eine kinderfreundliche Musik-Player-App, die alte Smartphones in sichere, werbefreie Abspielgeräte verwandelt. Sie läuft als **Progressive Web App (PWA)** komplett offline im Browser und nutzt IndexedDB zur Speicherung von hunderten Hörspielen.
 
 > 🤖 **Made with Gemini:** Dieses gesamte Projekt (HTML, CSS, JavaScript Logik, Datenbank-Struktur) wurde vollständig durch **Google Gemini 3 Pro** erstellt und analysiert. Es ist ein Experiment, wie weit KI-gestützte Entwicklung ohne manuelles Coden gehen kann.
+
+---
+
+## 🌙 Neu in v83: Der intelligente Schlafmodus
+
+Für eine noch bessere Einschlafbegleitung wurde der Schlafmodus (Timer) komplett überarbeitet. Er bietet nun eine visuelle Bestätigung und spart maximal Energie.
+
+### 1. Visuelles Einschlafen
+Sobald der Timer abgelaufen ist, schaltet die App in eine beruhigende Schlaf-Ansicht. 
+* **Schlaf-Design:** Ein spezieller Nacht-Hintergrund mit einer sanft animierten, schlafenden Note zeigt dem Kind, dass die "KlangKiste" nun auch schläft.
+* **Sanftes Pulsieren:** Die Note "atmet" visuell durch eine langsame Animation, was eine beruhigende Wirkung hat.
+
+### 2. Auto-Blackout (Energie sparen)
+Um das Zimmer vollkommen dunkel zu halten und den Akku zu schonen, folgt nach der visuellen Phase die totale Dunkelheit:
+* **60-Sekunden-Timer:** Nach genau einer Minute in der Schlaf-Ansicht schaltet das Display automatisch auf **komplett Schwarz**.
+* **Kein Leuchten mehr:** Da keine Pixel mehr beleuchtet werden, stört kein Handy-Licht den tiefen Schlaf.
+* **Geheim-Ausgang:** Auch im Blackout-Modus bleibt das "Geheim-Feld" oben rechts aktiv. Eltern können die App jederzeit durch 5-maliges Tippen aufwecken und entsperren.
 
 ---
 
@@ -186,7 +203,7 @@ Du möchtest alle OHRKA Hörbücher bequem am PC herunterladen und für die App 
 
 ## 📂 Dateistruktur
 
-* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v82)
+* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v83)
 * `sw.js` – Der Service Worker für die Offline-Funktionalität (Cache v76+)
 * `manifest.json` – Konfiguration für das App-Icon und den Vollbild-Modus
 * `assets/` – Ordner für Icons und Test-Sounds
@@ -217,4 +234,4 @@ Wir haben ein DIY-Diagnose-Tool auf Basis eines ESP32 und PN5180 entwickelt.
 ## 👨‍💻 Credits
 
 Entwickelt von Sebastian Rößer mit Unterstützung von **Google Gemini 3 Pro**.
-Version 82 „OHRKA Update".
+Version 83 „Sleep Update".
