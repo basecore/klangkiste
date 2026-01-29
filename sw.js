@@ -1,5 +1,5 @@
-// WICHTIG: Version erhöht auf v82, damit das Handy alles neu lädt!
-const CACHE_NAME = 'klangkiste-v82-full';
+// WICHTIG: Version erhöht auf v83, damit das Handy alles neu lädt!
+const CACHE_NAME = 'klangkiste-v83-full';
 
 // Da du bestätigt hast, dass diese Dateien existieren, 
 // können wir sie sicher hier auflisten.
@@ -8,10 +8,13 @@ const ASSETS_TO_CACHE = [
   './index.html',
   './manifest.json',
   './assets/limit.mp3',
+  './assets/gutenacht.mp3',
   './assets/img/hintergrund.jpg',
+  './assets/img/background_sleep.png',
   './assets/icons/icon.png',
   './assets/icons/icon512_maskable.png',
-  './assets/icons/icon512_rounded.png'
+  './assets/icons/icon512_rounded.png',
+  './assets/icons/note_sleeping_small.png'
 ];
 
 // --- 1. INSTALLIEREN (Dateien in den Speicher laden) ---
@@ -40,7 +43,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keyList) => {
       return Promise.all(keyList.map((key) => {
-        // Lösche alles, was nicht v82 ist
+        // Lösche alles, was nicht v83 ist
         if (key !== CACHE_NAME) {
           console.log('[Service Worker] Lösche alten Cache:', key);
           return caches.delete(key);
