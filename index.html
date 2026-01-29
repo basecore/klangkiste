@@ -1145,7 +1145,11 @@
 
         let currentKidsVolumePct = 1.0; 
         let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: true, startMode: 'parent', bgMode: 'default', bgColor: '#ffffff', enableWakeLock: true, enableEcoMode: true, enableLibrary: true, hiddenIDs: [] };
-        let sleepTimerId = null; let showRemainingTime = true; 
+        let sleepTimerId = null; 
+        let sleepTimerId = null; 
+        let sleepCountdownInterval = null; // Neu für die Sekunden-Aktualisierung
+        let isSleepLocked = false;         // Neu: Blockiert das Abspielen
+        let showRemainingTime = true; 
         let currentPlayingTagId = null; let currentTrackIndex = 0; let currentPlaylist = []; 
         let isNfcScanning = false; let isLinkModeActive = false;
 
@@ -2631,28 +2635,86 @@
         }
 
         function startSleepTimer() {
-            if(sleepTimerId) clearTimeout(sleepTimerId); document.getElementById('sleep-indicator').style.display = 'none';
-            if(settings.sleepTimerMinutes > 0 && !audioPlayer.paused) {
-                document.getElementById('sleep-indicator').style.display = 'block'; document.getElementById('sleep-countdown').innerText = settings.sleepTimerMinutes + " min";
-                sleepTimerId = setTimeout(() => { fadeOutAndStop(); }, settings.sleepTimerMinutes * 60 * 1000);
+            // Falls das Kind bereits im Schlafmodus ist, darf nichts mehr starten
+            if (isSleepLocked) {
+                audioPlayer.pause();
+                return;
+            }
+        
+            if (sleepTimerId) clearTimeout(sleepTimerId);
+            if (sleepCountdownInterval) clearInterval(sleepCountdownInterval);
+            
+            const indicator = document.getElementById('sleep-indicator');
+            indicator.style.display = 'none';
+        
+            if (settings.sleepTimerMinutes > 0 && !audioPlayer.paused) {
+                indicator.style.display = 'block';
+                let secondsRemaining = settings.sleepTimerMinutes * 60;
+        
+                // Visueller Countdown
+                sleepCountdownInterval = setInterval(() => {
+                    secondsRemaining--;
+                    const mins = Math.floor(secondsRemaining / 60);
+                    const secs = secondsRemaining % 60;
+                    document.getElementById('sleep-countdown').innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+                    
+                    if (secondsRemaining <= 0) clearInterval(sleepCountdownInterval);
+                }, 1000);
+        
+                // Der eigentliche Stop-Timer
+                sleepTimerId = setTimeout(() => { 
+                    fadeOutAndStop(); 
+                }, settings.sleepTimerMinutes * 60 * 1000);
             }
         }
-        function stopSleepTimer() { if(sleepTimerId) clearTimeout(sleepTimerId); document.getElementById('sleep-indicator').style.display = 'none'; }
+        
+        function stopSleepTimer() { 
+            if (sleepTimerId) clearTimeout(sleepTimerId); 
+            if (sleepCountdownInterval) clearInterval(sleepCountdownInterval);
+            document.getElementById('sleep-indicator').style.display = 'none'; 
+        }
+        
         function fadeOutAndStop() { 
             let vol = audioPlayer.volume; 
             const fade = setInterval(() => { 
-                if(vol > 0.05) { vol -= 0.05; audioPlayer.volume = vol; } 
-                else { 
+                if (vol > 0.05) { 
+                    vol -= 0.05; 
+                    audioPlayer.volume = vol; 
+                } else { 
                     clearInterval(fade); 
-                    if(saveInterval) clearInterval(saveInterval);
                     audioPlayer.pause(); 
                     setPlayButtonState(false); 
                     forceSaveCurrentPosition(); 
-                    applyActualVolume(); 
-                    showStatus("Gute Nacht 😴"); 
-                    endSessionLog();
+                    
+                    // Jetzt den Schlaf-Lock aktivieren
+                    activateGuteNachtModus();
                 } 
             }, 200); 
+        }
+        
+        function activateGuteNachtModus() {
+            isSleepLocked = true;
+            
+            // 1. Gute Nacht MP3 abspielen (falls vorhanden)
+            const guteNachtAudio = new Audio("https://raw.githubusercontent.com/basecore/klangkiste/main/assets/gutenacht.mp3");
+            guteNachtAudio.volume = settings.maxVolume;
+            guteNachtAudio.play().catch(e => console.log("Gute Nacht Audio nicht gefunden"));
+        
+            // 2. UI auf Schwarz schalten
+            const kidsMode = document.getElementById('kids-mode');
+            kidsMode.innerHTML = `
+                <div style="background:black; position:fixed; top:0; left:0; width:100vw; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:99999;">
+                    <div style="font-size: 100px;">💤</div>
+                    <div style="color: #555; margin-top: 20px; font-family: sans-serif;">Schlafenszeit</div>
+                </div>
+            `;
+            
+            // Den geheimen Switch über das Schwarze legen, damit Eltern zurückkönnen
+            const secret = document.getElementById('mode-switch-secret');
+            secret.style.zIndex = "100000"; 
+            
+            releaseWakeLock();
+            endSessionLog();
         }
         function clearDatabase() { 
             if(confirm("Löschen?")) { 
@@ -2769,34 +2831,58 @@
 
         function handleSecretSwitch() {
             clickCount++; 
-            setTimeout(() => { clickCount = 0; }, 2000); 
+            // Der Timer setzt den Zähler nach 2 Sekunden Inaktivität zurück
+            if (window.clickTimer) clearTimeout(window.clickTimer);
+            window.clickTimer = setTimeout(() => { clickCount = 0; }, 2000); 
             
             if (clickCount >= 5) {
-                // 1. Haupt-Modus umschalten
+                // 1. Spezialfall: Schlaf-Sperre aufheben
+                // Falls das Kind im Schlafmodus feststeckt, setzen wir die Variablen zurück
+                if (typeof isSleepLocked !== 'undefined' && isSleepLocked) {
+                    isSleepLocked = false;
+                    // Wir laden die Seite neu oder erzwingen ein UI-Reset, 
+                    // um das schwarze "Gute Nacht"-Overlay zu entfernen.
+                    location.reload(); 
+                    return;
+                }
+        
+                // 2. Haupt-Modus umschalten
                 safeDisplay('kids-mode', 'none');
                 safeDisplay('parent-mode', 'flex');
                 
-                // 2. NEU: Störende Fenster zwangsweise schließen
-                // Damit die Bibliothek nicht den Admin-Bereich verdeckt
+                // 3. UI-Cleanup: Störende Fenster zwangsweise schließen
                 if(typeof closeLibrary === "function") {
                     closeLibrary(); 
                 } else {
-                    document.getElementById('library-mode').style.display = 'none';
+                    const libMode = document.getElementById('library-mode');
+                    if(libMode) libMode.style.display = 'none';
                 }
                 
-                // Auch andere eventuell offene Fenster schließen
-                document.getElementById('lib-info-modal').style.display = 'none';
-                document.getElementById('stats-modal').style.display = 'none';
-
-                // 3. Cleanup & System
+                // Modale Fenster schließen
+                const infoModal = document.getElementById('lib-info-modal');
+                const statsModal = document.getElementById('stats-modal');
+                if(infoModal) infoModal.style.display = 'none';
+                if(statsModal) statsModal.style.display = 'none';
+        
+                // 4. System & Logik zurücksetzen
                 isParentMode = true; 
                 clickCount = 0; 
-                releaseWakeLock(); 
-                endSessionLog();
                 
-                if (document.exitFullscreen && document.fullscreenElement) { 
-                    document.exitFullscreen().catch((e) => {}); 
+                // WakeLock freigeben (spart Akku im Admin-Modus)
+                if(typeof releaseWakeLock === "function") releaseWakeLock(); 
+                
+                // Statistik-Session beenden
+                if(typeof endSessionLog === "function") endSessionLog();
+                
+                // Fullscreen beenden, falls aktiv
+                if (document.exitFullscreen && (document.fullscreenElement || document.webkitFullscreenElement)) { 
+                    document.exitFullscreen().catch((e) => {
+                        console.log("Fullscreen exit blocked or not active");
+                    }); 
                 }
+        
+                // Statusmeldung für die Eltern
+                showStatus("Admin-Modus aktiviert 🔧");
             }
         }
         function autoFillName() {
