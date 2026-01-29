@@ -744,8 +744,9 @@
             </div>
             
             <label>Schlaf-Timer:</label>
-            <select id="sleep-timer-input" onchange="saveSettings()" style="margin-bottom: 15px;">
+            <select id="sleep-timer-input" onchange="resetGlobalTimer(); saveSettings();" style="margin-bottom: 15px;">
                 <option value="0">Aus (Endlos)</option>
+                <option value="0.5">🚀 TEST: 30 Sekunden</option> 
                 <option value="10">10 Minuten</option>
                 <option value="20">20 Minuten</option>
                 <option value="30">30 Minuten</option>
@@ -1146,8 +1147,9 @@
         let currentKidsVolumePct = 1.0; 
         let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: true, startMode: 'parent', bgMode: 'default', bgColor: '#ffffff', enableWakeLock: true, enableEcoMode: true, enableLibrary: true, hiddenIDs: [] };
         let sleepTimerId = null; 
-        let sleepCountdownInterval = null; // Neu für die Sekunden-Aktualisierung
-        let isSleepLocked = false;         // Neu: Blockiert das Abspielen
+        let sleepCountdownInterval = null; 
+        let isSleepLocked = false; 
+        let remainingSleepSeconds = -1; // -1 bedeutet: Timer ist nicht aktiv/bereit für Neustart
         let showRemainingTime = true; 
         let currentPlayingTagId = null; let currentTrackIndex = 0; let currentPlaylist = []; 
         let isNfcScanning = false; let isLinkModeActive = false;
@@ -2569,16 +2571,18 @@
         function togglePlay() { 
             if (audioPlayer.paused) { 
                 if(audioPlayer.src) { 
-                    audioPlayer.play(); setPlayButtonState(true); startSleepTimer(); requestWakeLock(); 
+                    audioPlayer.play(); 
+                    setPlayButtonState(true); 
+                    startSleepTimer(); // Timer startet/setzt fort
+                    requestWakeLock(); 
                     currentSessionStart = Date.now(); 
                     logStatEvent('play', currentPlayingTagId, 0, "Button");
-                } 
-                else { showStatus("Tag?"); } 
+                } else { showStatus("Tag?"); } 
             } else { 
                 if(saveInterval) clearInterval(saveInterval);
                 audioPlayer.pause(); 
                 setPlayButtonState(false); 
-                stopSleepTimer(); 
+                stopSleepTimer(); // WICHTIG: Timer pausieren
                 releaseWakeLock(); 
                 forceSaveCurrentPosition();
                 endSessionLog(); 
@@ -2633,44 +2637,59 @@
             };
         }
 
+        // Hilfsfunktion: Wird aufgerufen, wenn Eltern den Timer im Menü ÄNDERN
+        function resetGlobalTimer() {
+            remainingSleepSeconds = -1; 
+            stopSleepTimer();
+        }
+        
         function startSleepTimer() {
-            // Falls das Kind bereits im Schlafmodus ist, darf nichts mehr starten
             if (isSleepLocked) {
                 audioPlayer.pause();
                 return;
             }
         
+            // Wenn der Timer im Admin-Bereich auf "Aus" steht
+            if (settings.sleepTimerMinutes <= 0) {
+                stopSleepTimer();
+                remainingSleepSeconds = -1;
+                return;
+            }
+        
+            // Initialisierung: Wenn noch kein Timer läuft, berechne die Sekunden aus den Einstellungen
+            if (remainingSleepSeconds <= 0) {
+                remainingSleepSeconds = settings.sleepTimerMinutes * 60;
+            }
+        
+            // Alte Intervalle/Timeouts säubern, bevor neue starten
             if (sleepTimerId) clearTimeout(sleepTimerId);
             if (sleepCountdownInterval) clearInterval(sleepCountdownInterval);
             
             const indicator = document.getElementById('sleep-indicator');
-            indicator.style.display = 'none';
+            indicator.style.display = 'block';
         
-            if (settings.sleepTimerMinutes > 0 && !audioPlayer.paused) {
-                indicator.style.display = 'block';
-                let secondsRemaining = settings.sleepTimerMinutes * 60;
+            // Countdown-Intervall starten
+            sleepCountdownInterval = setInterval(() => {
+                if (!audioPlayer.paused) { // Zeit läuft nur ab, wenn auch etwas spielt
+                    remainingSleepSeconds--;
+                }
         
-                // Visueller Countdown
-                sleepCountdownInterval = setInterval(() => {
-                    secondsRemaining--;
-                    const mins = Math.floor(secondsRemaining / 60);
-                    const secs = secondsRemaining % 60;
-                    document.getElementById('sleep-countdown').innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
-                    
-                    if (secondsRemaining <= 0) clearInterval(sleepCountdownInterval);
-                }, 1000);
-        
-                // Der eigentliche Stop-Timer
-                sleepTimerId = setTimeout(() => { 
-                    fadeOutAndStop(); 
-                }, settings.sleepTimerMinutes * 60 * 1000);
-            }
+                const mins = Math.floor(remainingSleepSeconds / 60);
+                const secs = Math.floor(remainingSleepSeconds % 60);
+                document.getElementById('sleep-countdown').innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+                
+                if (remainingSleepSeconds <= 0) {
+                    clearInterval(sleepCountdownInterval);
+                    fadeOutAndStop();
+                }
+            }, 1000);
         }
         
         function stopSleepTimer() { 
             if (sleepTimerId) clearTimeout(sleepTimerId); 
             if (sleepCountdownInterval) clearInterval(sleepCountdownInterval);
-            document.getElementById('sleep-indicator').style.display = 'none'; 
+            const indicator = document.getElementById('sleep-indicator');
+            if(indicator) indicator.style.display = 'none'; 
         }
         
         function fadeOutAndStop() { 
@@ -2684,8 +2703,6 @@
                     audioPlayer.pause(); 
                     setPlayButtonState(false); 
                     forceSaveCurrentPosition(); 
-                    
-                    // Jetzt den Schlaf-Lock aktivieren
                     activateGuteNachtModus();
                 } 
             }, 200); 
@@ -2693,25 +2710,21 @@
         
         function activateGuteNachtModus() {
             isSleepLocked = true;
+            remainingSleepSeconds = 0; // Timer ist abgelaufen
             
-            // 1. Gute Nacht MP3 abspielen (falls vorhanden)
             const guteNachtAudio = new Audio("https://raw.githubusercontent.com/basecore/klangkiste/main/assets/gutenacht.mp3");
             guteNachtAudio.volume = settings.maxVolume;
             guteNachtAudio.play().catch(e => console.log("Gute Nacht Audio nicht gefunden"));
         
-            // 2. UI auf Schwarz schalten
             const kidsMode = document.getElementById('kids-mode');
             kidsMode.innerHTML = `
                 <div style="background:black; position:fixed; top:0; left:0; width:100vw; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:99999;">
                     <div style="font-size: 100px;">💤</div>
-                    <div style="color: #555; margin-top: 20px; font-family: sans-serif;">Schlafenszeit</div>
+                    <div style="color: #555; margin-top: 20px; font-family: sans-serif; font-size: 1.5rem;">Schlafenszeit</div>
                 </div>
             `;
             
-            // Den geheimen Switch über das Schwarze legen, damit Eltern zurückkönnen
-            const secret = document.getElementById('mode-switch-secret');
-            secret.style.zIndex = "100000"; 
-            
+            document.getElementById('mode-switch-secret').style.zIndex = "100000"; 
             releaseWakeLock();
             endSessionLog();
         }
