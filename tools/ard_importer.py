@@ -35,23 +35,25 @@ from bs4 import BeautifulSoup
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # --- KONFIGURATION ---
-VERSION = "15.0 (Final Fix)"
+VERSION = "10.0 (Instant & Square)"
 AUTHOR = "KlangKiste ARD Importer"
 START_URL = "https://www.ardaudiothek.de/rubrik/fuer-kinder/urn:ard:page:36c12c1321f8895a/"
 BASE_DOMAIN = "https://www.ardaudiothek.de"
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+}
+
 COLOR_HEADER = "#003480"
 COLOR_BTN = "#004eb3"
 COLOR_BG = "#f0f4f8"
 
 LEGAL_TEXT = """=== DISCLAIMER ===
-Dies ist ein privates Hilfsprogramm zur Erstellung einer Offline-Sicherungskopie für die App "KlangKiste".
-Es steht in KEINERLEI Verbindung zur ARD.
+Dies ist ein privates Hilfsprogramm. Keine Verbindung zur ARD.
 
 === NUTZUNG ===
-Die Dateien dürfen ausschließlich für private, nicht-kommerzielle Zwecke genutzt werden (Privatkopie § 53 UrhG).
+Nur für private Sicherungskopien (Privatkopie § 53 UrhG).
 Kein Verkauf, keine Verbreitung.
 
 Quelle: https://www.ardaudiothek.de/"""
@@ -64,11 +66,11 @@ class ARDImporterGUI:
         self.root.geometry("1400x900")
         self.root.configure(bg=COLOR_BG)
 
-        self.items_map = {}
+        self.items_map = {}  # Speichert Details zu IIDs
         self.export_path = os.path.join(os.getcwd(), "klangkiste_ard_content")
         self.stop_scan = False
-        self.last_sort_col = ""
         self.sort_reverse = False
+        self.last_sort_col = ""
 
         self.setup_ui()
         self.root.after(1000, self.start_scan_thread)
@@ -84,14 +86,12 @@ class ARDImporterGUI:
         self.nb.add(self.tab_info, text=" ℹ️ Info ")
         self.setup_info_tab()
 
-        # Header
         header = tk.Frame(self.tab_import, bg=COLOR_HEADER, pady=15)
         header.pack(fill="x")
         tk.Label(header, text="ARD Audiothek Importer", fg="white", bg=COLOR_HEADER, font=("Arial", 24, "bold")).pack()
-        tk.Label(header, text=f"Für KlangKiste | v{VERSION} | Deep Scan & 1x1 Cover", fg="#cbd5e1", bg=COLOR_HEADER,
+        tk.Label(header, text=f"Für KlangKiste | v{VERSION} | url1X1 Fix", fg="#cbd5e1", bg=COLOR_HEADER,
                  font=("Arial", 11)).pack()
 
-        # Toolbar
         tool_frame = tk.Frame(self.tab_import, bg=COLOR_BG, pady=10, padx=20)
         tool_frame.pack(fill="x")
 
@@ -106,25 +106,23 @@ class ARDImporterGUI:
         self.path_entry.pack(side="left", padx=5)
         tk.Button(tool_frame, text="📂", command=self.choose_path).pack(side="left")
 
-        # Content
         content = tk.Frame(self.tab_import, bg=COLOR_BG)
         content.pack(fill="both", expand=True, padx=20, pady=5)
 
-        # Tabelle
         left_frame = tk.Frame(content, bg="white")
         left_frame.pack(side="left", fill="both", expand=True)
 
-        cols = ('Nr', 'Alter', 'Titel', 'Tracks', 'Dauer', 'Quelle')
+        cols = ('Status', 'Alter', 'Titel', 'Tracks', 'Dauer', 'Quelle')
         self.tree = ttk.Treeview(left_frame, columns=cols, show='headings', selectmode="extended")
 
-        self.tree.heading('Nr', text='Status')  # Status Spalte
+        self.tree.heading('Status', text='Status')
         self.tree.heading('Alter', text='👶 Alter')
         self.tree.heading('Titel', text='Titel')
         self.tree.heading('Tracks', text='Tracks')
         self.tree.heading('Dauer', text='Dauer')
         self.tree.heading('Quelle', text='Sammlung')
 
-        self.tree.column('Nr', width=80, anchor="center")
+        self.tree.column('Status', width=100, anchor="center")
         self.tree.column('Alter', width=60, anchor="center")
         self.tree.column('Titel', width=450)
         self.tree.column('Tracks', width=60, anchor="center")
@@ -137,7 +135,6 @@ class ARDImporterGUI:
         self.tree.configure(yscroll=sb.set)
         sb.pack(side="right", fill="y")
 
-        # Vorschau
         self.preview_panel = tk.Frame(content, bg="white", width=420, bd=1, relief="ridge")
         self.preview_panel.pack(side="right", fill="both", padx=(15, 0))
         self.preview_panel.pack_propagate(False)
@@ -149,7 +146,6 @@ class ARDImporterGUI:
                                     state="disabled", height=20)
         self.details_text.pack(fill="both", expand=True, padx=20, pady=10)
 
-        # Footer
         footer = tk.Frame(self.tab_import, bg=COLOR_BG, pady=15, padx=20)
         footer.pack(fill="x", side="bottom")
 
@@ -181,28 +177,29 @@ class ARDImporterGUI:
         self.status_var.set("🛑 Vorgang wird angehalten...")
 
     def sort_tree(self, col, reverse):
-        # Einfache Sortierung für Strings
-        pass
+        # Einfache Sortierung
+        l = [(self.tree.set(k, col), k) for k in self.tree.get_children('')]
+        try:
+            l.sort(key=lambda t: int(re.sub(r'\D', '', t[0])), reverse=reverse)
+        except:
+            l.sort(reverse=reverse)
+        for index, (val, k) in enumerate(l): self.tree.move(k, '', index)
 
     def clean_filename(self, name):
         return re.sub(r'[\\/*?:"<>|]', "", name).strip()[:100]
 
-    # --- INTELLIGENTE ALTERSERKENNUNG ---
     def parse_age(self, text):
         if not text: return 0
         text = text.lower()
-
-        # 1. "ab 4-5 jahren" -> nimmt 4
+        # "ab 4-5 jahren" -> nimmt 4
         match = re.search(r'(?:ab|von|für)\s*(?:kinder)?\s*(?:ab|von)?\s*(\d+)', text)
         if match: return int(match.group(1))
-
-        # 2. "4 jahre" am Anfang
+        # "4 jahre" am Anfang
         match = re.search(r'^(\d+)\s+jahr', text)
         if match: return int(match.group(1))
-
         return 0
 
-    # --- SCAN ENGINE ---
+    # --- SCAN ENGINE (Queue Based) ---
     def start_scan_thread(self):
         self.stop_scan = False
         self.items_map = {}
@@ -211,27 +208,26 @@ class ARDImporterGUI:
         threading.Thread(target=self.scan_logic, daemon=True).start()
 
     def get_links_from_url(self, url):
-        """Liest HTML und extrahiert Links."""
+        """Liest HTML und extrahiert Links (Audio & Sammlungen)."""
         try:
             r = requests.get(url, headers=HEADERS, verify=False, timeout=10)
             text = r.text
-
-            # BeautifulSoup für sauberes Link-Extrahieren
             soup = BeautifulSoup(text, 'html.parser')
             page_title = soup.find('h1').get_text().strip() if soup.find('h1') else ""
 
             links = []
             for a in soup.find_all('a', href=True):
                 href = a['href']
+
+                # Typ 1: Hörbuch / Sendung / Episode
                 if "/sendung/" in href or "/episode/" in href:
                     urn_match = re.search(r'(urn:ard:(?:show|episode):[a-zA-Z0-9]+)', href)
                     if urn_match:
                         urn = urn_match.group(1)
-                        # Wir nehmen den Text im Link als vorläufigen Titel!
-                        raw_title = a.get_text().strip()
-                        if not raw_title: raw_title = "Lade Titel..."
-                        links.append({"urn": urn, "href": href, "type": "audio", "title": raw_title})
+                        title = a.get_text().strip() or "Lade Titel..."
+                        links.append({"urn": urn, "href": href, "type": "audio", "title": title})
 
+                # Typ 2: Sammlung / Rubrik
                 elif "/sammlung/" in href or "/rubrik/" in href:
                     links.append({"href": href, "type": "collection", "title": a.get_text().strip()})
 
@@ -242,21 +238,44 @@ class ARDImporterGUI:
     def scan_logic(self):
         self.status_var.set(f"🔍 Scanne Hauptseite...")
 
-        # Queue: URL -> {source, age}
-        items_todo = {}
+        # Wir nutzen ein Set für verarbeitete URNs, um Duplikate zu vermeiden
+        processed_urns = set()
 
-        # 1. Hauptseite
+        # Liste aller gefundenen Items (noch nicht detailliert)
+        # Struktur: { urn: { title, source, age_hint, href } }
+        items_todo = {}
+        collections_to_scan = []
+
+        # 1. Hauptseite scannen
         links, _ = self.get_links_from_url(START_URL)
 
-        # Sofort verarbeiten
+        # Sortieren: Audio vs Sammlung
         for l in links:
             if l['type'] == 'audio':
-                items_todo[l['urn']] = {"title": l['title'], "source": "Hauptseite", "age": 0}
+                if l['urn'] not in processed_urns:
+                    items_todo[l['urn']] = {"title": l['title'], "source": "Hauptseite", "age": 0, "href": l['href']}
+                    processed_urns.add(l['urn'])
             elif l['type'] == 'collection':
-                # Sammlungen rekursiv scannen
-                self.process_collection(l['href'], l['title'], items_todo)
+                collections_to_scan.append(l)
 
-        # JETZT: Items in die GUI eintragen (Sofort!)
+        # 2. Sammlungen scannen (Ebene 1)
+        for col in collections_to_scan:
+            if self.stop_scan: break
+
+            full_url = BASE_DOMAIN + col['href'] if col['href'].startswith("/") else col['href']
+            self.root.after(0, lambda t=col['title']: self.status_var.set(f"📖 Scanne: {t}..."))
+
+            sub_links, page_title = self.get_links_from_url(full_url)
+            inherited_age = self.parse_age(page_title)
+
+            for l in sub_links:
+                if l['type'] == 'audio':
+                    if l['urn'] not in processed_urns:
+                        items_todo[l['urn']] = {"title": l['title'], "source": page_title, "age": inherited_age,
+                                                "href": l['href']}
+                        processed_urns.add(l['urn'])
+
+        # 3. GUI füllen (SOFORT)
         queue_list = list(items_todo.items())
         total = len(queue_list)
         self.root.after(0, lambda: self.status_var.set(f"💡 {total} Einträge gefunden. Starte Detail-Analyse..."))
@@ -264,156 +283,149 @@ class ARDImporterGUI:
         for i, (urn, meta) in enumerate(queue_list):
             if self.stop_scan: break
 
-            # IID ist URN
             iid = urn.split(":")[-1]
-
-            # Eintrag in GUI erstellen (Platzhalter)
+            # Platzhalter in GUI
             self.root.after(0, self.add_placeholder_item, iid, meta['title'], meta['source'])
 
             # Detail Analyse starten
             self.analyze_item(urn, meta, iid, i + 1, total)
 
-            time.sleep(0.02)  # Kurz Luft holen
+            time.sleep(0.01)  # Kurz warten für GUI
 
         msg = "🛑 Abgebrochen." if self.stop_scan else f"✅ Fertig. {total} Hörbücher geladen."
         self.root.after(0, lambda: self.status_var.set(msg))
         self.root.after(0, lambda: self.btn_download.config(state="normal"))
 
-    def process_collection(self, href, title, items_todo):
-        if self.stop_scan: return
-        full_url = BASE_DOMAIN + href if href.startswith("/") else href
-        self.root.after(0, lambda: self.status_var.set(f"📖 Scanne: {title}..."))
-
-        links, page_title = self.get_links_from_url(full_url)
-        inherited_age = self.parse_age(page_title)
-
-        for l in links:
-            if l['type'] == 'audio':
-                if l['urn'] not in items_todo:
-                    items_todo[l['urn']] = {"title": l['title'], "source": page_title, "age": inherited_age}
-
     def add_placeholder_item(self, iid, title, source):
-        # Fügt eine Zeile hinzu, falls sie noch nicht existiert
         if not self.tree.exists(iid):
             self.tree.insert('', 'end', iid=iid, values=("⏳ Lade...", "-", title, "-", "-", source))
 
     def analyze_item(self, urn, meta, iid, current_idx, total):
-        # Status Update
-        if current_idx % 2 == 0:
+        if current_idx % 5 == 0:
             self.root.after(0, lambda: self.status_var.set(f"Analysiere {current_idx}/{total}: {meta['title']}"))
 
-        data = self.fetch_full_details(urn)
+        # URL bauen (Fallback falls meta href unvollständig)
+        web_url = BASE_DOMAIN + meta['href'] if meta['href'].startswith("/") else meta['href']
+
+        # Details laden (Mit __NEXT_DATA__ Parsing!)
+        data = self.fetch_full_details_html(web_url, urn)
 
         if data:
-            # Alter mischen
+            # Alter mergen
             if data['age'] == 0 and meta['age'] > 0: data['age'] = meta['age']
             data['source_label'] = meta['source']
 
-            # In Map speichern für Download/Preview
             self.items_map[iid] = data
-
-            # GUI Update
             self.root.after(0, self.update_tree_item, iid, data)
         else:
-            # Wenn fehlgeschlagen, markieren
-            self.root.after(0, lambda: self.tree.set(iid, "Nr", "❌ Fehler"))
+            self.root.after(0, lambda: self.tree.set(iid, "Status", "❌ Fehler"))
 
     def update_tree_item(self, iid, data):
         if self.tree.exists(iid):
             mins = int(data['duration'] / 60)
             age = f"{data['age']}+" if data['age'] > 0 else "-"
-            # Update values
-            self.tree.set(iid, "Nr", "✅ Bereit")
+            self.tree.set(iid, "Status", "✅ Bereit")
             self.tree.set(iid, "Alter", age)
             self.tree.set(iid, "Titel", data['title'])
             self.tree.set(iid, "Tracks", len(data['tracks']))
             self.tree.set(iid, "Dauer", f"{mins}m")
 
-    # --- FETCHING (ROBUST) ---
-    def fetch_full_details(self, urn):
-        id_str = urn.split(":")[-1]
-
-        # 1. API Check
-        api_data = None
-        for ep in [f"https://api.ardaudiothek.de/programSets/{id_str}", f"https://api.ardaudiothek.de/items/{id_str}"]:
-            try:
-                r = requests.get(ep, headers=HEADERS, verify=False, timeout=5)
-                if r.status_code == 200:
-                    raw = r.json()
-                    core = raw.get('data', {}).get('programSet') or raw.get('data', {}).get('item') or raw
-                    if core and ('title' in core or 'programSetId' in core):
-                        api_data = core
-                        break
-            except:
-                pass
-
-        if not api_data: return None
-
-        # Serie nachladen
-        if 'programSetId' in api_data and "programSets" not in ep:
-            return self.fetch_full_details(api_data['programSetId'])
-
-        title = api_data.get('title', 'Unbekannt')
-        summary = api_data.get('summary', '')
-
-        # 2. HTML Scraper (1:1 Bild)
-        web_url = f"https://www.ardaudiothek.de/episode/{self.clean_filename(title)}/{id_str}/"
-
-        html_desc = ""
-        html_img_sq = ""
-
+    # --- HTML PARSER MIT JSON EXTRAKTION ---
+    def fetch_full_details_html(self, url, urn):
+        """Lädt die Webseite und parst __NEXT_DATA__ JSON."""
         try:
-            hr = requests.get(web_url, headers=HEADERS, verify=False, timeout=5)
-            if hr.status_code == 200:
-                html_text = hr.text
-                sq_match = re.search(r'"url1X1":"([^"]+)"', html_text)
-                if sq_match: html_img_sq = sq_match.group(1)
+            r = requests.get(url, headers=HEADERS, verify=False, timeout=10)
+            if r.status_code != 200: return None
 
-                soup = BeautifulSoup(html_text, 'html.parser')
-                desc_meta = soup.find('meta', property='og:description')
-                if desc_meta: html_desc = desc_meta.get('content', '')
-        except:
-            pass
+            soup = BeautifulSoup(r.text, 'html.parser')
 
-        final_summary = html_desc if len(html_desc) > len(summary) else summary
+            # JSON Data Block suchen
+            script = soup.find('script', id='__NEXT_DATA__')
+            if not script: return None
 
-        api_sq = api_data.get('image', {}).get('url1X1')
-        api_norm = api_data.get('image', {}).get('src') or api_data.get('image', {}).get('url')
-        final_img = html_img_sq if html_img_sq else (api_sq if api_sq else api_norm)
+            json_data = json.loads(script.string)
 
-        if final_img:
-            if "{width}" in final_img:
-                final_img = final_img.replace("{width}", "1200")
-            elif "?w=" in final_img:
-                final_img = re.sub(r'w=\d+', 'w=1200', final_img)
+            # Pfad zu den Daten finden (variiert je nach Seitentyp)
+            try:
+                base = json_data['props']['pageProps']['initialData']['data']
+                core = base.get('item') or base.get('programSet')
+            except:
+                return None
 
-        age = self.parse_age(title + " " + final_summary)
+            if not core: return None
 
-        tracks = []
-        if 'items' in api_data and 'nodes' in api_data['items']:
-            for node in api_data['items']['nodes']: tracks.append(self.extract_track(node))
-        elif 'audios' in api_data:
-            tracks.append(self.extract_track(api_data))
+            # Daten extrahieren
+            title = core.get('title', 'Unbekannt')
+            summary = core.get('description', '')  # Beschreibung steht oft hier
+            if not summary: summary = core.get('synopsis', '')
 
-        tracks = [t for t in tracks if t['url']]
+            # 1:1 Bild finden (url1X1)
+            image_obj = core.get('image', {})
+            img_url = image_obj.get('url1X1')  # DAS IST DAS QUADRATISCHE BILD!
+            if not img_url:
+                img_url = image_obj.get('src') or image_obj.get('url')
 
-        return {
-            "id": id_str, "title": title, "summary": final_summary, "image_url": final_img,
-            "tracks": tracks, "duration": sum(t['duration'] for t in tracks), "is_set": False, "age": age
-        }
+            # Qualität hochsetzen
+            if img_url:
+                if "{width}" in img_url:
+                    img_url = img_url.replace("{width}", "1200")
+                elif "?w=" in img_url:
+                    img_url = re.sub(r'w=\d+', 'w=1200', img_url)
+                elif "&w=" in img_url:
+                    img_url = re.sub(r'w=\d+', 'w=1200', img_url)
 
-    def extract_track(self, node):
-        url = None
-        audios = node.get('audios', [])
-        valid = [a for a in audios if a.get('downloadUrl')]
-        if valid: url = sorted(valid, key=lambda x: x.get('downloadUrl'), reverse=True)[0].get('downloadUrl')
-        return {"title": node.get('title', 'Track'), "duration": node.get('duration', 0), "url": url}
+            # Alter aus Text
+            age = self.parse_age(title + " " + summary)
+
+            # Tracks finden
+            tracks = []
+
+            # Fall A: Serie
+            if 'items' in core and 'nodes' in core['items']:
+                for node in core['items']['nodes']:
+                    t_title = node.get('title', 'Track')
+                    audios = node.get('audios', [])
+                    best = sorted([a for a in audios if a.get('downloadUrl')], key=lambda x: x.get('downloadUrl'),
+                                  reverse=True)
+                    if best:
+                        tracks.append(
+                            {"title": t_title, "url": best[0]['downloadUrl'], "duration": node.get('duration', 0)})
+
+            # Fall B: Einzel-Episode
+            elif 'audios' in core:
+                audios = core.get('audios', [])
+                best = sorted([a for a in audios if a.get('downloadUrl')], key=lambda x: x.get('downloadUrl'),
+                              reverse=True)
+                if best:
+                    tracks.append({"title": title, "url": best[0]['downloadUrl'], "duration": core.get('duration', 0)})
+
+            # Wenn keine Tracks gefunden wurden, aber es eine Serie ist,
+            # könnte man rekursiv laden. Aber hier belassen wir es bei der HTML Analyse für Speed.
+
+            if not tracks: return None
+
+            total_duration = sum(t['duration'] for t in tracks)
+            id_clean = urn.split(":")[-1]
+
+            return {
+                "id": id_clean,
+                "title": title,
+                "summary": summary,
+                "image_url": img_url,
+                "tracks": tracks,
+                "duration": total_duration,
+                "age": age
+            }
+
+        except Exception as e:
+            # print(e)
+            return None
 
     # --- VORSCHAU ---
     def on_select(self, event):
         sel = self.tree.selection()
         if not sel: return
-        iid = sel[0]  # ist hier die URN ID
+        iid = sel[0]
 
         if iid not in self.items_map: return
         item = self.items_map[iid]
@@ -447,7 +459,6 @@ class ARDImporterGUI:
         self.stop_scan = False
         self.btn_download.config(state="disabled", text="⏳ Lade...")
 
-        # IIDs sammeln (Treeview selection gibt IID zurück, das ist hier unsere ID)
         iids = list(sel)
         threading.Thread(target=self.download_logic, args=(iids,), daemon=True).start()
 
@@ -457,12 +468,10 @@ class ARDImporterGUI:
         json_entries = []
         if os.path.exists(json_file):
             try:
-                # KORREKTUR: Ausführliche Syntax für with statement
                 with open(json_file, 'r', encoding='utf-8') as f:
                     json_entries = json.load(f)
             except:
                 pass
-
         existing_ids = [e['tagId'] for e in json_entries]
 
         count = 0
@@ -476,7 +485,7 @@ class ARDImporterGUI:
 
             safe_title = self.clean_filename(item['title'])
 
-            # Cover
+            # Cover (Original speichern)
             cover_filename = f"{safe_title}.jpg"
             cover_path = os.path.join(self.export_path, cover_filename)
             if item['image_url']:
