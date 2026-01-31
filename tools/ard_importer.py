@@ -10,7 +10,6 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from io import BytesIO
 
-
 # --- 1. AUTOMATISCHE INSTALLATION ---
 def install_and_import(package, import_name):
     if importlib.util.find_spec(import_name) is None:
@@ -20,7 +19,6 @@ def install_and_import(package, import_name):
         except Exception as e:
             print(f"❌ Fehler: {e}")
             sys.exit(1)
-
 
 required_packages = [("requests", "requests"), ("Pillow", "PIL"), ("beautifulsoup4", "bs4"), ("urllib3", "urllib3")]
 for pkg, imp in required_packages: install_and_import(pkg, imp)
@@ -35,7 +33,7 @@ from datetime import datetime
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # --- KONFIGURATION ---
-VERSION = "18.0 (Smart Sort & Age)"
+VERSION = "19.0 (Smart Export & Sort)"
 AUTHOR = "KlangKiste ARD Importer"
 DEFAULT_START_URL = "https://www.ardaudiothek.de/rubrik/fuer-kinder/urn:ard:page:36c12c1321f8895a/"
 BASE_DOMAIN = "https://www.ardaudiothek.de"
@@ -56,7 +54,6 @@ Dies ist ein privates Hilfsprogramm. Keine Verbindung zur ARD.
 Nur für private Sicherungskopien (Privatkopie § 53 UrhG).
 Kein Verkauf, keine Verbreitung.
 """
-
 
 class ARDImporterGUI:
     def __init__(self, root):
@@ -85,8 +82,7 @@ class ARDImporterGUI:
         header = tk.Frame(self.tab_import, bg=COLOR_HEADER, pady=15)
         header.pack(fill="x")
         tk.Label(header, text="ARD Audiothek Importer", fg="white", bg=COLOR_HEADER, font=("Arial", 24, "bold")).pack()
-        tk.Label(header, text=f"Für Podcasts & Hörspiele | v{VERSION}", fg="#cbd5e1", bg=COLOR_HEADER,
-                 font=("Arial", 11)).pack()
+        tk.Label(header, text=f"Für Podcasts & Hörspiele | v{VERSION}", fg="#cbd5e1", bg=COLOR_HEADER, font=("Arial", 11)).pack()
 
         tool_frame = tk.Frame(self.tab_import, bg=COLOR_BG, pady=10, padx=20)
         tool_frame.pack(fill="x")
@@ -113,7 +109,6 @@ class ARDImporterGUI:
         left_frame = tk.Frame(content, bg="white")
         left_frame.pack(side="left", fill="both", expand=True)
 
-        # Spalten
         cols = ('Status', 'Alter', 'Datum', 'Titel', 'Dauer', 'Podcast', 'Sender', 'Rubrik')
         self.tree = ttk.Treeview(left_frame, columns=cols, show='headings', selectmode="extended")
 
@@ -139,7 +134,7 @@ class ARDImporterGUI:
         self.preview_panel.pack(side="right", fill="both", padx=(15, 0))
         self.preview_panel.pack_propagate(False)
 
-        self.prev_img_label = tk.Label(self.preview_panel, bg="white", text="")
+        self.prev_img_label = tk.Label(self.preview_panel, bg="white", text="") 
         self.prev_img_label.pack(pady=20)
 
         self.details_text = tk.Text(self.preview_panel, bg="white", font=("Arial", 10), relief="flat", wrap="word",
@@ -150,8 +145,7 @@ class ARDImporterGUI:
         footer.pack(fill="x", side="bottom")
 
         self.status_var = tk.StringVar(value="Bereit.")
-        tk.Label(footer, textvariable=self.status_var, bg=COLOR_BG, fg="#555", font=("Arial", 11, "italic")).pack(
-            side="left")
+        tk.Label(footer, textvariable=self.status_var, bg=COLOR_BG, fg="#555", font=("Arial", 11, "italic")).pack(side="left")
 
         self.btn_download = tk.Button(footer, text="🚀 AUSWAHL HERUNTERLADEN", bg=COLOR_BTN, fg="white",
                                       font=("Arial", 14, "bold"), padx=30, pady=10, command=self.start_download_thread)
@@ -198,33 +192,31 @@ class ARDImporterGUI:
             return prefix + clean_title
         return title
 
-    # --- INTELLIGENTE SORTIERUNG (TITEL-ZERLEGUNG) ---
+    # --- INTELLIGENTE SORTIERUNG ---
     def sort_tree(self, col, reverse):
-        # Wir holen uns (Wert, Titel, ID) für alle Zeilen
         l = [(self.tree.set(k, col), self.tree.set(k, 'Titel'), k) for k in self.tree.get_children('')]
-
-        # Helper: Titel zerlegen in (Text-ohne-Nummer, Total, Current)
+        
+        # Zerlegt Titel in (Text, TotalCount, CurrentCount)
+        # Dadurch werden gleiche Podcastnamen mit unterschiedlichen Staffeln (TotalCount) getrennt
         def get_title_sort_key(full_title):
-            # Prüft auf "(01/04) Titel" Format
             m = re.match(r'^\s*\((\d+)/(\d+)\)\s*(.+)', full_title)
             if m:
                 curr = int(m.group(1))
                 total = int(m.group(2))
                 clean_text = m.group(3).strip().lower()
-                # Sortierung: Erst der Text (z.B. "Die Mumis erste Staffel"), dann Gesamtanzahl, dann Episodennummer
+                # 1. Text, 2. Gesamtanzahl (trennt Staffeln), 3. Episode
                 return (clean_text, total, curr)
             return (full_title.lower(), 0, 0)
 
         try:
-            # Datum DD.MM.YYYY
+            # Datum
             l.sort(key=lambda t: (datetime.strptime(t[0], "%d.%m.%Y"), t[1]), reverse=reverse)
         except ValueError:
             try:
                 # Zahl (Alter/Dauer)
                 l.sort(key=lambda t: (int(re.sub(r'\D', '', t[0])), t[1]), reverse=reverse)
             except:
-                # String (Podcast, Sender etc.)
-                # Hier nutzen wir den Smart-Key für den Titel als Sekundär-Sortierung
+                # String (Podcast etc.) -> Sekundärsortierung über Smart-Key
                 l.sort(key=lambda t: (t[0].lower(), get_title_sort_key(t[1])), reverse=reverse)
 
         for index, (val, title, k) in enumerate(l):
@@ -232,23 +224,20 @@ class ARDImporterGUI:
 
         self.tree.heading(col, command=lambda: self.sort_tree(col, not reverse))
 
-    # --- ALTERSERKENNUNG (NEU: Empfohlen ab) ---
+    # --- ALTERSERKENNUNG (inkl. "empfohlen ab") ---
     def parse_age(self, text):
         if not text: return 0
         text = text.lower()
-
-        # NEU: "empfohlen ab 6"
+        
         match = re.search(r'empfohlen\s*ab\s*(\d{1,2})', text)
         if match:
-            age = int(match.group(1))
-            if age <= 20: return age
+             age = int(match.group(1))
+             if age <= 20: return age
 
-        match = re.search(
-            r'(?:ab|von|für)\s*(?:kinder)?\s*(?:ab|von)?\s*(\d{1,2})(?:[\s\-]*(?:bis|oder)?[\s\-]*\d{1,2})?\s*jahren?',
-            text)
+        match = re.search(r'(?:ab|von|für)\s*(?:kinder)?\s*(?:ab|von)?\s*(\d{1,2})(?:[\s\-]*(?:bis|oder)?[\s\-]*\d{1,2})?\s*jahren?', text)
         if match:
             age = int(match.group(1))
-            if age <= 20: return age
+            if age <= 20: return age 
 
         match = re.search(r'^(\d{1,2})\s+jahre', text)
         if match:
@@ -268,7 +257,7 @@ class ARDImporterGUI:
             r = requests.get(url, headers=HEADERS, verify=False, timeout=10)
             text = r.text
             soup = BeautifulSoup(text, 'html.parser')
-
+            
             h1 = soup.find('h1')
             page_title = self.clean_text(h1) if h1 else ""
 
@@ -297,7 +286,7 @@ class ARDImporterGUI:
         processed_urns = set()
         items_todo = {}
         collections_to_scan = []
-
+        
         root_links, root_title = self.get_links_from_url(start_url)
         generic_titles = ["Für Kinder", "Hauptseite", "Startseite", root_title]
 
@@ -326,7 +315,7 @@ class ARDImporterGUI:
 
         queue_list = list(items_todo.items())
         total = len(queue_list)
-
+        
         if total == 0:
             self.root.after(0, lambda: messagebox.showinfo("Info", "Keine Audio-Episoden gefunden."))
             self.root.after(0, lambda: self.status_var.set("Keine Ergebnisse."))
@@ -364,7 +353,7 @@ class ARDImporterGUI:
             for iid in iids:
                 if self.items_map[iid]['age'] > 0:
                     found_age = self.items_map[iid]['age']
-                    break
+                    break 
             if found_age > 0:
                 updates_made = False
                 for iid in iids:
@@ -394,7 +383,7 @@ class ARDImporterGUI:
         if data:
             if data['age'] == 0 and meta['age'] > 0: data['age'] = meta['age']
             if meta['source'] and meta['source'] != "Hauptseite":
-                data['source_label'] = meta['source']
+                 data['source_label'] = meta['source']
             self.items_map[iid] = data
             self.root.after(0, self.update_tree_item, iid, data)
         else:
@@ -420,7 +409,7 @@ class ARDImporterGUI:
 
             soup = BeautifulSoup(r.text, 'html.parser')
             meta_info = {"datum": "-", "rubrik": "-", "sender": "-", "podcast": "-"}
-
+            
             def get_meta_value(soup, label_text):
                 try:
                     label_span = soup.find('span', string=label_text)
@@ -428,8 +417,7 @@ class ARDImporterGUI:
                     value_div = label_span.find_parent('div').find_next_sibling('div')
                     if not value_div: return "-"
                     return self.clean_text(value_div)
-                except:
-                    return "-"
+                except: return "-"
 
             meta_info["datum"] = get_meta_value(soup, "Erscheinungsdatum")
             meta_info["rubrik"] = get_meta_value(soup, "Rubrik")
@@ -443,20 +431,19 @@ class ARDImporterGUI:
             try:
                 base = json_data['props']['pageProps']['initialData']['data']
                 core = base.get('item') or base.get('programSet')
-            except:
-                return None
+            except: return None
             if not core: return None
 
             title = core.get('title', 'Unbekannt')
             title = self.format_title_numbering(title)
 
-            summary = core.get('description', '')
+            summary = core.get('description', '') 
             if not summary: summary = core.get('synopsis', '')
-
+            
             program_info = core.get('program', {})
             source_label = program_info.get('title', 'ARD Audiothek')
-
-            if meta_info["podcast"] == "-" and source_label:
+            
+            if meta_info["podcast"] == "-" and source_label: 
                 meta_info["podcast"] = source_label
 
             image_obj = core.get('image', {})
@@ -464,23 +451,17 @@ class ARDImporterGUI:
             if not img_url:
                 img_url = image_obj.get('src') or image_obj.get('url')
             if img_url:
-                if "{width}" in img_url:
-                    img_url = img_url.replace("{width}", "1200")
-                elif "?w=" in img_url:
-                    img_url = re.sub(r'w=\d+', 'w=1200', img_url)
-                elif "&w=" in img_url:
-                    img_url = re.sub(r'w=\d+', 'w=1200', img_url)
+                if "{width}" in img_url: img_url = img_url.replace("{width}", "1200")
+                elif "?w=" in img_url: img_url = re.sub(r'w=\d+', 'w=1200', img_url)
+                elif "&w=" in img_url: img_url = re.sub(r'w=\d+', 'w=1200', img_url)
 
             age = self.parse_age(title + " " + summary)
-
+            
             tracks = []
-
             def extract_best_audio(audios_list):
-                best = sorted([a for a in audios_list if a.get('downloadUrl')], key=lambda x: x.get('downloadUrl'),
-                              reverse=True)
+                best = sorted([a for a in audios_list if a.get('downloadUrl')], key=lambda x: x.get('downloadUrl'), reverse=True)
                 if best: return best[0]['downloadUrl']
-                best_fallback = sorted([a for a in audios_list if a.get('url')], key=lambda x: x.get('url'),
-                                       reverse=True)
+                best_fallback = sorted([a for a in audios_list if a.get('url')], key=lambda x: x.get('url'), reverse=True)
                 if best_fallback:
                     fb = best_fallback[0]['url']
                     if ".mp3" in fb: return fb
@@ -509,8 +490,7 @@ class ARDImporterGUI:
                 "datum": meta_info["datum"], "rubrik": meta_info["rubrik"],
                 "sender": meta_info["sender"], "podcast": meta_info["podcast"]
             }
-        except:
-            return None
+        except: return None
 
     def on_select(self, event):
         sel = self.tree.selection()
@@ -539,8 +519,7 @@ class ARDImporterGUI:
             photo = ImageTk.PhotoImage(img)
             self.root.after(0, lambda: self.prev_img_label.config(image=photo, text=""))
             self.prev_img_label.image = photo
-        except:
-            pass
+        except: pass
 
     def start_download_thread(self):
         sel = self.tree.selection()
@@ -558,8 +537,7 @@ class ARDImporterGUI:
             try:
                 with open(json_file, 'r', encoding='utf-8') as f:
                     json_entries = json.load(f)
-            except:
-                pass
+            except: pass
         existing_ids = [e['tagId'] for e in json_entries]
 
         count = 0
@@ -570,48 +548,64 @@ class ARDImporterGUI:
             count += 1
             self.root.after(0, lambda t=item['title']: self.status_var.set(f"⬇️ Lade ({count}/{len(iids)}): {t}"))
 
+            # --- SMART EXPORT NAMING ---
+            raw_podcast = item.get('podcast', '-')
+            clean_cast = ""
+            if raw_podcast and raw_podcast != "-":
+                parts = re.split(r'\s+[-–]\s+', raw_podcast)
+                clean_cast = self.clean_filename(parts[0])
+
             safe_title = self.clean_filename(item['title'])
-            cover_filename = f"{safe_title}.jpg"
+            
+            if clean_cast:
+                if safe_title.lower().startswith(clean_cast.lower()):
+                    base_name = safe_title
+                else:
+                    base_name = f"{clean_cast} - {safe_title}"
+            else:
+                base_name = safe_title
+            
+            if len(base_name) > 150: base_name = base_name[:150] # Sicherheitshalber kürzen
+
+            cover_filename = f"{base_name}.jpg"
             cover_path = os.path.join(self.export_path, cover_filename)
             if item['image_url']:
                 try:
                     r = requests.get(item['image_url'], verify=False)
-                    with open(cover_path, 'wb') as f:
-                        f.write(r.content)
-                except:
-                    pass
+                    with open(cover_path, 'wb') as f: f.write(r.content)
+                except: pass
 
             file_names = []
             for t_idx, track in enumerate(item['tracks']):
                 if self.stop_scan: break
-                fname = f"{safe_title}.mp3" if len(item['tracks']) == 1 else f"{safe_title} - {t_idx + 1:02d}.mp3"
+                fname = f"{base_name}.mp3" if len(item['tracks']) == 1 else f"{base_name} - {t_idx + 1:02d}.mp3"
                 fpath = os.path.join(self.export_path, fname)
                 if not os.path.exists(fpath):
                     try:
                         r = requests.get(track['url'], stream=True, verify=False, timeout=30)
                         with open(fpath, 'wb') as f:
                             for chunk in r.iter_content(chunk_size=65536): f.write(chunk)
-                    except:
-                        pass
+                    except: pass
                 file_names.append(fname)
 
-            with open(os.path.join(self.export_path, f"{safe_title}.m3u"), "w", encoding="utf-8") as f:
+            with open(os.path.join(self.export_path, f"{base_name}.m3u"), "w", encoding="utf-8") as f:
                 for fn in file_names: f.write(fn + "\n")
 
             tag_id = f"ard_{item['id']}"
-
+            
             tags = ["ARD", "Kinder"]
             if item['podcast'] and item['podcast'] != "-": tags.append(item['podcast'])
+            if clean_cast and clean_cast != "-" and clean_cast not in tags: tags.append(clean_cast)
             if item['sender'] and item['sender'] != "-": tags.append(item['sender'])
             if item['rubrik'] and item['rubrik'] != "-": tags.append(item['rubrik'])
-
+            
             entry = {
                 "tagId": tag_id, "name": item['title'], "playlistFileNames": file_names,
                 "imageFileName": cover_filename,
                 "meta": {
                     "description": item['summary'][:400], "age_recommendation": item['age'],
-                    "genre": "Podcast/Hörspiel", "runtime": int(item['duration'] / 60),
-                    "series": item['podcast'],
+                    "genre": "Podcast/Hörspiel", "runtime": int(item['duration'] / 60), 
+                    "series": item['podcast'], 
                     "released_at": item['datum'],
                     "station": item['sender'],
                     "category": item['rubrik']
@@ -632,7 +626,6 @@ class ARDImporterGUI:
     def open_explorer(self):
         messagebox.showinfo("Fertig", f"Dateien in:\n{self.export_path}")
         subprocess.Popen(f'explorer "{os.path.normpath(self.export_path)}"')
-
 
 if __name__ == "__main__":
     try:
