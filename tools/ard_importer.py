@@ -10,6 +10,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from io import BytesIO
 
+
 # --- 1. AUTOMATISCHE INSTALLATION ---
 def install_and_import(package, import_name):
     if importlib.util.find_spec(import_name) is None:
@@ -19,6 +20,7 @@ def install_and_import(package, import_name):
         except Exception as e:
             print(f"❌ Fehler: {e}")
             sys.exit(1)
+
 
 required_packages = [("requests", "requests"), ("Pillow", "PIL"), ("beautifulsoup4", "bs4"), ("urllib3", "urllib3")]
 for pkg, imp in required_packages: install_and_import(pkg, imp)
@@ -33,7 +35,7 @@ from datetime import datetime
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # --- KONFIGURATION ---
-VERSION = "19.0 (Smart Export & Sort)"
+VERSION = "20.0 (Smart Grouping & Series Mode)"
 AUTHOR = "KlangKiste ARD Importer"
 DEFAULT_START_URL = "https://www.ardaudiothek.de/rubrik/fuer-kinder/urn:ard:page:36c12c1321f8895a/"
 BASE_DOMAIN = "https://www.ardaudiothek.de"
@@ -54,6 +56,7 @@ Dies ist ein privates Hilfsprogramm. Keine Verbindung zur ARD.
 Nur für private Sicherungskopien (Privatkopie § 53 UrhG).
 Kein Verkauf, keine Verbreitung.
 """
+
 
 class ARDImporterGUI:
     def __init__(self, root):
@@ -82,7 +85,8 @@ class ARDImporterGUI:
         header = tk.Frame(self.tab_import, bg=COLOR_HEADER, pady=15)
         header.pack(fill="x")
         tk.Label(header, text="ARD Audiothek Importer", fg="white", bg=COLOR_HEADER, font=("Arial", 24, "bold")).pack()
-        tk.Label(header, text=f"Für Podcasts & Hörspiele | v{VERSION}", fg="#cbd5e1", bg=COLOR_HEADER, font=("Arial", 11)).pack()
+        tk.Label(header, text=f"Für Podcasts & Hörspiele | v{VERSION}", fg="#cbd5e1", bg=COLOR_HEADER,
+                 font=("Arial", 11)).pack()
 
         tool_frame = tk.Frame(self.tab_import, bg=COLOR_BG, pady=10, padx=20)
         tool_frame.pack(fill="x")
@@ -134,7 +138,7 @@ class ARDImporterGUI:
         self.preview_panel.pack(side="right", fill="both", padx=(15, 0))
         self.preview_panel.pack_propagate(False)
 
-        self.prev_img_label = tk.Label(self.preview_panel, bg="white", text="") 
+        self.prev_img_label = tk.Label(self.preview_panel, bg="white", text="")
         self.prev_img_label.pack(pady=20)
 
         self.details_text = tk.Text(self.preview_panel, bg="white", font=("Arial", 10), relief="flat", wrap="word",
@@ -145,7 +149,8 @@ class ARDImporterGUI:
         footer.pack(fill="x", side="bottom")
 
         self.status_var = tk.StringVar(value="Bereit.")
-        tk.Label(footer, textvariable=self.status_var, bg=COLOR_BG, fg="#555", font=("Arial", 11, "italic")).pack(side="left")
+        tk.Label(footer, textvariable=self.status_var, bg=COLOR_BG, fg="#555", font=("Arial", 11, "italic")).pack(
+            side="left")
 
         self.btn_download = tk.Button(footer, text="🚀 AUSWAHL HERUNTERLADEN", bg=COLOR_BTN, fg="white",
                                       font=("Arial", 14, "bold"), padx=30, pady=10, command=self.start_download_thread)
@@ -178,6 +183,13 @@ class ARDImporterGUI:
         text = soup_element.get_text(separator=" ")
         return " ".join(text.split())
 
+    # --- HELPER: Datum parsen für Sortierung ---
+    def get_date_obj(self, date_str):
+        try:
+            return datetime.strptime(date_str, "%d.%m.%Y")
+        except:
+            return datetime.min
+
     # --- FORMATIERUNG ---
     def format_title_numbering(self, title):
         if not title: return ""
@@ -192,52 +204,47 @@ class ARDImporterGUI:
             return prefix + clean_title
         return title
 
-    # --- INTELLIGENTE SORTIERUNG ---
+    # --- SORTIERUNG ---
     def sort_tree(self, col, reverse):
         l = [(self.tree.set(k, col), self.tree.set(k, 'Titel'), k) for k in self.tree.get_children('')]
-        
-        # Zerlegt Titel in (Text, TotalCount, CurrentCount)
-        # Dadurch werden gleiche Podcastnamen mit unterschiedlichen Staffeln (TotalCount) getrennt
+
         def get_title_sort_key(full_title):
             m = re.match(r'^\s*\((\d+)/(\d+)\)\s*(.+)', full_title)
             if m:
                 curr = int(m.group(1))
                 total = int(m.group(2))
                 clean_text = m.group(3).strip().lower()
-                # 1. Text, 2. Gesamtanzahl (trennt Staffeln), 3. Episode
                 return (clean_text, total, curr)
             return (full_title.lower(), 0, 0)
 
         try:
-            # Datum
             l.sort(key=lambda t: (datetime.strptime(t[0], "%d.%m.%Y"), t[1]), reverse=reverse)
         except ValueError:
             try:
-                # Zahl (Alter/Dauer)
                 l.sort(key=lambda t: (int(re.sub(r'\D', '', t[0])), t[1]), reverse=reverse)
             except:
-                # String (Podcast etc.) -> Sekundärsortierung über Smart-Key
                 l.sort(key=lambda t: (t[0].lower(), get_title_sort_key(t[1])), reverse=reverse)
 
         for index, (val, title, k) in enumerate(l):
             self.tree.move(k, '', index)
-
         self.tree.heading(col, command=lambda: self.sort_tree(col, not reverse))
 
-    # --- ALTERSERKENNUNG (inkl. "empfohlen ab") ---
+    # --- ALTERSERKENNUNG ---
     def parse_age(self, text):
         if not text: return 0
         text = text.lower()
-        
+
         match = re.search(r'empfohlen\s*ab\s*(\d{1,2})', text)
         if match:
-             age = int(match.group(1))
-             if age <= 20: return age
+            age = int(match.group(1))
+            if age <= 20: return age
 
-        match = re.search(r'(?:ab|von|für)\s*(?:kinder)?\s*(?:ab|von)?\s*(\d{1,2})(?:[\s\-]*(?:bis|oder)?[\s\-]*\d{1,2})?\s*jahren?', text)
+        match = re.search(
+            r'(?:ab|von|für)\s*(?:kinder)?\s*(?:ab|von)?\s*(\d{1,2})(?:[\s\-]*(?:bis|oder)?[\s\-]*\d{1,2})?\s*jahren?',
+            text)
         if match:
             age = int(match.group(1))
-            if age <= 20: return age 
+            if age <= 20: return age
 
         match = re.search(r'^(\d{1,2})\s+jahre', text)
         if match:
@@ -257,7 +264,7 @@ class ARDImporterGUI:
             r = requests.get(url, headers=HEADERS, verify=False, timeout=10)
             text = r.text
             soup = BeautifulSoup(text, 'html.parser')
-            
+
             h1 = soup.find('h1')
             page_title = self.clean_text(h1) if h1 else ""
 
@@ -286,7 +293,7 @@ class ARDImporterGUI:
         processed_urns = set()
         items_todo = {}
         collections_to_scan = []
-        
+
         root_links, root_title = self.get_links_from_url(start_url)
         generic_titles = ["Für Kinder", "Hauptseite", "Startseite", root_title]
 
@@ -315,7 +322,7 @@ class ARDImporterGUI:
 
         queue_list = list(items_todo.items())
         total = len(queue_list)
-        
+
         if total == 0:
             self.root.after(0, lambda: messagebox.showinfo("Info", "Keine Audio-Episoden gefunden."))
             self.root.after(0, lambda: self.status_var.set("Keine Ergebnisse."))
@@ -353,7 +360,7 @@ class ARDImporterGUI:
             for iid in iids:
                 if self.items_map[iid]['age'] > 0:
                     found_age = self.items_map[iid]['age']
-                    break 
+                    break
             if found_age > 0:
                 updates_made = False
                 for iid in iids:
@@ -383,7 +390,7 @@ class ARDImporterGUI:
         if data:
             if data['age'] == 0 and meta['age'] > 0: data['age'] = meta['age']
             if meta['source'] and meta['source'] != "Hauptseite":
-                 data['source_label'] = meta['source']
+                data['source_label'] = meta['source']
             self.items_map[iid] = data
             self.root.after(0, self.update_tree_item, iid, data)
         else:
@@ -409,7 +416,7 @@ class ARDImporterGUI:
 
             soup = BeautifulSoup(r.text, 'html.parser')
             meta_info = {"datum": "-", "rubrik": "-", "sender": "-", "podcast": "-"}
-            
+
             def get_meta_value(soup, label_text):
                 try:
                     label_span = soup.find('span', string=label_text)
@@ -417,7 +424,8 @@ class ARDImporterGUI:
                     value_div = label_span.find_parent('div').find_next_sibling('div')
                     if not value_div: return "-"
                     return self.clean_text(value_div)
-                except: return "-"
+                except:
+                    return "-"
 
             meta_info["datum"] = get_meta_value(soup, "Erscheinungsdatum")
             meta_info["rubrik"] = get_meta_value(soup, "Rubrik")
@@ -431,19 +439,20 @@ class ARDImporterGUI:
             try:
                 base = json_data['props']['pageProps']['initialData']['data']
                 core = base.get('item') or base.get('programSet')
-            except: return None
+            except:
+                return None
             if not core: return None
 
             title = core.get('title', 'Unbekannt')
             title = self.format_title_numbering(title)
 
-            summary = core.get('description', '') 
+            summary = core.get('description', '')
             if not summary: summary = core.get('synopsis', '')
-            
+
             program_info = core.get('program', {})
             source_label = program_info.get('title', 'ARD Audiothek')
-            
-            if meta_info["podcast"] == "-" and source_label: 
+
+            if meta_info["podcast"] == "-" and source_label:
                 meta_info["podcast"] = source_label
 
             image_obj = core.get('image', {})
@@ -451,17 +460,23 @@ class ARDImporterGUI:
             if not img_url:
                 img_url = image_obj.get('src') or image_obj.get('url')
             if img_url:
-                if "{width}" in img_url: img_url = img_url.replace("{width}", "1200")
-                elif "?w=" in img_url: img_url = re.sub(r'w=\d+', 'w=1200', img_url)
-                elif "&w=" in img_url: img_url = re.sub(r'w=\d+', 'w=1200', img_url)
+                if "{width}" in img_url:
+                    img_url = img_url.replace("{width}", "1200")
+                elif "?w=" in img_url:
+                    img_url = re.sub(r'w=\d+', 'w=1200', img_url)
+                elif "&w=" in img_url:
+                    img_url = re.sub(r'w=\d+', 'w=1200', img_url)
 
             age = self.parse_age(title + " " + summary)
-            
+
             tracks = []
+
             def extract_best_audio(audios_list):
-                best = sorted([a for a in audios_list if a.get('downloadUrl')], key=lambda x: x.get('downloadUrl'), reverse=True)
+                best = sorted([a for a in audios_list if a.get('downloadUrl')], key=lambda x: x.get('downloadUrl'),
+                              reverse=True)
                 if best: return best[0]['downloadUrl']
-                best_fallback = sorted([a for a in audios_list if a.get('url')], key=lambda x: x.get('url'), reverse=True)
+                best_fallback = sorted([a for a in audios_list if a.get('url')], key=lambda x: x.get('url'),
+                                       reverse=True)
                 if best_fallback:
                     fb = best_fallback[0]['url']
                     if ".mp3" in fb: return fb
@@ -490,7 +505,8 @@ class ARDImporterGUI:
                 "datum": meta_info["datum"], "rubrik": meta_info["rubrik"],
                 "sender": meta_info["sender"], "podcast": meta_info["podcast"]
             }
-        except: return None
+        except:
+            return None
 
     def on_select(self, event):
         sel = self.tree.selection()
@@ -519,7 +535,8 @@ class ARDImporterGUI:
             photo = ImageTk.PhotoImage(img)
             self.root.after(0, lambda: self.prev_img_label.config(image=photo, text=""))
             self.prev_img_label.image = photo
-        except: pass
+        except:
+            pass
 
     def start_download_thread(self):
         sel = self.tree.selection()
@@ -529,6 +546,7 @@ class ARDImporterGUI:
         iids = list(sel)
         threading.Thread(target=self.download_logic, args=(iids,), daemon=True).start()
 
+    # --- HAUPTLOGIK: DOWNLOAD (MIT GRUPPIERUNG) ---
     def download_logic(self, iids):
         if not os.path.exists(self.export_path): os.makedirs(self.export_path)
         json_file = os.path.join(self.export_path, "klangkiste_ard.json")
@@ -537,87 +555,238 @@ class ARDImporterGUI:
             try:
                 with open(json_file, 'r', encoding='utf-8') as f:
                     json_entries = json.load(f)
-            except: pass
+            except:
+                pass
         existing_ids = [e['tagId'] for e in json_entries]
 
-        count = 0
+        # 1. Gruppierung der ausgewählten Items
+        # Wir gruppieren nach (PodcastName, ImageURL) um sicher zu sein, dass es zusammengehört.
+        # Falls kein PodcastName da ist, nutzen wir den Titel als Fallback (dann ist es eh einzeln)
+        grouped_items = {}
+
         for iid in iids:
-            if self.stop_scan: break
             if iid not in self.items_map: continue
             item = self.items_map[iid]
-            count += 1
-            self.root.after(0, lambda t=item['title']: self.status_var.set(f"⬇️ Lade ({count}/{len(iids)}): {t}"))
 
-            # --- SMART EXPORT NAMING ---
-            raw_podcast = item.get('podcast', '-')
-            clean_cast = ""
-            if raw_podcast and raw_podcast != "-":
-                parts = re.split(r'\s+[-–]\s+', raw_podcast)
-                clean_cast = self.clean_filename(parts[0])
+            # Gruppierungsschlüssel: Podcast Name (bereinigt)
+            raw_cast = item.get('podcast', '-')
+            if not raw_cast or raw_cast == "-":
+                raw_cast = "Unknown_Collection_" + iid  # Fallback für Einzelepisoden ohne Podcast-Tag
 
-            safe_title = self.clean_filename(item['title'])
-            
-            if clean_cast:
-                if safe_title.lower().startswith(clean_cast.lower()):
-                    base_name = safe_title
+            # Nur zusammenfassen, wenn Cover identisch ist (Sicherheit gegen Namenskollision)
+            group_key = (raw_cast, item.get('image_url', ''))
+
+            if group_key not in grouped_items:
+                grouped_items[group_key] = []
+            grouped_items[group_key].append(item)
+
+        # 2. Verarbeitung der Gruppen
+        total_groups = len(grouped_items)
+        current_g = 0
+
+        for key, items in grouped_items.items():
+            if self.stop_scan: break
+            current_g += 1
+            podcast_name = key[0]
+
+            # Entscheidung: Zusammenfassen oder einzeln?
+            # Wir fassen zusammen, wenn mehr als 1 Episode im gleichen Podcast ausgewählt wurde.
+            is_series = len(items) > 1 and "Unknown_Collection_" not in podcast_name
+
+            # Sortieren der Items innerhalb der Gruppe
+            # Wenn Titel nummeriert sind (01/04), nutzen wir das. Sonst Datum.
+            try:
+                # Prüfen auf Nummerierung
+                has_numbers = any(re.match(r'^\s*\((\d+)/(\d+)\)', x['title']) for x in items)
+                if has_numbers:
+                    # Sortieren nach Nummer im Titel
+                    def sort_num(i):
+                        m = re.match(r'^\s*\((\d+)/(\d+)\)', i['title'])
+                        return int(m.group(1)) if m else 9999
+
+                    items.sort(key=sort_num)
                 else:
-                    base_name = f"{clean_cast} - {safe_title}"
-            else:
-                base_name = safe_title
-            
-            if len(base_name) > 150: base_name = base_name[:150] # Sicherheitshalber kürzen
+                    # Sortieren nach Datum (alt -> neu)
+                    items.sort(key=lambda x: self.get_date_obj(x.get('datum', '')))
+            except:
+                pass
 
-            cover_filename = f"{base_name}.jpg"
-            cover_path = os.path.join(self.export_path, cover_filename)
-            if item['image_url']:
-                try:
-                    r = requests.get(item['image_url'], verify=False)
-                    with open(cover_path, 'wb') as f: f.write(r.content)
-                except: pass
+            if is_series:
+                # --- SERIEN MODUS (Zusammenfassen) ---
+                self.root.after(0, lambda pn=podcast_name: self.status_var.set(
+                    f"📦 Verarbeite Serie: {pn} ({len(items)} Folgen)"))
 
-            file_names = []
-            for t_idx, track in enumerate(item['tracks']):
-                if self.stop_scan: break
-                fname = f"{base_name}.mp3" if len(item['tracks']) == 1 else f"{base_name} - {t_idx + 1:02d}.mp3"
-                fpath = os.path.join(self.export_path, fname)
-                if not os.path.exists(fpath):
+                # Name bereinigen (kurz)
+                parts = re.split(r'\s+[-–]\s+', podcast_name)
+                clean_cast_name = self.clean_filename(parts[0])
+
+                # Basisdaten vom ersten Element (oder "besten")
+                first_item = items[0]
+                safe_title = clean_cast_name
+                cover_filename = f"{safe_title}.jpg"
+                cover_path = os.path.join(self.export_path, cover_filename)
+
+                # Cover laden (nur 1x)
+                if first_item['image_url']:
                     try:
-                        r = requests.get(track['url'], stream=True, verify=False, timeout=30)
-                        with open(fpath, 'wb') as f:
-                            for chunk in r.iter_content(chunk_size=65536): f.write(chunk)
-                    except: pass
-                file_names.append(fname)
+                        r = requests.get(first_item['image_url'], verify=False)
+                        with open(cover_path, 'wb') as f:
+                            f.write(r.content)
+                    except:
+                        pass
 
-            with open(os.path.join(self.export_path, f"{base_name}.m3u"), "w", encoding="utf-8") as f:
-                for fn in file_names: f.write(fn + "\n")
+                all_files = []
+                total_duration = 0
 
-            tag_id = f"ard_{item['id']}"
-            
-            tags = ["ARD", "Kinder"]
-            if item['podcast'] and item['podcast'] != "-": tags.append(item['podcast'])
-            if clean_cast and clean_cast != "-" and clean_cast not in tags: tags.append(clean_cast)
-            if item['sender'] and item['sender'] != "-": tags.append(item['sender'])
-            if item['rubrik'] and item['rubrik'] != "-": tags.append(item['rubrik'])
-            
-            entry = {
-                "tagId": tag_id, "name": item['title'], "playlistFileNames": file_names,
-                "imageFileName": cover_filename,
-                "meta": {
-                    "description": item['summary'][:400], "age_recommendation": item['age'],
-                    "genre": "Podcast/Hörspiel", "runtime": int(item['duration'] / 60), 
-                    "series": item['podcast'], 
-                    "released_at": item['datum'],
-                    "station": item['sender'],
-                    "category": item['rubrik']
-                },
-                "tags": tags, "filter_age": item['age']
-            }
-            if tag_id not in existing_ids:
-                json_entries.append(entry)
-                existing_ids.append(tag_id)
+                # Alle Tracks aller Episoden laden
+                for idx, ep in enumerate(items):
+                    if self.stop_scan: break
 
-            with open(json_file, 'w', encoding='utf-8') as f:
-                json.dump(json_entries, f, indent=4, ensure_ascii=False)
+                    # Dateiname generieren
+                    # Format: Podcast - 01 - Titel.mp3 ODER Podcast - 2024-01-01 - Titel.mp3
+                    ep_clean_title = self.clean_filename(ep['title'])
+
+                    # Präfix ermitteln (Nummer oder Datum)
+                    match_num = re.match(r'^\s*\((\d+)/\d+\)', ep['title'])
+                    if match_num:
+                        prefix = f"{int(match_num.group(1)):02d}"
+                    else:
+                        # Datum als Präfix oder Index falls kein Datum
+                        d_obj = self.get_date_obj(ep.get('datum', ''))
+                        if d_obj != datetime.min:
+                            prefix = d_obj.strftime("%Y-%m-%d")
+                        else:
+                            prefix = f"{idx + 1:02d}"
+
+                    # Audio Tracks dieser Episode
+                    for t_i, track in enumerate(ep['tracks']):
+                        fname = f"{safe_title} - {prefix} - {ep_clean_title}.mp3"
+                        # Falls mehrere Tracks pro Episode, hänge a,b,c an oder index
+                        if len(ep['tracks']) > 1:
+                            fname = f"{safe_title} - {prefix} - {ep_clean_title} ({t_i + 1}).mp3"
+
+                        fpath = os.path.join(self.export_path, fname)
+                        if not os.path.exists(fpath):
+                            try:
+                                r = requests.get(track['url'], stream=True, verify=False, timeout=30)
+                                with open(fpath, 'wb') as f:
+                                    for chunk in r.iter_content(chunk_size=65536): f.write(chunk)
+                            except:
+                                pass
+                        all_files.append(fname)
+                        total_duration += track.get('duration', 0)
+
+                # Eine M3U für die ganze Serie
+                with open(os.path.join(self.export_path, f"{safe_title}.m3u"), "w", encoding="utf-8") as f:
+                    for fn in all_files: f.write(fn + "\n")
+
+                # JSON Eintrag
+                tag_id = f"ard_series_{self.clean_filename(podcast_name)}"
+                tags = ["ARD", "Kinder", "Serie"]
+                if first_item['podcast'] != "-": tags.append(first_item['podcast'])
+                if first_item['sender'] != "-": tags.append(first_item['sender'])
+                if first_item['rubrik'] != "-": tags.append(first_item['rubrik'])
+                if clean_cast_name not in tags: tags.append(clean_cast_name)
+
+                entry = {
+                    "tagId": tag_id, "name": podcast_name,  # Name ist der Podcast Name
+                    "playlistFileNames": all_files,
+                    "imageFileName": cover_filename,
+                    "meta": {
+                        "description": f"Sammlung: {podcast_name}.\nEnthält {len(items)} Episoden.\n\nBeschreibung der ersten Folge:\n{first_item['summary'][:300]}...",
+                        "age_recommendation": first_item['age'],
+                        "genre": "Podcast-Serie", "runtime": int(total_duration / 60),
+                        "series": first_item['podcast'],
+                        "released_at": first_item['datum'],
+                        "station": first_item['sender'],
+                        "category": first_item['rubrik']
+                    },
+                    "tags": tags, "filter_age": first_item['age']
+                }
+
+                # Speichern
+                # Prüfen ob ID existiert, wenn ja update oder skip (hier append wir neu wenn ID unique)
+                if tag_id not in existing_ids:
+                    json_entries.append(entry)
+                    existing_ids.append(tag_id)
+                else:
+                    # Update Logik falls gewünscht, hier einfach überspringen um Duplikate zu vermeiden
+                    pass
+
+            else:
+                # --- EINZEL MODUS (Wie bisher, nur mit Smart Name) ---
+                for item in items:
+                    self.root.after(0, lambda t=item['title']: self.status_var.set(f"⬇️ Lade Einzel: {t}"))
+
+                    raw_podcast = item.get('podcast', '-')
+                    clean_cast = ""
+                    if raw_podcast and raw_podcast != "-":
+                        parts = re.split(r'\s+[-–]\s+', raw_podcast)
+                        clean_cast = self.clean_filename(parts[0])
+
+                    safe_title = self.clean_filename(item['title'])
+                    if clean_cast:
+                        if safe_title.lower().startswith(clean_cast.lower()):
+                            base_name = safe_title
+                        else:
+                            base_name = f"{clean_cast} - {safe_title}"
+                    else:
+                        base_name = safe_title
+
+                    if len(base_name) > 150: base_name = base_name[:150]
+
+                    cover_filename = f"{base_name}.jpg"
+                    cover_path = os.path.join(self.export_path, cover_filename)
+                    if item['image_url']:
+                        try:
+                            r = requests.get(item['image_url'], verify=False)
+                            with open(cover_path, 'wb') as f:
+                                f.write(r.content)
+                        except:
+                            pass
+
+                    file_names = []
+                    for t_idx, track in enumerate(item['tracks']):
+                        if self.stop_scan: break
+                        fname = f"{base_name}.mp3" if len(item['tracks']) == 1 else f"{base_name} - {t_idx + 1:02d}.mp3"
+                        fpath = os.path.join(self.export_path, fname)
+                        if not os.path.exists(fpath):
+                            try:
+                                r = requests.get(track['url'], stream=True, verify=False, timeout=30)
+                                with open(fpath, 'wb') as f:
+                                    for chunk in r.iter_content(chunk_size=65536): f.write(chunk)
+                            except:
+                                pass
+                        file_names.append(fname)
+
+                    with open(os.path.join(self.export_path, f"{base_name}.m3u"), "w", encoding="utf-8") as f:
+                        for fn in file_names: f.write(fn + "\n")
+
+                    tag_id = f"ard_{item['id']}"
+                    tags = ["ARD", "Kinder"]
+                    if item['podcast'] != "-": tags.append(item['podcast'])
+                    if clean_cast and clean_cast != "-" and clean_cast not in tags: tags.append(clean_cast)
+                    if item['sender'] != "-": tags.append(item['sender'])
+                    if item['rubrik'] != "-": tags.append(item['rubrik'])
+
+                    entry = {
+                        "tagId": tag_id, "name": item['title'], "playlistFileNames": file_names,
+                        "imageFileName": cover_filename,
+                        "meta": {
+                            "description": item['summary'][:400], "age_recommendation": item['age'],
+                            "genre": "Podcast/Hörspiel", "runtime": int(item['duration'] / 60),
+                            "series": item['podcast'], "released_at": item['datum'],
+                            "station": item['sender'], "category": item['rubrik']
+                        },
+                        "tags": tags, "filter_age": item['age']
+                    }
+                    if tag_id not in existing_ids:
+                        json_entries.append(entry)
+                        existing_ids.append(tag_id)
+
+        # JSON schreiben
+        with open(json_file, 'w', encoding='utf-8') as f:
+            json.dump(json_entries, f, indent=4, ensure_ascii=False)
 
         self.root.after(0, lambda: self.status_var.set("✅ Fertig!"))
         self.root.after(0, lambda: self.btn_download.config(state="normal", text="🚀 AUSWAHL HERUNTERLADEN"))
@@ -626,6 +795,7 @@ class ARDImporterGUI:
     def open_explorer(self):
         messagebox.showinfo("Fertig", f"Dateien in:\n{self.export_path}")
         subprocess.Popen(f'explorer "{os.path.normpath(self.export_path)}"')
+
 
 if __name__ == "__main__":
     try:
