@@ -35,7 +35,7 @@ from datetime import datetime
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # --- KONFIGURATION ---
-VERSION = "17.0 (Title Sort & Tags)"
+VERSION = "18.0 (Smart Sort & Age)"
 AUTHOR = "KlangKiste ARD Importer"
 DEFAULT_START_URL = "https://www.ardaudiothek.de/rubrik/fuer-kinder/urn:ard:page:36c12c1321f8895a/"
 BASE_DOMAIN = "https://www.ardaudiothek.de"
@@ -184,34 +184,36 @@ class ARDImporterGUI:
         text = soup_element.get_text(separator=" ")
         return " ".join(text.split())
 
-    # --- FORMATIERUNG (NEU: NUMMERN VORZIEHEN) ---
+    # --- FORMATIERUNG ---
     def format_title_numbering(self, title):
         if not title: return ""
         title = title.strip()
-
-        # Sucht nach Muster (1/4), (01/20), etc.
-        # \s* erlaubt Leerzeichen davor
         match = re.search(r'\s*\((\d+)/(\d+)\)', title)
-
         if match:
             current = int(match.group(1))
             total = int(match.group(2))
-            # Formatieren mit führender Null (z.B. 01/05)
             prefix = f"({current:02d}/{total:02d}) "
-
-            # Entferne das alte (x/y) aus dem Titel
             clean_title = title.replace(match.group(0), " ").strip()
-            # Doppelte Leerzeichen bereinigen
             clean_title = re.sub(r'\s+', ' ', clean_title)
-
             return prefix + clean_title
-
         return title
 
-    # --- SORTIERUNG (NEU: SEKUNDÄR NACH TITEL) ---
+    # --- INTELLIGENTE SORTIERUNG (TITEL-ZERLEGUNG) ---
     def sort_tree(self, col, reverse):
         # Wir holen uns (Wert, Titel, ID) für alle Zeilen
         l = [(self.tree.set(k, col), self.tree.set(k, 'Titel'), k) for k in self.tree.get_children('')]
+
+        # Helper: Titel zerlegen in (Text-ohne-Nummer, Total, Current)
+        def get_title_sort_key(full_title):
+            # Prüft auf "(01/04) Titel" Format
+            m = re.match(r'^\s*\((\d+)/(\d+)\)\s*(.+)', full_title)
+            if m:
+                curr = int(m.group(1))
+                total = int(m.group(2))
+                clean_text = m.group(3).strip().lower()
+                # Sortierung: Erst der Text (z.B. "Die Mumis erste Staffel"), dann Gesamtanzahl, dann Episodennummer
+                return (clean_text, total, curr)
+            return (full_title.lower(), 0, 0)
 
         try:
             # Datum DD.MM.YYYY
@@ -222,23 +224,32 @@ class ARDImporterGUI:
                 l.sort(key=lambda t: (int(re.sub(r'\D', '', t[0])), t[1]), reverse=reverse)
             except:
                 # String (Podcast, Sender etc.)
-                # Hier sortieren wir primär nach Spalte, sekundär nach Titel
-                l.sort(key=lambda t: (t[0].lower(), t[1].lower()), reverse=reverse)
+                # Hier nutzen wir den Smart-Key für den Titel als Sekundär-Sortierung
+                l.sort(key=lambda t: (t[0].lower(), get_title_sort_key(t[1])), reverse=reverse)
 
         for index, (val, title, k) in enumerate(l):
             self.tree.move(k, '', index)
 
         self.tree.heading(col, command=lambda: self.sort_tree(col, not reverse))
 
+    # --- ALTERSERKENNUNG (NEU: Empfohlen ab) ---
     def parse_age(self, text):
         if not text: return 0
         text = text.lower()
+
+        # NEU: "empfohlen ab 6"
+        match = re.search(r'empfohlen\s*ab\s*(\d{1,2})', text)
+        if match:
+            age = int(match.group(1))
+            if age <= 20: return age
+
         match = re.search(
             r'(?:ab|von|für)\s*(?:kinder)?\s*(?:ab|von)?\s*(\d{1,2})(?:[\s\-]*(?:bis|oder)?[\s\-]*\d{1,2})?\s*jahren?',
             text)
         if match:
             age = int(match.group(1))
             if age <= 20: return age
+
         match = re.search(r'^(\d{1,2})\s+jahre', text)
         if match:
             age = int(match.group(1))
@@ -327,7 +338,6 @@ class ARDImporterGUI:
         for i, (urn, meta) in enumerate(queue_list):
             if self.stop_scan: break
             iid = urn.split(":")[-1]
-            # Platzhalter adden
             self.root.after(0, self.add_placeholder_item, iid, meta['title'], meta['source'])
             self.analyze_item(urn, meta, iid, i + 1, total)
             time.sleep(0.01)
@@ -438,9 +448,7 @@ class ARDImporterGUI:
             if not core: return None
 
             title = core.get('title', 'Unbekannt')
-            # --- HIER WIRD DER TITEL FORMATIERT ---
             title = self.format_title_numbering(title)
-            # --------------------------------------
 
             summary = core.get('description', '')
             if not summary: summary = core.get('synopsis', '')
@@ -592,7 +600,6 @@ class ARDImporterGUI:
 
             tag_id = f"ard_{item['id']}"
 
-            # --- NEUE TAGS LOGIK ---
             tags = ["ARD", "Kinder"]
             if item['podcast'] and item['podcast'] != "-": tags.append(item['podcast'])
             if item['sender'] and item['sender'] != "-": tags.append(item['sender'])
