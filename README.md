@@ -1,4 +1,4 @@
-# 🎵 KlangKiste PWA (V83 Sleep Update)
+# 🎵 KlangKiste PWA (V84 Visual Update)
 
 **Die smarte DIY "Toniebox" fürs Handy – 100% AI-Generated Code.**
 
@@ -8,12 +8,33 @@ Dieses Projekt ist eine kinderfreundliche Musik-Player-App, die alte Smartphones
 
 ---
 
+## 🎨 Neu in v84: Lebendige Hintergründe & Fixes
+
+Die V84 bringt mehr Leben in die Kinder-Oberfläche und verbessert die Stabilität auf älteren Geräten.
+
+### 1. Animierte Live-Hintergründe
+Statt statischer Farben bietet der Player nun sanft animierte Hintergründe, die passend zur Tageszeit oder Stimmung gewählt werden können.
+* **Tag-Modus:** Wolken ziehen langsam am blauen Himmel vorbei.
+* **Nacht-Modus:** Sterne funkeln dezent im Hintergrund.
+* **Performance:** Die Animationen sind extrem ressourcenschonend (CSS-basiert), sodass auch alte Handys (wie Galaxy S8, S9) nicht belastet werden.
+
+### 2. Audio-Engine & Stabilität
+Spezielle Anpassungen für ältere Android-Versionen (z.B. Android 8/9):
+* **Kein Stottern mehr:** Der "Sleep-Timer" und die Audio-Wiedergabe wurden entkoppelt, um Audio-Verzerrungen auf alten Geräten zu verhindern.
+* **Robuster Test-Ton:** Der Soundcheck nutzt nun wieder native Android-Funktionen für maximale Kompatibilität.
+
+### 3. UI-Verbesserungen
+* **Bessere Lesbarkeit:** Kontraste in der Bibliothek wurden erhöht.
+* **Samsung-Fix:** Ein Fehler, bei dem auf Samsung-Geräten Texte abgeschnitten wurden, ist behoben.
+
+---
+
 ## 🌙 Neu in v83: Der intelligente Schlafmodus
 
 Für eine noch bessere Einschlafbegleitung wurde der Schlafmodus (Timer) komplett überarbeitet. Er bietet nun eine visuelle Bestätigung und spart maximal Energie.
 
 ### 1. Visuelles Einschlafen
-Sobald der Timer abgelaufen ist, schaltet die App in eine beruhigende Schlaf-Ansicht. 
+Sobald der Timer abgelaufen ist, schaltet die App in eine beruhigende Schlaf-Ansicht. 
 * **Schlaf-Design:** Ein spezieller Nacht-Hintergrund mit einer sanft animierten, schlafenden Note zeigt dem Kind, dass die "KlangKiste" nun auch schläft.
 * **Sanftes Pulsieren:** Die Note "atmet" visuell durch eine langsame Animation, was eine beruhigende Wirkung hat.
 
@@ -29,8 +50,8 @@ Um das Zimmer vollkommen dunkel zu halten und den Akku zu schonen, folgt nach de
 
 KlangKiste unterstützt nun direkt die Integration von hochwertigen, kostenlosen Hörbüchern des Portals **OHRKA**. Da Browser direkte Downloads von fremden Seiten oft blockieren (CORS), nutzt die App einen smarten **2-Schritte-Prozess**, um die Dateien **100% offline** verfügbar zu machen:
 
-1.  **Installation:** Wähle "OHRKA Installation". Die App lädt Titel, Beschreibungen, Kapitelmarken und Cover in die Datenbank.
-2.  **Verknüpfung:** Du erhältst in einem Fenster Download-Links für die MP3s. Lade diese herunter und nutze dann den Button **"🪄 Automatisch reparieren"**. Die App erkennt die Dateien automatisch anhand ihres Namens und verknüpft sie mit den Einträgen.
+1.  **Installation:** Wähle "OHRKA Installation". Die App lädt Titel, Beschreibungen, Kapitelmarken und Cover in die Datenbank.
+2.  **Verknüpfung:** Du erhältst in einem Fenster Download-Links für die MP3s. Lade diese herunter und nutze dann den Button **"🪄 Automatisch reparieren"**. Die App erkennt die Dateien automatisch anhand ihres Namens und verknüpft sie mit den Einträgen.
 
 ---
 
@@ -60,8 +81,8 @@ Wenn du einen Ordner mit hunderten Hörspielen auswählst, schreibt die App dies
 Im Import-Fenster stehen dir nun mächtige Werkzeuge zur Verfügung:
 * **Alters-Filter (Min/Max):** Gib z.B. "Bis 4 Jahre" ein. Die App filtert die Liste sofort und zeigt nur noch altersgerechte Inhalte an (basiert auf Daten aus der `klangkiste.json` oder Metadaten).
 * **Negativ-Suche (-):** Willst du eine bestimmte Serie *nicht* importieren? Schreibe einfach ein Minus vor den Begriff.
-    * *Beispiel:* `-paw` -> Entfernt sofort alle "Paw Patrol" Folgen aus der Auswahl.
-    * *Beispiel:* `-grusel` -> Entfernt alles mit "Grusel" im Titel.
+    * *Beispiel:* `-paw` -> Entfernt sofort alle "Paw Patrol" Folgen aus der Auswahl.
+    * *Beispiel:* `-grusel` -> Entfernt alles mit "Grusel" im Titel.
 * **Massen-Steuerung:** Die Buttons "Alle sichtbaren an/aus" reagieren auf deine Filter. So kannst du z.B. erst nach "Conni" filtern und dann mit einem Klick nur alle Conni-Folgen auswählen.
 
 ---
@@ -73,7 +94,7 @@ Du hast deine Hörspiele am PC bereits in Ordnern sortiert? Perfekt!
 * **Wie es funktioniert:** Wähle einen Oberordner (z.B. "Meine Hörspiele") aus.
 * **Die Magie:** Die App erkennt automatisch jeden Unterordner als **eigenes Album**.
 * **Beispiel:**
-    * `Hörspiele/Benjamin Blümchen/01 - Zoo.mp3` -> Wird Album "Benjamin Blümchen"
+    * `Hörspiele/Benjamin Blümchen/01 - Zoo.mp3` -> Wird Album "Benjamin Blümchen"
 * **Automatische Cover:** Wenn in einem Ordner ein Bild (jpg/png) liegt, wird es automatisch als Cover für dieses Album gesetzt.
 
 ### ⚡ Admin Listen-Ansicht
@@ -150,15 +171,15 @@ Die App muss nicht über den Play Store geladen werden, sondern wird direkt übe
 ### 1. Musik importieren (5 Wege)
 
 * **A) Ordner-Struktur Import (Smart - Empfohlen):**
-    Der beste Weg für sortierte Sammlungen. Wähle deinen Haupt-Ordner. Es öffnet sich das neue **Import-Fenster**, in dem du nach Alter filtern oder unerwünschte Serien ausschließen kannst, bevor sie importiert werden.
+    Der beste Weg für sortierte Sammlungen. Wähle deinen Haupt-Ordner. Es öffnet sich das neue **Import-Fenster**, in dem du nach Alter filtern oder unerwünschte Serien ausschließen kannst, bevor sie importiert werden.
 * **B) Massen-Import (Dateien):**
-    Für lose MP3s oder wenn du unser Python-Tool nutzt. Wähle Dateien und die `klangkiste.json` aus. Auch hier greift der neue **Safe-Filter**.
+    Für lose MP3s oder wenn du unser Python-Tool nutzt. Wähle Dateien und die `klangkiste.json` aus. Auch hier greift der neue **Safe-Filter**.
 * **C) OHRKA Installation (Neu):**
-    Nutze die neue V82 Funktion, um OHRKA-Hörbücher in zwei Schritten (Metadaten installieren -> MP3 downloaden & verknüpfen) offline verfügbar zu machen.
+    Nutze die neue V82 Funktion, um OHRKA-Hörbücher in zwei Schritten (Metadaten installieren -> MP3 downloaden & verknüpfen) offline verfügbar zu machen.
 * **D) Online-Beispiele:**
-    Lade mit einem Klick vorbereitete KI-generierte Hörspiele direkt vom Server (zum Testen).
+    Lade mit einem Klick vorbereitete KI-generierte Hörspiele direkt vom Server (zum Testen).
 * **E) Manuell anlernen:**
-    Gehe auf „Neuen Tag anlernen", wähle Audio & Bild einzeln und fülle Details wie Beschreibung und Alter aus.
+    Gehe auf „Neuen Tag anlernen", wähle Audio & Bild einzeln und fülle Details wie Beschreibung und Alter aus.
 
 ### 2. Backups & Restore
 
@@ -203,7 +224,7 @@ Du möchtest alle OHRKA Hörbücher bequem am PC herunterladen und für die App 
 
 ## 📂 Dateistruktur
 
-* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v83)
+* `index.html` – Der gesamte Quellcode der Anwendung (Logik & Design, v84)
 * `sw.js` – Der Service Worker für die Offline-Funktionalität (Cache v76+)
 * `manifest.json` – Konfiguration für das App-Icon und den Vollbild-Modus
 * `assets/` – Ordner für Icons und Test-Sounds
@@ -234,4 +255,4 @@ Wir haben ein DIY-Diagnose-Tool auf Basis eines ESP32 und PN5180 entwickelt.
 ## 👨‍💻 Credits
 
 Entwickelt von Sebastian Rößer mit Unterstützung von **Google Gemini 3 Pro**.
-Version 83 „Sleep Update".
+Version 84 „Visual Update".
