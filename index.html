@@ -1764,53 +1764,40 @@
             if(pct < 40) bar.style.backgroundColor = "var(--green-safe)"; else if (pct < 75) bar.style.backgroundColor = "var(--orange-warn)"; else bar.style.backgroundColor = "var(--red-danger)";
         }
 
-        // --- HAUPTFUNKTION: Versucht MP3, sonst Backup ---
+        // --- HAUPTFUNKTION: Versucht MP3, sonst Backup (V81 Logik) ---
         function playTestTone() {
             const path = 'assets/limit.mp3';
             
-            // Audio-Objekt erstellen
+            // Audio-Objekt erstellen (Standard HTML5 Audio)
             const testAudio = new Audio();
             
             // Lautstärke berechnen (Quadratisch für natürlicheres Gefühl)
             const targetVol = Math.pow(settings.maxVolume, 2);
             testAudio.volume = targetVol;
-
+        
             // --- FEHLER-MANAGER ---
             testAudio.addEventListener('error', (e) => {
                 const err = testAudio.error;
                 let errorDetails = "";
-
-                // Genaue Diagnose für dich
+        
                 switch (err.code) {
-                    case 1: // MEDIA_ERR_ABORTED
-                        errorDetails = "Abbruch durch System/User";
-                        break;
-                    case 2: // MEDIA_ERR_NETWORK
-                        errorDetails = "Netzwerk/Cache Fehler (Service Worker inaktiv?)";
-                        break;
-                    case 3: // MEDIA_ERR_DECODE
-                        errorDetails = "Datei beschädigt (Dekodierfehler)";
-                        break;
-                    case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
-                        errorDetails = "Datei nicht gefunden (404) oder Format falsch";
-                        break;
-                    default:
-                        errorDetails = "Unbekannter Fehler Code " + err.code;
+                    case 1: errorDetails = "Abbruch durch System/User"; break;
+                    case 2: errorDetails = "Netzwerk/Cache Fehler"; break;
+                    case 3: errorDetails = "Datei beschädigt (Dekodierfehler)"; break;
+                    case 4: errorDetails = "Datei nicht gefunden (404)"; break;
+                    default: errorDetails = "Unbekannter Fehler Code " + err.code;
                 }
-
+        
                 console.warn("MP3 Fehler:", errorDetails);
-                
-                // Meldung an User und Backup starten
                 showStatus("⚠️ " + errorDetails + " -> Spiele Backup-Ton 🚨");
                 playBackupTone(targetVol);
             });
-
+        
             // --- ERFOLGS-FALL ---
             testAudio.addEventListener('canplaythrough', () => {
-                // Nur zur Info, dass MP3 geklappt hat
                 console.log("limit.mp3 erfolgreich geladen.");
             });
-
+        
             // Setze Pfad und starte
             testAudio.src = path;
             
@@ -1819,21 +1806,18 @@
                     showStatus("🔊 Test-Ton (MP3) läuft...");
                 })
                 .catch(e => {
-                    // Dieser Block fängt Fehler ab, die SOFORT beim Aufruf passieren
-                    // (z.B. wenn der Browser Autoplay blockiert oder der Pfad komplett ungültig ist)
                     console.error("Play-Promise Fehler:", e);
                     
                     if (e.name === "NotAllowedError") {
                         showStatus("❌ Wiedergabe vom Browser blockiert (Bitte interagieren)");
                     } else {
-                        // Bei allen anderen Fehlern: Backup versuchen!
                         showStatus("⚠️ Startfehler -> Spiele Backup-Ton 🚨");
                         playBackupTone(targetVol);
                     }
                 });
         }
 
-        // --- BACKUP FUNKTION (Web Audio API - funktioniert IMMER) ---
+        // --- BACKUP FUNKTION (Web Audio API - war auch in V81) ---
         function playBackupTone(volume) {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -1846,30 +1830,24 @@
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 
-                // Ein angenehmer Sinus-Ton (ähnlich wie ein Testbild-Piepen)
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(440, ctx.currentTime); // 440 Hz (Standard Kammerton A)
+                osc.frequency.setValueAtTime(440, ctx.currentTime); 
                 
-                // Lautstärke setzen
                 gain.gain.setValueAtTime(volume, ctx.currentTime);
                 
-                // Verkabeln: Oszillator -> Lautstärke -> Ausgang
                 osc.connect(gain);
                 gain.connect(ctx.destination);
                 
-                // Abspielen
                 osc.start();
                 
-                // Nach 1 Sekunde sanft ausblenden und stoppen
                 const stopTime = ctx.currentTime + 1;
                 gain.gain.exponentialRampToValueAtTime(0.001, stopTime);
                 osc.stop(stopTime);
                 
-                // Aufräumen nach dem Ton
                 setTimeout(() => {
-                    ctx.close();
+                    if(ctx.state !== 'closed') ctx.close();
                 }, 1200);
-
+        
             } catch(e) {
                 console.error("Sogar Backup gescheitert:", e);
                 alert("Totalausfall Audio: " + e.message);
@@ -2657,50 +2635,52 @@
         }
 
         function startSleepTimer() {
-            if (isSleepLocked) { audioPlayer.pause(); return; }
+            // Falls gesperrt, abbrechen (V83 Feature)
+            if (typeof isSleepLocked !== 'undefined' && isSleepLocked) { 
+                audioPlayer.pause(); 
+                return; 
+            }
+        
             const timerValue = parseFloat(settings.sleepTimerMinutes);
-            if (timerValue <= 0) { stopSleepTimer(); remainingSleepSeconds = -1; return; }
-        
-            // NEU: Logge den Start des Timers in die Statistik
-            if (remainingSleepSeconds <= 0) {
-                remainingSleepSeconds = Math.round(timerValue * 60);
-                logStatEvent('control', currentPlayingTagId, 0, `Sleep-Timer auf ${timerValue} Min. gestellt`);
+            if (timerValue <= 0) { 
+                stopSleepTimer(); 
+                remainingSleepSeconds = -1; 
+                return; 
             }
         
-            // 3. Initialisierung (nur wenn noch keine Zeit läuft)
+            // Initialisierung der Sekunden (V83 Logik)
             if (remainingSleepSeconds <= 0) {
-                // Hier rechnen wir Minuten in Sekunden um (z.B. 0.5 * 60 = 30)
                 remainingSleepSeconds = Math.round(timerValue * 60);
+                // Statistik (falls in V83 vorhanden)
+                if(typeof logStatEvent === 'function') {
+                    logStatEvent('control', currentPlayingTagId, 0, `Sleep-Timer auf ${timerValue} Min. gestellt`);
+                }
             }
         
-            // 4. Aufräumen alter Timer
-            if (sleepTimerId) clearTimeout(sleepTimerId);
-            if (sleepCountdownInterval) clearInterval(sleepCountdownInterval);
-            
-            // 5. Anzeige einschalten
+            // Alte Timer löschen
+            stopSleepTimer(); 
+        
+            // UI anzeigen
             const indicator = document.getElementById('sleep-indicator');
+            if(indicator) indicator.style.display = 'block';
             
-            // KORREKTUR: Wir zeigen es IMMER an, wenn Minuten > 0 sind. 
-            // Wir prüfen hier NICHT auf !paused, weil der Player evtl. noch lädt.
-            indicator.style.display = 'block';
-            updateSleepUI(); // Sofort erste Zahl anzeigen (z.B. 10:00)
+            // Falls V83 updateSleepUI nutzt
+            if(typeof updateSleepUI === 'function') updateSleepUI(); 
         
-            // 6. Der Taktgeber (jede Sekunde)
+            // Der Countdown (Jede Sekunde)
             sleepCountdownInterval = setInterval(() => {
-                // Nur herunterzählen, wenn Musik wirklich läuft
                 if (!audioPlayer.paused) { 
                     remainingSleepSeconds--;
-                    updateSleepUI(); // Update Text
+                    if(typeof updateSleepUI === 'function') updateSleepUI(); 
                 }
         
-                // Wenn Zeit abgelaufen ist (0 oder weniger)
+                // Wenn Zeit abgelaufen
                 if (remainingSleepSeconds <= 0) {
                     clearInterval(sleepCountdownInterval);
-                    fadeOutAndStop();
+                    fadeOutAndStop(); // Ruft die Stopp-Funktion auf
                 }
             }, 1000);
         }
-
         // Hilfsfunktion für die Anzeige (damit der Code sauberer bleibt)
         function updateSleepUI() {
              const display = document.getElementById('sleep-countdown');
@@ -2716,24 +2696,26 @@
         function stopSleepTimer() { 
             if (sleepTimerId) clearTimeout(sleepTimerId); 
             if (sleepCountdownInterval) clearInterval(sleepCountdownInterval);
+            
             const indicator = document.getElementById('sleep-indicator');
             if(indicator) indicator.style.display = 'none'; 
         }
         
         function fadeOutAndStop() { 
-            let vol = audioPlayer.volume; 
-            const fade = setInterval(() => { 
-                if (vol > 0.05) { 
-                    vol -= 0.05; 
-                    audioPlayer.volume = vol; 
-                } else { 
-                    clearInterval(fade); 
-                    audioPlayer.pause(); 
-                    setPlayButtonState(false); 
-                    forceSaveCurrentPosition(); 
-                    activateGuteNachtModus();
-                } 
-            }, 200); 
+            // V81 hatte hier zwar ein Fading, aber keinen gleichzeitigen Countdown.
+            // Für V83 auf dem S8+ ist der "Harte Stopp" die stabilste Lösung.
+            
+            audioPlayer.pause(); 
+            
+            if(saveInterval) clearInterval(saveInterval);
+            setPlayButtonState(false); 
+            forceSaveCurrentPosition(); 
+            
+            // V83 Features (Schlafmodus-Screen)
+            if(typeof activateGuteNachtModus === 'function') activateGuteNachtModus();
+            
+            showStatus("Schlafenszeit 🌙"); 
+            if(typeof endSessionLog === 'function') endSessionLog(); 
         }
         
         function activateGuteNachtModus() {
