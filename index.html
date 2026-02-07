@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V83 (Sleep Update)</title>
+    <title>KlangKiste V84 (wakelock change)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -675,8 +675,6 @@
 
     <div id="black-curtain"></div>
     
-    <video id="stubborn-video" playsinline muted loop style="position:fixed; top:0; left:0; width:1px; height:1px; opacity:0.01; pointer-events:none;"></video>
-
     <div id="mode-switch-secret" onclick="handleSecretSwitch()"></div>
     
     <div id="flash-overlay"></div>
@@ -1134,15 +1132,6 @@
             const el = document.getElementById(id);
             if(el) el.style.display = val;
         }
-
-        const stubbornVideo = document.getElementById('stubborn-video');
-        stubbornVideo.src = "data:video/mp4;base64,AAAAHGZ0eXBNNEVAAAAAAAEAAQAAAAAAAAAAAAAA1W1vb3YAAABsbXZoAAAAAQAAAAAA5G0AAORtAAABAAABAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAGGlvZHMAAAAAEICAgAcAT////3//AAACQXRyYWsAAABcdGtoZAAAAAEAAAAAAAAAAAAAAQAAAAEAAAAAAORtAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAADkbQAAAAABAAAAAAABM21kaWEAAAAgbWRoZAAAAAEAAAAAAORtAADkbQAAQBAAABExAAAAAAAAAAA5aGRscgAAAAAAAAAAdmlkZQAAAAAAAAAAAAAAAFZpZGVvSGFuZGxlcgAAAAABAAAADG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAKFzdGJsAAAAp3N0ZHNkAAAAAAAAAAEAAABnYXZjMQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAEAAABIAAAASAAAAAAADqAAAAAAAP//AAAALWF2Y0MBAAAALgEASAAAAAb/gAQACAAAAAAhAAACigAAlzYBAAAAAwEBAAAAAwEBAAAAAGhzdHRzAAAAAAAAAAEAAAABAAABAAAAABxzdHNjAAAAAAAAAAEAAAABAAAAAQAAAAEAAAAwc3RzegAAAAAAAAAAAAAAAQAAABRzdGNvAAAAAAAAAAEAAACwAAAAYXVkdGEAAAAUY29wcmQAAAAAQmFzZWNvcmU=";
-        
-        stubbornVideo.addEventListener('pause', () => {
-            if (settings.enableWakeLock && !isParentMode && !audioPlayer.paused) {
-                stubbornVideo.play().catch(() => {});
-            }
-        });
 
         let currentKidsVolumePct = 1.0; 
         let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: true, startMode: 'parent', bgMode: 'default', bgColor: '#ffffff', enableWakeLock: true, enableEcoMode: true, enableLibrary: true, hiddenIDs: [] };
@@ -1879,16 +1868,16 @@
         // --- WAKE LOCK & ECO (SAFE) ---
         async function requestWakeLock() {
             if (!settings.enableWakeLock) return;
-            if ('wakeLock' in navigator) { 
-                try { wakeLock = await navigator.wakeLock.request('screen'); } 
-                catch (err) { console.error("WakeLock failed:", err); } 
+            if ('wakeLock' in navigator) {
+                try { wakeLock = await navigator.wakeLock.request('screen'); }
+                catch (err) { console.error("WakeLock failed:", err); }
             }
-            if(stubbornVideo) stubbornVideo.play().catch(e => {});
+            // Die Zeile mit stubbornVideo ist hier jetzt weg!
         }
         
-        async function releaseWakeLock() { 
-            if (wakeLock !== null) { await wakeLock.release(); wakeLock = null; } 
-            if(stubbornVideo) stubbornVideo.pause(); 
+        async function releaseWakeLock() {
+            if (wakeLock !== null) { await wakeLock.release(); wakeLock = null; }
+            // Auch hier: Video-Zeile entfernt
         }
         
         document.addEventListener('visibilitychange', async () => { 
@@ -2016,35 +2005,52 @@
         
         function playPlaylistIndex(index, startTime = 0) {
             if(index >= currentPlaylist.length) return;
-            
-            // --- REPARATUR START: Speicherleck beheben ---
-            // Wenn schon eine URL existiert, diese aus dem Speicher entfernen!
+        
+            // 1. Alte URL sauber entfernen
             if (currentAudioUrl) {
                 URL.revokeObjectURL(currentAudioUrl);
                 currentAudioUrl = null;
             }
-            // --- REPARATUR ENDE ---
-
+        
+            // 2. Audio-Element kurz "töten" um Decoder-Reset zu erzwingen
+            audioPlayer.src = "";
+            audioPlayer.load();
+        
             currentTrackIndex = index;
             const file = currentPlaylist[index];
-            
-            // Neue URL erstellen und merken
             currentAudioUrl = URL.createObjectURL(file);
-            
             updateInfoText();
-            audioPlayer.src = currentAudioUrl; // Benutze die globale Variable
+        
+            // 3. Neue Quelle setzen
+            audioPlayer.src = currentAudioUrl;
             
+            // 4. WICHTIG: PlaybackRate erzwingen (Samsung Fix)
+            audioPlayer.playbackRate = 1.0;
+            audioPlayer.defaultPlaybackRate = 1.0;
+            // Das hier verhindert "Mickey Mouse" Stimmen bei falscher Sample-Rate:
+            if(audioPlayer.mozPreservesPitch !== undefined) audioPlayer.mozPreservesPitch = false;
+            if(audioPlayer.preservesPitch !== undefined) audioPlayer.preservesPitch = false;
+        
             audioPlayer.onloadedmetadata = () => {
                 if(startTime > 0 && startTime < audioPlayer.duration - 2) audioPlayer.currentTime = startTime;
-                applyActualVolume(); updateVolumeUI();
-                audioPlayer.play().then(() => { 
-                    setPlayButtonState(true); startSleepTimer(); requestWakeLock(); 
-                    currentSessionStart = Date.now(); 
-                    
-                    if(saveInterval) clearInterval(saveInterval);
-                    saveInterval = setInterval(forceSaveCurrentPosition, 5000);
-
-                }).catch(e => showStatus("Bereit"));
+                applyActualVolume(); 
+                updateVolumeUI();
+                
+                // Promise-Kette für sauberen Start
+                const playPromise = audioPlayer.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        setPlayButtonState(true); 
+                        startSleepTimer(); 
+                        requestWakeLock();
+                        currentSessionStart = Date.now();
+                        if(saveInterval) clearInterval(saveInterval);
+                        saveInterval = setInterval(forceSaveCurrentPosition, 5000);
+                    }).catch(e => {
+                        console.error("Playback Error:", e);
+                        showStatus("Fehler: " + e.message);
+                    });
+                }
                 audioPlayer.onloadedmetadata = null;
             };
         }
