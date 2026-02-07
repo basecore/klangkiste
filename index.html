@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KlangKiste V81 (Search Update) </title>
+    <title>KlangKiste V83 (Sleep Update)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
@@ -744,8 +744,9 @@
             </div>
             
             <label>Schlaf-Timer:</label>
-            <select id="sleep-timer-input" onchange="saveSettings()" style="margin-bottom: 15px;">
+            <select id="sleep-timer-input" onchange="resetGlobalTimer(); saveSettings();" style="margin-bottom: 15px;">
                 <option value="0">Aus (Endlos)</option>
+                <option value="0.5">🚀 TEST: 30 Sekunden</option> 
                 <option value="10">10 Minuten</option>
                 <option value="20">20 Minuten</option>
                 <option value="30">30 Minuten</option>
@@ -920,6 +921,10 @@
                 Nutze <strong>"Massen-Import"</strong> für lose Dateien oder wenn du eine <code>klangkiste.json</code> hast.
             </div>
 
+            <button class="btn-admin" style="background-color: #27ae60; margin-top:10px; border: 2px solid white;" onclick="loadOhrkaSetup(event)">
+                🎧 OHRKA Installation (2 Schritte)
+            </button>
+            
             <button class="btn-admin" style="background-color: #0984e3; margin-top:10px;" onclick="loadExamplesFromGitHub(event)">
                 ☁️ Beispiele direkt laden (Online)
             </button>
@@ -951,7 +956,7 @@
         </div>
 
         <div class="footer-info">
-            <p>KlangKiste NFC V81</p>
+            <p>KlangKiste NFC V82</p>
             <p>Entwickelt von <b>Sebastian Rößer</b></p>
             <p>
                 <a href="https://github.com/basecore/klangkiste/tree/main" target="_blank">GitHub Projekt</a> | 
@@ -1141,7 +1146,11 @@
 
         let currentKidsVolumePct = 1.0; 
         let settings = { maxVolume: 1.0, sleepTimerMinutes: 0, colorfulControls: true, startMode: 'parent', bgMode: 'default', bgColor: '#ffffff', enableWakeLock: true, enableEcoMode: true, enableLibrary: true, hiddenIDs: [] };
-        let sleepTimerId = null; let showRemainingTime = true; 
+        let sleepTimerId = null; 
+        let sleepCountdownInterval = null; 
+        let isSleepLocked = false; 
+        let remainingSleepSeconds = -1; // -1 bedeutet: Timer ist nicht aktiv/bereit für Neustart
+        let showRemainingTime = true; 
         let currentPlayingTagId = null; let currentTrackIndex = 0; let currentPlaylist = []; 
         let isNfcScanning = false; let isLinkModeActive = false;
 
@@ -1458,118 +1467,106 @@
             });
         }
 
-        // 2. Massen Import (Flat / JSON) - UPDATED
+        // 2. Massen Import (Flat / JSON) - MULTI-JSON SUPPORT
         async function handleBulkImport(input) {
             const files = Array.from(input.files); 
             if(files.length === 0) return;
         
-            // Auch hier: 'true' für dauerhafte Anzeige während der Analyse
             showStatus("Analysiere Dateien... bitte warten...", true);
-            
             await new Promise(r => setTimeout(r, 100));
 
-            const klangkisteJsonFile = files.find(f => f.name.toLowerCase().startsWith('klangkiste') && f.name.toLowerCase().endsWith('.json'));
+            // FINDET JETZT ALLE DATEIEN, DIE MIT 'klangkiste' STARTEN (z.B. ohrka und tonie)
+            const klangkisteJsonFiles = files.filter(f => f.name.toLowerCase().startsWith('klangkiste') && f.name.toLowerCase().endsWith('.json'));
             
             let candidates = [];
+            const readFileAsText = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsText(file); });
+            const findFile = (name) => files.find(f => f.name === name);
 
-            // A) JSON Import Logik
-            if (klangkisteJsonFile) {
+            // A) JSON Import Logik (unterstützt nun mehrere JSON-Dateien gleichzeitig)
+            if (klangkisteJsonFiles.length > 0) {
                 try {
-                    const readFileAsText = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsText(file); });
-                    const jsonText = await readFileAsText(klangkisteJsonFile);
-                    const metadataEntries = JSON.parse(jsonText);
-                    const findFile = (name) => files.find(f => f.name === name);
-
-                    for (const entry of metadataEntries) {
-                        const audioFiles = [];
-                        if (entry.playlistFileNames) { 
-                            for (const fname of entry.playlistFileNames) { 
-                                const f = findFile(fname); 
-                                if (f) audioFiles.push(f); 
-                            } 
-                        }
+                    for (const jsonFile of klangkisteJsonFiles) {
+                        const jsonText = await readFileAsText(jsonFile);
+                        const metadataEntries = JSON.parse(jsonText);
                         
-                        if (audioFiles.length > 0) {
-                            let imageBlob = null; 
-                            if (entry.imageFileName) imageBlob = findFile(entry.imageFileName);
-                            
-                            // Cue Check
-                            let cueTracks = null;
-                            if(entry.playlistFileNames.length > 0) {
-                                const audioBase = entry.playlistFileNames[0].replace(/\.[^/.]+$/, "");
-                                const cueFile = findFile(audioBase + ".cue");
-                                if (cueFile) {
-                                    try { const cueText = await readFileAsText(cueFile); cueTracks = parseCueSheet(cueText); } catch(e){}
-                                }
+                        for (const entry of metadataEntries) {
+                            const audioFiles = [];
+                            if (entry.playlistFileNames) { 
+                                for (const fname of entry.playlistFileNames) { 
+                                    const f = findFile(fname); 
+                                    if (f) audioFiles.push(f); 
+                                } 
                             }
+                            
+                            if (audioFiles.length > 0) {
+                                let imageBlob = null; 
+                                if (entry.imageFileName) imageBlob = findFile(entry.imageFileName);
+                                
+                                let cueTracks = null;
+                                if(entry.playlistFileNames.length > 0) {
+                                    const audioBase = entry.playlistFileNames[0].replace(/\.[^/.]+$/, "");
+                                    const cueFile = findFile(audioBase + ".cue");
+                                    if (cueFile) {
+                                        try { const cueText = await readFileAsText(cueFile); cueTracks = parseCueSheet(cueText); } catch(e){}
+                                    }
+                                }
 
-                            const record = { 
-                                tagId: entry.tagId, 
-                                name: entry.name, 
-                                playlist: audioFiles, 
-                                playlistFileNames: entry.playlistFileNames, 
-                                imageBlob: imageBlob, 
-                                imageFileName: entry.imageFileName, 
-                                cueTracks: cueTracks, 
-                                meta: entry.meta, 
-                                tags: entry.tags, 
-                                lastTrackIndex: 0, 
-                                lastTime: 0 
-                            };
-
-                            candidates.push({
-                                name: entry.name,
-                                fileCount: audioFiles.length,
-                                data: record,
-                                meta: entry.meta || {} // Metadata für Filter nutzen
-                            });
+                                candidates.push({
+                                    name: entry.name,
+                                    fileCount: audioFiles.length,
+                                    data: { 
+                                        tagId: entry.tagId, 
+                                        name: entry.name, 
+                                        playlist: audioFiles, 
+                                        playlistFileNames: entry.playlistFileNames, 
+                                        imageBlob: imageBlob, 
+                                        imageFileName: entry.imageFileName, 
+                                        cueTracks: cueTracks, 
+                                        meta: entry.meta || {}, 
+                                        tags: entry.tags, 
+                                        lastTrackIndex: 0, 
+                                        lastTime: 0 
+                                    },
+                                    meta: entry.meta || {}
+                                });
+                            }
                         }
                     }
                 } catch(e) {
-                    alert("Fehler beim Lesen der JSON: " + e);
+                    alert("Fehler beim Lesen der JSON-Dateien: " + e);
                     return;
                 }
             } 
-            // B) Normaler Flat Import (ohne JSON)
+            // B) Normaler Flat Import (wenn gar keine JSON gefunden wurde)
             else {
                 const groups = {};
                 files.forEach(f => {
                     const path = f.webkitRelativePath || f.name; 
                     const lastDot = path.lastIndexOf('.'); 
                     const basePath = lastDot > 0 ? path.substring(0, lastDot) : path;
-                    
                     if (!groups[basePath]) groups[basePath] = { audio: [], img: null, cue: null, name: "" };
-                    
                     const ext = f.name.split('.').pop().toLowerCase(); 
                     const fileNameOnly = f.name.substring(0, f.name.lastIndexOf('.'));
-                    
                     if (!groups[basePath].name) groups[basePath].name = fileNameOnly;
-                    
-                    if(['mp3', 'm4a', 'ogg', 'wav', 'flac'].includes(ext)) { 
-                        groups[basePath].audio.push(f); 
-                    } else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) { 
-                        groups[basePath].img = f; 
-                    }
+                    if(['mp3', 'm4a', 'ogg', 'wav', 'flac'].includes(ext)) groups[basePath].audio.push(f); 
+                    else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) groups[basePath].img = f; 
                 });
 
                 Object.keys(groups).forEach(key => {
                     const g = groups[key];
                     if(g.audio.length > 0) {
-                        const record = { 
-                            tagId: "manual_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5), 
-                            name: g.name.replace(/_/g, ' '), 
-                            playlist: g.audio, 
-                            playlistFileNames: g.audio.map(f => f.name), 
-                            imageBlob: g.img, 
-                            imageFileName: g.img ? g.img.name : null, 
-                            cueTracks: null, 
-                            lastTrackIndex: 0, 
-                            lastTime: 0 
-                        };
                         candidates.push({
-                            name: record.name,
+                            name: g.name.replace(/_/g, ' '),
                             fileCount: g.audio.length,
-                            data: record,
+                            data: { 
+                                tagId: "manual_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5), 
+                                name: g.name.replace(/_/g, ' '), 
+                                playlist: g.audio, 
+                                playlistFileNames: g.audio.map(f => f.name), 
+                                imageBlob: g.img, 
+                                imageFileName: g.img ? g.img.name : null, 
+                                cueTracks: null, lastTrackIndex: 0, lastTime: 0 
+                            },
                             meta: {}
                         });
                     }
@@ -1578,11 +1575,8 @@
 
             if(candidates.length === 0) { alert("Keine passenden Audio-Gruppen gefunden."); return; }
 
-            // ZEIGE MODAL
             showImportModal(candidates, async (selectedItems) => {
                 let count = 0;
-                showStatus(`Importiere 1/${selectedItems.length}...`);
-                
                 for (let i = 0; i < selectedItems.length; i++) {
                     const record = selectedItems[i];
                     await new Promise((resolve) => {
@@ -1598,8 +1592,6 @@
                 loadTagList();
             });
         }
-
-        // --- ENDE NEUE IMPORT LOGIK ---
 
         // --- PROFI STATS LOGGING ENGINE ---
         function logStatEvent(type, tagId = null, duration = 0, detailText = "") {
@@ -1733,7 +1725,10 @@
         function saveSettings() {
             settings.maxVolume = document.getElementById('max-vol-input').value / 100;
             applyActualVolume(); 
-            settings.sleepTimerMinutes = parseInt(document.getElementById('sleep-timer-input').value);
+            
+            // KORREKTUR: parseFloat statt parseInt, damit 0.5 (30 Sek) funktioniert!
+            settings.sleepTimerMinutes = parseFloat(document.getElementById('sleep-timer-input').value);
+            
             settings.colorfulControls = document.getElementById('check-colorful').checked;
             settings.startMode = document.getElementById('start-mode-input').value;
             settings.bgMode = document.getElementById('bg-mode-select').value;
@@ -1962,21 +1957,15 @@
         function playTrackByTag(tagId) {
             if (currentPlayingTagId === tagId) {
                 if(audioPlayer.paused) {
-                    audioPlayer.play();
-                    setPlayButtonState(true);
-                    startSleepTimer();
-                    requestWakeLock();
+                    audioPlayer.play(); setPlayButtonState(true); startSleepTimer(); requestWakeLock();
                     showStatus("Fortgesetzt ▶️");
                     currentSessionStart = Date.now(); 
                     logStatEvent('play', tagId, 0, "Resume");
-                } else {
-                    showStatus("Spielt bereits 🔊");
-                }
+                } else { showStatus("Spielt bereits 🔊"); }
                 return;
             }
             
             endSessionLog();
-
             if(currentPlayingTagId && currentPlayingTagId !== tagId) forceSaveCurrentPosition();
             
             const tx = db.transaction(["tracks"], "readwrite");
@@ -1986,38 +1975,45 @@
                 const track = e.target.result;
                 if(track) {
                     logStatEvent('play', tagId, 0, "Start"); 
-
                     localStorage.setItem('lastActiveTagId', tagId);
-
                     track.lastPlayedTimestamp = Date.now();
                     store.put(track);
 
-                    if(!track.playlist || track.playlist.length === 0) { showStatus("⚠️ Audio fehlt!"); return; }
+                    // --- CHECK: Ist Audio da? ---
+                    if(!track.playlist || track.playlist.length === 0) { 
+                        // Falls Streaming URL als Notlösung da wäre (hier aber Fokus auf Offline)
+                        showStatus("⚠️ Audio fehlt! Bitte 'Reparieren' nutzen."); 
+                        alert("Die Audio-Datei fehlt noch.\n\nBitte nutze den orangenen 'Automatisch reparieren' Button und wähle die heruntergeladene MP3 aus.");
+                        return; 
+                    }
+                    
                     document.getElementById('track-title-display').innerText = track.name;
                     const imgEl = document.getElementById('album-img'); const placeEl = document.getElementById('album-placeholder');
-                    if(track.imageBlob) { imgEl.src = URL.createObjectURL(track.imageBlob); imgEl.style.display="block"; placeEl.style.display="none"; } 
-                    else { imgEl.style.display="none"; placeEl.style.display="block"; }
                     
-                    currentPlayingTagId = tagId; currentPlaylist = track.playlist;
+                    if(track.imageBlob) { 
+                        imgEl.src = URL.createObjectURL(track.imageBlob); 
+                        imgEl.style.display="block"; placeEl.style.display="none"; 
+                    } else { imgEl.style.display="none"; placeEl.style.display="block"; }
+                    
+                    currentPlayingTagId = tagId; 
+                    currentPlaylist = track.playlist;
                     currentCueTracks = track.cueTracks || null;
                     
                     const nextBtn = document.getElementById('btn-next-track');
-                    // UPDATE: Zeige Button wenn Cues ODER wenn Playlist > 1
                     if((currentCueTracks && currentCueTracks.length > 0) || (currentPlaylist && currentPlaylist.length > 1)) { 
                         nextBtn.style.display = "flex"; 
-                    } else { 
-                        nextBtn.style.display = "none"; 
-                    }
+                    } else { nextBtn.style.display = "none"; }
 
                     let startIndex = track.lastTrackIndex || 0; let startTime = track.lastTime || 0;
                     if(startIndex >= currentPlaylist.length) startIndex = 0;
                     
                     playPlaylistIndex(startIndex, startTime);
+
                     if (isParentMode) { goToKidsMode(); }
                 } else { showStatus("Tag unbekannt"); }
             };
         }
-
+        
         function playPlaylistIndex(index, startTime = 0) {
             if(index >= currentPlaylist.length) return;
             
@@ -2320,6 +2316,16 @@
                                 title = "Abgeschlossen";
                                 text = `${tName} komplett gehört!`;
                                 break;
+                            case 'sleep_start': // NEU
+                                icon = "🌙"; color = "#f1c40f";
+                                title = "Schlafmodus";
+                                text = "Visuelle Phase gestartet";
+                                break;
+                            case 'sleep_blackout': // NEU
+                                icon = "🌑"; color = "#95a5a6";
+                                title = "Display Blackout";
+                                text = "Maximale Dunkelheit aktiviert";
+                                break;
                             case 'control':
                                 icon = "🕹️"; color = "#dfe6e9";
                                 title = "Steuerung";
@@ -2418,21 +2424,23 @@
             }
         };
 
+        // --- KI BEISPIELE: Dateiname auf klangkiste_ki.json angepasst ---
         async function loadExamplesFromGitHub(event) {
             if(event) {
                 event.stopPropagation();
                 event.preventDefault();
             }
 
-            const BASE_URL = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/";
+            const BASE_URL = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/ki_generiert/";
             
             if(!confirm("Möchtest du die Beispiel-Hörspiele (ca. 10 MB) jetzt herunterladen?")) return;
 
             showStatus("⏳ Lade Daten von GitHub...");
 
             try {
-                const jsonResp = await fetch(BASE_URL + "klangkiste.json");
-                if (!jsonResp.ok) throw new Error("JSON nicht gefunden");
+                // GEÄNDERT: klangkiste_ki.json statt klangkiste.json
+                const jsonResp = await fetch(BASE_URL + "klangkiste_ki.json");
+                if (!jsonResp.ok) throw new Error("JSON (klangkiste_ki.json) nicht gefunden");
                 const data = await jsonResp.json();
                 
                 if(!db) { alert("Datenbank noch nicht bereit. Warte kurz..."); return; }
@@ -2504,12 +2512,13 @@
             }
         }
 
+        // --- REPAIR V3 (EXACT MATCH VIA URL-NAME) ---
         async function smartRelinkFiles(input) {
             const files = Array.from(input.files); 
             if(files.length === 0) return;
             
-            // 1. Erstmal alle Tracks aus der DB holen
-            showStatus("Lade Datenbank für Analyse...");
+            showStatus("Analysiere Dateien...");
+            
             const allTracks = await new Promise((resolve) => {
                 const tx = db.transaction(["tracks"], "readonly");
                 tx.objectStore("tracks").getAll().onsuccess = (e) => resolve(e.target.result);
@@ -2518,73 +2527,75 @@
             let fixedCount = 0;
             const total = allTracks.length;
 
-            // 2. Schleife durchlaufen (asynchron, damit UI nicht einfriert)
             for (let i = 0; i < total; i++) {
                 const record = allTracks[i];
-                
-                // UI Update: Zeige Fortschritt an
-                showStatus(`Prüfe ${i + 1} / ${total}: ${record.name.substring(0, 15)}...`);
-                
-                // WICHTIG: Kurze Pause, damit der Browser den Text zeichnen kann
-                await new Promise(r => setTimeout(r, 0));
-
-                if(record.tagId === SYSTEM_BG_ID || record.tagId === SYSTEM_SETTINGS_ID) continue;
+                if(record.tagId === "system_bg" || record.tagId === "system_settings") continue;
 
                 let changed = false;
                 
-                // Audio Files suchen & verknüpfen
-                if (record.playlistFileNames && (!record.playlist || record.playlist.length === 0)) {
+                // Prüfen, ob wir Dateinamen erwarten und noch kein Audio haben
+                if (record.playlistFileNames && record.playlistFileNames.length > 0 && (!record.playlist || record.playlist.length === 0)) {
+                    
                     const newPlaylist = [];
-                    record.playlistFileNames.forEach(name => {
-                        const f = files.find(x => x.name === name);
-                        if(f) newPlaylist.push(f);
-                    });
-                    if(newPlaylist.length > 0) {
+                    // Da wir beim Installieren den echten Namen aus der URL gespeichert haben,
+                    // können wir hier exakt danach suchen!
+                    const expectedName = record.playlistFileNames[0]; 
+                    
+                    // Suche die Datei in den hochgeladenen Files
+                    const match = files.find(f => f.name === expectedName);
+
+                    if(match) {
+                        console.log(`Gefunden: ${match.name} für ${record.name}`);
+                        newPlaylist.push(match);
                         record.playlist = newPlaylist;
                         changed = true;
                     }
                 }
                 
-                // Cover Bild suchen & verknüpfen
+                // Cover check (optional)
                 if (record.imageFileName && !record.imageBlob) {
                     const img = files.find(x => x.name === record.imageFileName);
-                    if(img) {
-                        record.imageBlob = img;
-                        changed = true;
-                    }
+                    if(img) { record.imageBlob = img; changed = true; }
                 }
 
-                // Wenn etwas repariert wurde, speichern wir diesen EINEN Eintrag
                 if(changed) {
                     await new Promise((resolve) => {
                         const tx = db.transaction(["tracks"], "readwrite");
-                        const store = tx.objectStore("tracks");
-                        store.put(record);
+                        tx.objectStore("tracks").put(record);
                         tx.oncomplete = () => resolve();
-                        tx.onerror = () => resolve(); // Fehler ignorieren und weitermachen
+                        tx.onerror = () => resolve(); 
                     });
                     fixedCount++;
                 }
             }
 
-            showStatus(`${fixedCount} Einträge erfolgreich repariert! 🎉`); 
-            loadTagList(); 
+            if(fixedCount > 0) {
+                showStatus(`${fixedCount} verknüpft! 🎉`);
+                alert(`Erfolg! ${fixedCount} Hörbücher sind jetzt offline verfügbar.`);
+            } else {
+                showStatus("Nichts gefunden.");
+                alert("Keine passende Datei gefunden.\nBitte stelle sicher, dass du die heruntergeladenen Dateien ausgewählt hast.");
+            }
+            
+            loadTagList();
             input.value = "";
         }
 
         function togglePlay() { 
             if (audioPlayer.paused) { 
                 if(audioPlayer.src) { 
-                    audioPlayer.play(); setPlayButtonState(true); startSleepTimer(); requestWakeLock(); 
+                    audioPlayer.play(); 
+                    setPlayButtonState(true); 
+                    startSleepTimer(); // Timer startet/setzt fort
+                    requestWakeLock(); 
                     currentSessionStart = Date.now(); 
                     logStatEvent('play', currentPlayingTagId, 0, "Button");
-                } 
-                else { showStatus("Tag?"); } 
+                } else { showStatus("Tag?"); } 
             } else { 
                 if(saveInterval) clearInterval(saveInterval);
                 audioPlayer.pause(); 
                 setPlayButtonState(false); 
-                stopSleepTimer(); 
+                stopSleepTimer(); // WICHTIG: Timer pausieren
                 releaseWakeLock(); 
                 forceSaveCurrentPosition();
                 endSessionLog(); 
@@ -2639,30 +2650,131 @@
             };
         }
 
-        function startSleepTimer() {
-            if(sleepTimerId) clearTimeout(sleepTimerId); document.getElementById('sleep-indicator').style.display = 'none';
-            if(settings.sleepTimerMinutes > 0 && !audioPlayer.paused) {
-                document.getElementById('sleep-indicator').style.display = 'block'; document.getElementById('sleep-countdown').innerText = settings.sleepTimerMinutes + " min";
-                sleepTimerId = setTimeout(() => { fadeOutAndStop(); }, settings.sleepTimerMinutes * 60 * 1000);
-            }
+        // Hilfsfunktion: Wird aufgerufen, wenn Eltern den Timer im Menü ÄNDERN
+        function resetGlobalTimer() {
+            remainingSleepSeconds = -1; 
+            stopSleepTimer();
         }
-        function stopSleepTimer() { if(sleepTimerId) clearTimeout(sleepTimerId); document.getElementById('sleep-indicator').style.display = 'none'; }
+
+        function startSleepTimer() {
+            if (isSleepLocked) { audioPlayer.pause(); return; }
+            const timerValue = parseFloat(settings.sleepTimerMinutes);
+            if (timerValue <= 0) { stopSleepTimer(); remainingSleepSeconds = -1; return; }
+        
+            // NEU: Logge den Start des Timers in die Statistik
+            if (remainingSleepSeconds <= 0) {
+                remainingSleepSeconds = Math.round(timerValue * 60);
+                logStatEvent('control', currentPlayingTagId, 0, `Sleep-Timer auf ${timerValue} Min. gestellt`);
+            }
+        
+            // 3. Initialisierung (nur wenn noch keine Zeit läuft)
+            if (remainingSleepSeconds <= 0) {
+                // Hier rechnen wir Minuten in Sekunden um (z.B. 0.5 * 60 = 30)
+                remainingSleepSeconds = Math.round(timerValue * 60);
+            }
+        
+            // 4. Aufräumen alter Timer
+            if (sleepTimerId) clearTimeout(sleepTimerId);
+            if (sleepCountdownInterval) clearInterval(sleepCountdownInterval);
+            
+            // 5. Anzeige einschalten
+            const indicator = document.getElementById('sleep-indicator');
+            
+            // KORREKTUR: Wir zeigen es IMMER an, wenn Minuten > 0 sind. 
+            // Wir prüfen hier NICHT auf !paused, weil der Player evtl. noch lädt.
+            indicator.style.display = 'block';
+            updateSleepUI(); // Sofort erste Zahl anzeigen (z.B. 10:00)
+        
+            // 6. Der Taktgeber (jede Sekunde)
+            sleepCountdownInterval = setInterval(() => {
+                // Nur herunterzählen, wenn Musik wirklich läuft
+                if (!audioPlayer.paused) { 
+                    remainingSleepSeconds--;
+                    updateSleepUI(); // Update Text
+                }
+        
+                // Wenn Zeit abgelaufen ist (0 oder weniger)
+                if (remainingSleepSeconds <= 0) {
+                    clearInterval(sleepCountdownInterval);
+                    fadeOutAndStop();
+                }
+            }, 1000);
+        }
+
+        // Hilfsfunktion für die Anzeige (damit der Code sauberer bleibt)
+        function updateSleepUI() {
+             const display = document.getElementById('sleep-countdown');
+             if(display) {
+                 // Mathe: Falls remainingSleepSeconds negativ ist, nimm 0
+                 const t = Math.max(0, remainingSleepSeconds);
+                 const mins = Math.floor(t / 60);
+                 const secs = Math.floor(t % 60);
+                 display.innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+             }
+        }
+        
+        function stopSleepTimer() { 
+            if (sleepTimerId) clearTimeout(sleepTimerId); 
+            if (sleepCountdownInterval) clearInterval(sleepCountdownInterval);
+            const indicator = document.getElementById('sleep-indicator');
+            if(indicator) indicator.style.display = 'none'; 
+        }
+        
         function fadeOutAndStop() { 
             let vol = audioPlayer.volume; 
             const fade = setInterval(() => { 
-                if(vol > 0.05) { vol -= 0.05; audioPlayer.volume = vol; } 
-                else { 
+                if (vol > 0.05) { 
+                    vol -= 0.05; 
+                    audioPlayer.volume = vol; 
+                } else { 
                     clearInterval(fade); 
-                    if(saveInterval) clearInterval(saveInterval);
                     audioPlayer.pause(); 
                     setPlayButtonState(false); 
                     forceSaveCurrentPosition(); 
-                    applyActualVolume(); 
-                    showStatus("Gute Nacht 😴"); 
-                    endSessionLog();
+                    activateGuteNachtModus();
                 } 
             }, 200); 
         }
+        
+        function activateGuteNachtModus() {
+            isSleepLocked = true;
+            remainingSleepSeconds = 0; 
+            
+            // NEU: Logge den Start der visuellen Schlafphase
+            logStatEvent('sleep_start', currentPlayingTagId, 0, "Visueller Schlafmodus aktiviert");
+            
+            const guteNachtAudio = new Audio("https://raw.githubusercontent.com/basecore/klangkiste/main/assets/gutenacht.mp3");
+            guteNachtAudio.volume = settings.maxVolume;
+            guteNachtAudio.play().catch(e => console.log("Gute Nacht Audio nicht gefunden"));
+        
+            const kidsMode = document.getElementById('kids-mode');
+            kidsMode.innerHTML = `
+                <div id="sleep-overlay" style="background-image: url('assets/img/background_sleep.png'); background-size: cover; background-position: center; position:fixed; top:0; left:0; width:100vw; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:99999;">
+                    <img src="assets/icons/note_sleeping_small.png" style="width: 150px; height: auto; animation: pulse 3s infinite ease-in-out;">
+                    <div style="color: rgba(255,255,255,0.4); margin-top: 20px; font-family: sans-serif; font-size: 1.2rem;">Schlafenszeit...</div>
+                </div>
+            `;
+            
+            const style = document.createElement('style');
+            style.innerHTML = `@keyframes pulse { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); opacity: 0.8; } }`;
+            document.head.appendChild(style);
+        
+            setTimeout(() => {
+                const overlay = document.getElementById('sleep-overlay');
+                if(overlay) {
+                    overlay.style.backgroundImage = 'none';
+                    overlay.style.backgroundColor = 'black';
+                    overlay.innerHTML = ''; 
+                    // NEU: Logge den Blackout
+                    logStatEvent('sleep_blackout', null, 0, "Display-Blackout gestartet");
+                }
+            }, 60000); 
+            
+            document.getElementById('mode-switch-secret').style.zIndex = "100000"; 
+            releaseWakeLock();
+            endSessionLog();
+        }
+        
         function clearDatabase() { 
             if(confirm("Löschen?")) { 
                 db.close(); 
@@ -2702,17 +2814,42 @@
         }
 
         audioPlayer.addEventListener('timeupdate', () => {
-            if(isNaN(audioPlayer.duration)) { document.getElementById('time-text').innerText = "--:--"; return; }
-            const current = audioPlayer.currentTime; const total = audioPlayer.duration; const pct = (current/total)*100;
-            document.getElementById('time-progress').style.width = pct + "%";
-            document.getElementById('time-text').innerText = showRemainingTime ? "-" + formatTime(total-current) : formatTime(current);
+            // Wenn keine Dauer bekannt ist, abbrechen
+            if(isNaN(audioPlayer.duration)) { 
+                const tText = document.getElementById('time-text');
+                if(tText) tText.innerText = "--:--"; 
+                return; 
+            }
+
+            const current = audioPlayer.currentTime; 
+            const total = audioPlayer.duration; 
+            const pct = (current/total)*100;
+
+            // WICHTIG: Elemente erst in Variablen laden
+            const progressEl = document.getElementById('time-progress');
+            const textEl = document.getElementById('time-text');
+            const infoEl = document.getElementById('playlist-info');
+
+            // Prüfen, ob der Fortschrittsbalken noch existiert (ist im Schlafmodus weg!)
+            if (progressEl) {
+                progressEl.style.width = pct + "%";
+            }
+
+            // Prüfen, ob der Text noch existiert
+            if (textEl) {
+                textEl.innerText = showRemainingTime ? "-" + formatTime(total-current) : formatTime(current);
+            }
             
+            // Kapitel-Logik auch absichern
             if(currentCueTracks) {
                 let currentChapterName = "";
                 for(let i=currentCueTracks.length-1; i>=0; i--) {
                     if(current >= currentCueTracks[i].time) { currentChapterName = currentCueTracks[i].title; break; }
                 }
-                if(currentChapterName) document.getElementById('playlist-info').innerText = currentChapterName;
+                // Nur updaten, wenn Info-Element da ist UND ein Kapitel gefunden wurde
+                if(currentChapterName && infoEl) {
+                    infoEl.innerText = currentChapterName;
+                }
             }
         });
 
@@ -2778,34 +2915,58 @@
 
         function handleSecretSwitch() {
             clickCount++; 
-            setTimeout(() => { clickCount = 0; }, 2000); 
+            // Der Timer setzt den Zähler nach 2 Sekunden Inaktivität zurück
+            if (window.clickTimer) clearTimeout(window.clickTimer);
+            window.clickTimer = setTimeout(() => { clickCount = 0; }, 2000); 
             
             if (clickCount >= 5) {
-                // 1. Haupt-Modus umschalten
+                // 1. Spezialfall: Schlaf-Sperre aufheben
+                // Falls das Kind im Schlafmodus feststeckt, setzen wir die Variablen zurück
+                if (typeof isSleepLocked !== 'undefined' && isSleepLocked) {
+                    isSleepLocked = false;
+                    // Wir laden die Seite neu oder erzwingen ein UI-Reset, 
+                    // um das schwarze "Gute Nacht"-Overlay zu entfernen.
+                    location.reload(); 
+                    return;
+                }
+        
+                // 2. Haupt-Modus umschalten
                 safeDisplay('kids-mode', 'none');
                 safeDisplay('parent-mode', 'flex');
                 
-                // 2. NEU: Störende Fenster zwangsweise schließen
-                // Damit die Bibliothek nicht den Admin-Bereich verdeckt
+                // 3. UI-Cleanup: Störende Fenster zwangsweise schließen
                 if(typeof closeLibrary === "function") {
                     closeLibrary(); 
                 } else {
-                    document.getElementById('library-mode').style.display = 'none';
+                    const libMode = document.getElementById('library-mode');
+                    if(libMode) libMode.style.display = 'none';
                 }
                 
-                // Auch andere eventuell offene Fenster schließen
-                document.getElementById('lib-info-modal').style.display = 'none';
-                document.getElementById('stats-modal').style.display = 'none';
-
-                // 3. Cleanup & System
+                // Modale Fenster schließen
+                const infoModal = document.getElementById('lib-info-modal');
+                const statsModal = document.getElementById('stats-modal');
+                if(infoModal) infoModal.style.display = 'none';
+                if(statsModal) statsModal.style.display = 'none';
+        
+                // 4. System & Logik zurücksetzen
                 isParentMode = true; 
                 clickCount = 0; 
-                releaseWakeLock(); 
-                endSessionLog();
                 
-                if (document.exitFullscreen && document.fullscreenElement) { 
-                    document.exitFullscreen().catch((e) => {}); 
+                // WakeLock freigeben (spart Akku im Admin-Modus)
+                if(typeof releaseWakeLock === "function") releaseWakeLock(); 
+                
+                // Statistik-Session beenden
+                if(typeof endSessionLog === "function") endSessionLog();
+                
+                // Fullscreen beenden, falls aktiv
+                if (document.exitFullscreen && (document.fullscreenElement || document.webkitFullscreenElement)) { 
+                    document.exitFullscreen().catch((e) => {
+                        console.log("Fullscreen exit blocked or not active");
+                    }); 
                 }
+        
+                // Statusmeldung für die Eltern
+                showStatus("Admin-Modus aktiviert 🔧");
             }
         }
         function autoFillName() {
@@ -3610,6 +3771,141 @@
             renderLibrary();
         }
 
+        // --- OHRKA INSTALLATION: Dateiname auf klangkiste_ohrka.json angepasst ---
+        async function loadOhrkaSetup(event) {
+            if(event) { event.stopPropagation(); event.preventDefault(); }
+            
+            const BASE = "https://raw.githubusercontent.com/basecore/klangkiste/main/example/ohrka/";
+            
+            if(!confirm("Schritt 1: Metadaten (Cover, Titel) werden installiert.\nSchritt 2: Du erhältst Links zum manuellen Download der MP3s.\n\nStarten?")) return;
+
+            showStatus("⏳ Lade OHRKA Katalog...");
+            
+            try {
+                // GEÄNDERT: klangkiste_ohrka.json statt klangkiste.json
+                const r = await fetch(BASE + "klangkiste_ohrka.json");
+                if(!r.ok) throw new Error("Konnte Liste (klangkiste_ohrka.json) nicht laden");
+                const data = await r.json();
+                
+                if(!db) { alert("Datenbank nicht bereit."); return; }
+
+                const candidates = [];
+                
+                for(const entry of data) {
+                    let expectedFileName = "audio.mp3";
+                    if(entry.downloadUrl) {
+                        expectedFileName = decodeURIComponent(entry.downloadUrl.substring(entry.downloadUrl.lastIndexOf('/') + 1));
+                    }
+
+                    const record = {
+                        tagId: entry.tagId,
+                        name: entry.name,
+                        playlist: [], 
+                        playlistFileNames: [expectedFileName], 
+                        imageBlob: null,
+                        imageFileName: entry.imageFileName,
+                        cueTracks: null,
+                        meta: entry.meta || {},
+                        tags: entry.tags || [],
+                        lastTrackIndex: 0, lastTime: 0, completed: false,
+                        hiddenInLib: false,
+                        _downloadUrl: entry.downloadUrl,
+                        _coverUrl: entry.imageFileName ? (BASE + entry.imageFileName) : null,
+                        _cueUrl: (entry.playlistFileNames && entry.playlistFileNames[0]) ? (BASE + entry.playlistFileNames[0].replace('.mp3', '.cue')) : null
+                    };
+
+                    if(!record.meta.streamingUrl) record.meta.streamingUrl = entry.downloadUrl;
+
+                    candidates.push({
+                        name: entry.name,
+                        fileCount: 1, 
+                        data: record,
+                        meta: entry.meta
+                    });
+                }
+
+                showImportModal(candidates, async (selectedItems) => {
+                     let installedCount = 0;
+                     let downloadLinks = [];
+
+                     for (let i = 0; i < selectedItems.length; i++) {
+                        const rec = selectedItems[i];
+                        showStatus(`Installiere ${i+1}/${selectedItems.length}: ${rec.name}...`);
+                        
+                        if(rec._coverUrl) {
+                            try {
+                               const ir = await fetch(rec._coverUrl);
+                               if(ir.ok) rec.imageBlob = await ir.blob();
+                            } catch(e){ console.log("Cover Fehler:", e); }
+                        }
+
+                        if(rec._cueUrl) {
+                            try {
+                                const cr = await fetch(rec._cueUrl);
+                                if(cr.ok) {
+                                    const txt = await cr.text();
+                                    if(!txt.includes("404")) rec.cueTracks = parseCueSheet(txt);
+                                }
+                            } catch(e){ console.log("Cue Fehler:", e); }
+                        }
+                        
+                        if(rec._downloadUrl) {
+                            const fName = rec.playlistFileNames[0];
+                            downloadLinks.push(`
+                                <li style="margin-bottom:12px; border-bottom:1px solid #444; padding-bottom:5px;">
+                                    <div style="font-weight:bold; color:white;">${rec.name}</div>
+                                    <a href="${rec._downloadUrl}" download="${fName}" target="_blank" style="color:#74b9ff; text-decoration:none; font-size:1.1em;">
+                                        📥 Link zum Laden (Lange drücken!)
+                                    </a>
+                                    <div style="font-size:0.75em; color:#aaa; font-family:monospace; margin-top:2px;">Datei: ${fName}</div>
+                                </li>`);
+                        }
+
+                        delete rec._downloadUrl; delete rec._coverUrl; delete rec._cueUrl;
+
+                        await new Promise((resolve) => {
+                            const tx = db.transaction(["tracks"], "readwrite");
+                            const store = tx.objectStore("tracks");
+                            store.put(rec).onsuccess = resolve;
+                        });
+                        installedCount++;
+                     }
+
+                     showStatus("✅ Fertig!");
+                     loadTagList();
+
+                     const repairBtn = document.getElementById('btn-auto-repair');
+                     if(repairBtn && installedCount > 0) {
+                        repairBtn.style.backgroundColor = "#e67e22";
+                        repairBtn.style.color = "white";
+                        repairBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        showStatus("Bitte 'Automatisch Reparieren' nutzen für Audio!");
+                     }
+
+                     if(downloadLinks.length > 0) {
+                         const dlHtml = `
+                            <div id="ohrka-download-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:99999; color:white; padding:20px; box-sizing:border-box; overflow:auto; display:flex; flex-direction:column;">
+                                <h2 style="color:#2ecc71; margin-top:0;">Schritt 2: Offline Dateien</h2>
+                                <p><strong>${installedCount} Hörbücher</strong> installiert.</p>
+                                <div style="background:rgba(243, 156, 18, 0.2); border-left:4px solid #f39c12; padding:10px; margin-bottom:15px; font-size:0.9em;">
+                                    ⚠️ <strong>DOWNLOAD-TIPPS:</strong><br>
+                                    1. <b>LANGE</b> drücken -> "Link herunterladen".<br>
+                                    2. Danach Dateien über den jetzt <b>orangenen Button</b> verknüpfen.
+                                </div>
+                                <ul style="background:#2d3436; padding:15px; border-radius:10px; list-style:none; border:1px solid #555; margin:0;">
+                                    ${downloadLinks.join('')}
+                                </ul>
+                                <button onclick="this.parentElement.remove();" style="margin-top:20px; background:#3498db; color:white; padding:15px; border:none; border-radius:10px; width:100%; font-weight:bold;">Schließen</button>
+                            </div>`;
+                         document.body.insertAdjacentHTML('beforeend', dlHtml);
+                     }
+                });
+
+            } catch(e) {
+                alert("Fehler: " + e.message);
+            }
+        }
+        
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
     </script>
 </body>
