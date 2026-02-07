@@ -1,4 +1,4 @@
-# 🎵 KlangKiste PWA (V84 Visual Update)
+# 🎵 KlangKiste PWA (V84 Legacy Audio Update)
 
 **Die smarte DIY "Toniebox" fürs Handy – 100% AI-Generated Code.**
 
@@ -8,24 +8,19 @@ Dieses Projekt ist eine kinderfreundliche Musik-Player-App, die alte Smartphones
 
 ---
 
-## 🎨 Neu in v84: Lebendige Hintergründe & Fixes
+## 🔧 Neu in v84: Audio-Logik & Legacy Support
 
-Die V84 bringt mehr Leben in die Kinder-Oberfläche und verbessert die Stabilität auf älteren Geräten.
+Dieses Update konzentriert sich vollständig auf die Stabilität und Kompatibilität mit älteren Smartphones (z.B. Samsung Galaxy S8, Android 8/9).
 
-### 1. Animierte Live-Hintergründe
-Statt statischer Farben bietet der Player nun sanft animierte Hintergründe, die passend zur Tageszeit oder Stimmung gewählt werden können.
-* **Tag-Modus:** Wolken ziehen langsam am blauen Himmel vorbei.
-* **Nacht-Modus:** Sterne funkeln dezent im Hintergrund.
-* **Performance:** Die Animationen sind extrem ressourcenschonend (CSS-basiert), sodass auch alte Handys (wie Galaxy S8, S9) nicht belastet werden.
+### 1. Rückkehr zur V81 Audio-Engine
+Nach Problemen mit verzerrtem Ton und Stottern in V83 wurde die Audio-Logik wieder auf den robusten Kern der Version 81 zurückgesetzt.
+* **Keine Web Audio API Abhängigkeit:** Der Player nutzt für die Wiedergabe und den Test-Ton wieder rein native Android-Funktionen (`HTML5 Audio Element`). Das verhindert "Roboter-Stimmen" oder zu schnelle Wiedergabe auf älteren Prozessoren.
+* **Ressourcenschonend:** Der Verzicht auf komplexe Audio-Kontexte entlastet die CPU massiv.
 
-### 2. Audio-Engine & Stabilität
-Spezielle Anpassungen für ältere Android-Versionen (z.B. Android 8/9):
-* **Kein Stottern mehr:** Der "Sleep-Timer" und die Audio-Wiedergabe wurden entkoppelt, um Audio-Verzerrungen auf alten Geräten zu verhindern.
-* **Robuster Test-Ton:** Der Soundcheck nutzt nun wieder native Android-Funktionen für maximale Kompatibilität.
-
-### 3. UI-Verbesserungen
-* **Bessere Lesbarkeit:** Kontraste in der Bibliothek wurden erhöht.
-* **Samsung-Fix:** Ein Fehler, bei dem auf Samsung-Geräten Texte abgeschnitten wurden, ist behoben.
+### 2. Optimierter Sleep-Timer
+Die visuellen Funktionen der V83 bleiben erhalten, aber die technische Umsetzung wurde bereinigt:
+* **Entkoppelte Timer:** Der visuelle Sekunden-Countdown läuft getrennt von der Audio-Steuerung.
+* **Hard-Stop statt Fading:** Um Abstürze beim Einschlafen zu verhindern, wird die Musik am Ende des Timers sofort gestoppt, statt rechenintensiv ausgefadet zu werden. Das garantiert, dass das Handy auch wirklich "schlafen geht".
 
 ---
 
@@ -255,4 +250,4 @@ Wir haben ein DIY-Diagnose-Tool auf Basis eines ESP32 und PN5180 entwickelt.
 ## 👨‍💻 Credits
 
 Entwickelt von Sebastian Rößer mit Unterstützung von **Google Gemini 3 Pro**.
-Version 84 „Visual Update".
+Version 84 „Legacy Audio Update".
